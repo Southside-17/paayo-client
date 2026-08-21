@@ -4,7 +4,13 @@ import { View } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { API_URL } from '@/lib/api';
 
-type Props = { nickname: string; token: string | null; version: number; size?: number };
+type Props = {
+    nickname: string;
+    avatar: boolean;
+    token: string | null;
+    version: number;
+    size?: number;
+};
 
 /**
  * The picture on an account, or the initial standing in for one.
@@ -13,15 +19,18 @@ type Props = { nickname: string; token: string | null; version: number; size?: n
  * a public URL. `version` is bumped after an upload: the URL never changes, so
  * nothing else would tell the image cache to look again.
  */
-export function Avatar({ nickname, token, version, size = 72 }: Props) {
+export function Avatar({ nickname, avatar, token, version, size = 72 }: Props) {
     const initial = nickname.trim().charAt(0).toUpperCase() || '?';
 
-    if (token === null) {
+    // The route answers 404 for an account holding no picture, so `avatar` is
+    // read first rather than asking and letting the request fail.
+    if (!avatar || token === null) {
         return <Initial initial={initial} size={size} />;
     }
 
     return (
         <Image
+            testID="avatar-image"
             source={{
                 uri: `${API_URL}/api/v1/profile/avatar?v=${version}`,
                 headers: { Authorization: `Bearer ${token}` },

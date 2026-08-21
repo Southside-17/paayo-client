@@ -79,7 +79,12 @@ export default function Profile() {
                 <FormMessage message={message} />
 
                 <Card className="items-center gap-3">
-                    <Avatar nickname={user.nickname} token={session.token} version={version} />
+                    <Avatar
+                        nickname={user.nickname}
+                        avatar={user.avatar}
+                        token={session.token}
+                        version={version}
+                    />
 
                     <View className="items-center">
                         <Text className="text-lg font-semibold">{user.nickname}</Text>

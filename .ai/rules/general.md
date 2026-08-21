@@ -90,6 +90,11 @@ rather than pointing at a public URL. The route never changes, so an upload also
 bumps a `version` query the image cache can see -- without it the old picture
 stays on screen.
 
+`UserResource.avatar` is read before the request is made. The route answers 404
+for an account holding no picture, so a component that asks unconditionally
+404s on every account that has not set one -- which reads, in a log, exactly
+like a broken upload endpoint. The boolean exists to be checked.
+
 That is the one thing `fetch` cannot carry for us, and the only reason
 `useSession()` exposes the raw `token`. Do not reach for it for anything a
 request can do.
