@@ -19,6 +19,13 @@ password strength, nickname shape, and uniqueness all live there.
 - **Refresh is destructive.** The server deletes the presented token, so a failed refresh means the device is signed out for good -- never retry it in a loop.
 - **Reading 2FA enrolment material before `POST /auth/two-factor`** returns 422 on `code`, not 404.
 
+## An address has no Region, and its locality is `town`
+Province is the top place name; `region` was stored and then ignored, and is
+gone from the column, the request, `AddressResource` and the `identity_address`
+shape. The locality is `town` -- one word covering cities and municipalities --
+never `city`. `Address` in `src/lib/types.ts` and the form's `FIELDS` mirror the
+server's `.ai/rules/models.md` on this; do not put either name back.
+
 ## Two flows finish in a browser, by design
 Password reset and email verification are completed by the server, which reuses
 Laravel's broker and consumes the signed link itself. The app cannot confirm

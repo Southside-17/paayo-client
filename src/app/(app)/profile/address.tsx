@@ -24,9 +24,8 @@ const FIELDS = [
     { key: 'street', label: 'House no. & street', required: true },
     { key: 'subdivision', label: 'Subdivision', required: false },
     { key: 'barangay', label: 'Barangay', required: true },
-    { key: 'city', label: 'City / municipality', required: true },
+    { key: 'town', label: 'Town', required: true },
     { key: 'province', label: 'Province', required: true },
-    { key: 'region', label: 'Region', required: false },
     { key: 'postal_code', label: 'Postal code', required: false },
 ] as const;
 
@@ -47,9 +46,8 @@ export default function EditAddress() {
         street: '',
         subdivision: '',
         barangay: '',
-        city: '',
+        town: '',
         province: '',
-        region: '',
         postal_code: '',
     });
     const [isDefault, setIsDefault] = useState(false);
@@ -82,9 +80,8 @@ export default function EditAddress() {
             street: address.street,
             subdivision: address.subdivision ?? '',
             barangay: address.barangay,
-            city: address.city,
+            town: address.town,
             province: address.province,
-            region: address.region ?? '',
             postal_code: address.postal_code ?? '',
         });
     }, [authenticatedRequest, id]);

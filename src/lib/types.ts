@@ -29,9 +29,8 @@ export type Address = {
     street: string;
     subdivision: string | null;
     barangay: string;
-    city: string;
+    town: string;
     province: string;
-    region: string | null;
     postal_code: string | null;
     landmark: string | null;
     latitude: number | null;
