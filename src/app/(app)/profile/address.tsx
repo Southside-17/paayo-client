@@ -1,9 +1,11 @@
+import * as Location from 'expo-location';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FormMessage } from '@/components/form-message';
+import { PinMap } from '@/components/pin-map';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { FieldError } from '@/components/ui/field-error';
@@ -51,6 +53,9 @@ export default function EditAddress() {
         postal_code: '',
     });
     const [isDefault, setIsDefault] = useState(false);
+    const [latitude, setLatitude] = useState<string>('');
+    const [longitude, setLongitude] = useState<string>('');
+    const [locationNotice, setLocationNotice] = useState<string | null>(null);
 
     const authenticatedRequest =
         session.status === 'authenticated' ? session.authenticatedRequest : null;
@@ -70,6 +75,8 @@ export default function EditAddress() {
         setLabel(address.label);
         setLandmark(address.landmark ?? '');
         setIsDefault(address.is_default);
+        setLatitude(address.latitude === null ? '' : String(address.latitude));
+        setLongitude(address.longitude === null ? '' : String(address.longitude));
         setFields({
             unit: address.unit ?? '',
             street: address.street,
@@ -90,12 +97,32 @@ export default function EditAddress() {
         return null;
     }
 
+    const useMyLocation = () =>
+        submit(async () => {
+            setLocationNotice(null);
+
+            const { granted } = await Location.requestForegroundPermissionsAsync();
+
+            if (!granted) {
+                setLocationNotice('Paayo cannot read this location. Type the coordinates instead.');
+
+                return;
+            }
+
+            const { coords } = await Location.getCurrentPositionAsync({});
+
+            setLatitude(coords.latitude.toFixed(7));
+            setLongitude(coords.longitude.toFixed(7));
+        });
+
     const save = () =>
         submit(async () => {
             const body = {
                 label: label.trim(),
                 landmark: landmark.trim() === '' ? null : landmark.trim(),
                 is_default: isDefault,
+                latitude: latitude.trim() === '' ? null : Number(latitude),
+                longitude: longitude.trim() === '' ? null : Number(longitude),
                 ...Object.fromEntries(
                     FIELDS.map(({ key }) => [key, fields[key].trim() === '' ? null : fields[key].trim()]),
                 ),
@@ -167,6 +194,54 @@ export default function EditAddress() {
                                 invalid={Boolean(errorFor('landmark'))}
                             />
                             <FieldError message={errorFor('landmark')} />
+                        </View>
+
+                        <View className="gap-2">
+                            <Label>Pin</Label>
+                            <PinMap
+                                latitude={latitude.trim() === '' ? null : Number(latitude)}
+                                longitude={longitude.trim() === '' ? null : Number(longitude)}
+                                onMove={(pinLatitude, pinLongitude) => {
+                                    setLatitude(pinLatitude.toFixed(7));
+                                    setLongitude(pinLongitude.toFixed(7));
+                                }}
+                            />
+
+                            <Button variant="outline" onPress={useMyLocation} busy={busy}>
+                                Use my location
+                            </Button>
+
+                            <FieldError message={locationNotice ?? undefined} />
+
+                            <View className="flex-row gap-3">
+                                <View className="flex-1">
+                                    <Label>Latitude</Label>
+                                    <Input
+                                        value={latitude}
+                                        onChangeText={setLatitude}
+                                        keyboardType="numbers-and-punctuation"
+                                        placeholder="7.0731"
+                                        invalid={Boolean(errorFor('latitude'))}
+                                    />
+                                </View>
+                                <View className="flex-1">
+                                    <Label>Longitude</Label>
+                                    <Input
+                                        value={longitude}
+                                        onChangeText={setLongitude}
+                                        keyboardType="numbers-and-punctuation"
+                                        placeholder="125.6128"
+                                        invalid={Boolean(errorFor('longitude'))}
+                                    />
+                                </View>
+                            </View>
+                            <FieldError message={errorFor('latitude') ?? errorFor('longitude')} />
+
+                            {latitude.trim() === '' ? (
+                                <Text className="text-warning text-sm">
+                                    Without a pin, no provider can be matched to this address.
+                                </Text>
+                            ) : null}
                         </View>
 
                         <Button

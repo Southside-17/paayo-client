@@ -97,3 +97,21 @@ A space in a family name is fine. Prebuild writes
 into `MainApplication.kt`, so Android registers the human name and the `xml_`
 prefix is only a resource-name collision guard. Adding or removing a face means
 `expo prebuild --clean` and a rebuild -- it is native configuration, not JS.
+
+## expo-maps is two components, and only Android needs a key
+`AppleMaps.View` on iOS, `GoogleMaps.View` on Android. Neither renders on the
+other platform, so `src/components/pin-map.tsx` chooses by `Platform.OS` and
+every screen above it stays platform blind. Expo's own docs are explicit that
+Google Maps is supported "exclusively on Android" here -- do not enable Maps SDK
+for iOS, it is unreachable from this library.
+
+The key is read from `GOOGLE_MAPS_API_KEY` into `android.config.googleMaps.apiKey`
+in `app.config.ts` -- that exact path, not a plugin option. Prebuild writes it
+into `AndroidManifest.xml` as `com.google.android.geo.API_KEY`, which is the
+thing to check when the map draws grey: a mismatch between the restriction and
+the package shows up only in `adb logcat`, never in the UI.
+
+Cost is nothing. The Android map draws the Mobile Native Dynamic Maps SKU, which
+Google lists as unlimited -- not the 10,000/month tier the billed services use.
+Places, Geocoding and Directions are the billed ones; none are used, and address
+autocomplete would be Places.

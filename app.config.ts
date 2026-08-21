@@ -18,6 +18,12 @@ const config: ExpoConfig = {
     icon: './assets/images/icon.png',
     android: {
         package: 'com.paayo.ph',
+        // expo-maps carries Google Maps on Android only; iOS renders Apple Maps
+        // and needs no key. Restrict this one to Android apps, this package and
+        // the signing SHA-1, with no API on it but Maps SDK for Android.
+        config: {
+            googleMaps: { apiKey: process.env.GOOGLE_MAPS_API_KEY },
+        },
         adaptiveIcon: {
             foregroundImage: './assets/images/android-icon-foreground.png',
             backgroundImage: './assets/images/android-icon-background.png',
@@ -39,6 +45,14 @@ const config: ExpoConfig = {
     plugins: [
         'expo-router',
         'expo-secure-store',
+        [
+            'expo-maps',
+            {
+                requestLocationPermission: true,
+                locationPermission:
+                    'Paayo uses your location to place the pin on a new address.',
+            },
+        ],
         [
             'expo-image-picker',
             {
