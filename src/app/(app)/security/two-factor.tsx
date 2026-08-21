@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
 
@@ -80,71 +80,79 @@ export default function TwoFactorSetup() {
 
     return (
         <SafeAreaView className="bg-background flex-1">
-            <ScrollView contentContainerClassName="gap-6 p-6">
-                <View className="flex-row items-center justify-between">
-                    <Text className="text-2xl font-bold">
-                        {enabled ? 'Recovery codes' : 'Set up two factor'}
-                    </Text>
-                    <Button variant="ghost" onPress={() => router.back()}>
-                        Close
-                    </Button>
-                </View>
-
-                <FormMessage message={message} />
-
-                {qr ? (
-                    <Card className="items-center gap-3">
-                        <Text className="text-muted-foreground text-center text-sm">
-                            Scan this with your authenticator app.
+            <KeyboardAvoidingView
+                className="flex-1"
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            >
+                <ScrollView
+                    contentContainerClassName="gap-6 p-6"
+                    keyboardShouldPersistTaps="handled"
+                >
+                    <View className="flex-row items-center justify-between">
+                        <Text className="text-2xl font-bold">
+                            {enabled ? 'Recovery codes' : 'Set up two factor'}
                         </Text>
-                        {/* Fortify draws dark modules on white, which a scanner needs; the
-                            surface is white in either theme so that reads as deliberate. */}
-                        <View className="rounded-lg bg-white p-3">
-                            <SvgXml xml={qr.svg} width={200} height={200} />
-                        </View>
-                        <Text className="text-muted-foreground text-center text-xs">
-                            Cannot scan? Enter this key instead: {qr.url}
-                        </Text>
-                    </Card>
-                ) : null}
-
-                {codes ? (
-                    <Card className="gap-2">
-                        <Text className="font-semibold">Recovery codes</Text>
-                        <Text className="text-muted-foreground text-sm">
-                            Save these somewhere safe. Each one works once, if you lose your
-                            authenticator.
-                        </Text>
-                        {codes.map((recoveryCode) => (
-                            <Text key={recoveryCode} className="font-mono text-sm">
-                                {recoveryCode}
-                            </Text>
-                        ))}
-                        {enabled ? (
-                            <Button variant="outline" onPress={regenerate} busy={busy}>
-                                Replace these codes
-                            </Button>
-                        ) : null}
-                    </Card>
-                ) : null}
-
-                {enabled ? null : (
-                    <Card className="gap-3">
-                        <Label>Code from your app</Label>
-                        <Input
-                            value={code}
-                            onChangeText={setCode}
-                            keyboardType="number-pad"
-                            placeholder="123456"
-                            invalid={Boolean(errorFor('code'))}
-                        />
-                        <FieldError message={errorFor('code')} />
-                        <Button onPress={confirm} busy={busy}>
-                            Turn on two factor
+                        <Button variant="ghost" onPress={() => router.back()}>
+                            Close
                         </Button>
-                    </Card>
-                )}
-            </ScrollView>
+                    </View>
+
+                    <FormMessage message={message} />
+
+                    {qr ? (
+                        <Card className="items-center gap-3">
+                            <Text className="text-muted-foreground text-center text-sm">
+                                Scan this with your authenticator app.
+                            </Text>
+                            {/* Fortify draws dark modules on white, which a scanner needs; the
+                                surface is white in either theme so that reads as deliberate. */}
+                            <View className="rounded-lg bg-white p-3">
+                                <SvgXml xml={qr.svg} width={200} height={200} />
+                            </View>
+                            <Text className="text-muted-foreground text-center text-xs">
+                                Cannot scan? Enter this key instead: {qr.url}
+                            </Text>
+                        </Card>
+                    ) : null}
+
+                    {codes ? (
+                        <Card className="gap-2">
+                            <Text className="font-semibold">Recovery codes</Text>
+                            <Text className="text-muted-foreground text-sm">
+                                Save these somewhere safe. Each one works once, if you lose your
+                                authenticator.
+                            </Text>
+                            {codes.map((recoveryCode) => (
+                                <Text key={recoveryCode} className="font-mono text-sm">
+                                    {recoveryCode}
+                                </Text>
+                            ))}
+                            {enabled ? (
+                                <Button variant="outline" onPress={regenerate} busy={busy}>
+                                    Replace these codes
+                                </Button>
+                            ) : null}
+                        </Card>
+                    ) : null}
+
+                    {enabled ? null : (
+                        <Card className="gap-3">
+                            <Label>Code from your app</Label>
+                            <Input
+                                value={code}
+                                onChangeText={setCode}
+                                keyboardType="number-pad"
+                                placeholder="123456"
+                                invalid={Boolean(errorFor('code'))}
+                            />
+                            <FieldError message={errorFor('code')} />
+                            <Button onPress={confirm} busy={busy}>
+                                Turn on two factor
+                            </Button>
+                        </Card>
+                    )}
+                </ScrollView>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 }

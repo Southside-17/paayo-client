@@ -1,6 +1,6 @@
 import { Link, router } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FormMessage } from '@/components/form-message';
@@ -54,88 +54,96 @@ export default function Security() {
 
     return (
         <SafeAreaView className="bg-background flex-1">
-            <ScrollView contentContainerClassName="gap-6 p-6">
-                <View className="flex-row items-center justify-between">
-                    <Text className="text-2xl font-bold">Security</Text>
-                    <Button variant="ghost" onPress={() => router.back()}>
-                        Done
-                    </Button>
-                </View>
+            <KeyboardAvoidingView
+                className="flex-1"
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            >
+                <ScrollView
+                    contentContainerClassName="gap-6 p-6"
+                    keyboardShouldPersistTaps="handled"
+                >
+                    <View className="flex-row items-center justify-between">
+                        <Text className="text-2xl font-bold">Security</Text>
+                        <Button variant="ghost" onPress={() => router.back()}>
+                            Done
+                        </Button>
+                    </View>
 
-                <Card className="gap-3">
-                    <Text className="font-semibold">Two factor authentication</Text>
-                    <Text className="text-muted-foreground text-sm">
-                        {enabled
-                            ? 'A code from your authenticator app is required at every sign in.'
-                            : 'Add a second step at sign in, using an authenticator app.'}
-                    </Text>
+                    <Card className="gap-3">
+                        <Text className="font-semibold">Two factor authentication</Text>
+                        <Text className="text-muted-foreground text-sm">
+                            {enabled
+                                ? 'A code from your authenticator app is required at every sign in.'
+                                : 'Add a second step at sign in, using an authenticator app.'}
+                        </Text>
 
-                    <FormMessage message={twoFactor.message} />
+                        <FormMessage message={twoFactor.message} />
 
-                    {enabled ? (
-                        <View className="gap-2">
+                        {enabled ? (
+                            <View className="gap-2">
+                                <Link href="/security/two-factor" asChild>
+                                    <Button variant="outline">View recovery codes</Button>
+                                </Link>
+                                <Button variant="ghost" onPress={disable} busy={twoFactor.busy}>
+                                    Turn off
+                                </Button>
+                            </View>
+                        ) : (
                             <Link href="/security/two-factor" asChild>
-                                <Button variant="outline">View recovery codes</Button>
+                                <Button variant="brand">Turn on</Button>
                             </Link>
-                            <Button variant="ghost" onPress={disable} busy={twoFactor.busy}>
-                                Turn off
-                            </Button>
+                        )}
+                    </Card>
+
+                    <Card className="gap-3">
+                        <Text className="font-semibold">Change password</Text>
+                        <Text className="text-muted-foreground text-sm">
+                            Your other devices are signed out. This one stays signed in.
+                        </Text>
+
+                        <FormMessage message={changed} tone="success" />
+                        <FormMessage message={password.message} />
+
+                        <View>
+                            <Label>Current password</Label>
+                            <Input
+                                value={current}
+                                onChangeText={setCurrent}
+                                secureTextEntry
+                                autoComplete="current-password"
+                                invalid={Boolean(password.errorFor('current_password'))}
+                            />
+                            <FieldError message={password.errorFor('current_password')} />
                         </View>
-                    ) : (
-                        <Link href="/security/two-factor" asChild>
-                            <Button variant="brand">Turn on</Button>
-                        </Link>
-                    )}
-                </Card>
 
-                <Card className="gap-3">
-                    <Text className="font-semibold">Change password</Text>
-                    <Text className="text-muted-foreground text-sm">
-                        Your other devices are signed out. This one stays signed in.
-                    </Text>
+                        <View>
+                            <Label>New password</Label>
+                            <Input
+                                value={next}
+                                onChangeText={setNext}
+                                secureTextEntry
+                                autoComplete="new-password"
+                                invalid={Boolean(password.errorFor('password'))}
+                            />
+                            <FieldError message={password.errorFor('password')} />
+                        </View>
 
-                    <FormMessage message={changed} tone="success" />
-                    <FormMessage message={password.message} />
+                        <View>
+                            <Label>Confirm new password</Label>
+                            <Input
+                                value={confirmation}
+                                onChangeText={setConfirmation}
+                                secureTextEntry
+                                autoComplete="new-password"
+                            />
+                        </View>
 
-                    <View>
-                        <Label>Current password</Label>
-                        <Input
-                            value={current}
-                            onChangeText={setCurrent}
-                            secureTextEntry
-                            autoComplete="current-password"
-                            invalid={Boolean(password.errorFor('current_password'))}
-                        />
-                        <FieldError message={password.errorFor('current_password')} />
-                    </View>
-
-                    <View>
-                        <Label>New password</Label>
-                        <Input
-                            value={next}
-                            onChangeText={setNext}
-                            secureTextEntry
-                            autoComplete="new-password"
-                            invalid={Boolean(password.errorFor('password'))}
-                        />
-                        <FieldError message={password.errorFor('password')} />
-                    </View>
-
-                    <View>
-                        <Label>Confirm new password</Label>
-                        <Input
-                            value={confirmation}
-                            onChangeText={setConfirmation}
-                            secureTextEntry
-                            autoComplete="new-password"
-                        />
-                    </View>
-
-                    <Button onPress={changePassword} busy={password.busy}>
-                        Change password
-                    </Button>
-                </Card>
-            </ScrollView>
+                        <Button onPress={changePassword} busy={password.busy}>
+                            Change password
+                        </Button>
+                    </Card>
+                </ScrollView>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 }
