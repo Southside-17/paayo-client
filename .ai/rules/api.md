@@ -41,8 +41,14 @@ dev server no matter what else is right.
 
 `EXPO_PUBLIC_PASSKEY_RP_ID` names the domain, and it must equal `PASSKEY_RP_ID`
 on the server -- it drives the iOS Associated Domains entitlement in
-`app.config.ts`, so changing it means `expo prebuild` and a rebuild. Unset, the
-buttons hide rather than offering something that cannot work.
+`app.config.ts`, so changing it means `expo prebuild` and a rebuild, not a Metro
+reload. It stays empty in development, where it could not work anyway, and the
+buttons hide rather than offering something that cannot.
+
+The API host is a separate thing and does not have to be that domain. A browser
+derives the relying party from the page's own origin; an app declares it and
+proves ownership out of band, so `EXPO_PUBLIC_API_URL` can stay a LAN address
+while passkeys belong to the deployed domain.
 
 The server parks each ceremony behind a `challenge_token` because there is no
 session to hold it in; send it back untouched with the credential. The options
