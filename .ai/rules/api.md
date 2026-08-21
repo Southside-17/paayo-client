@@ -31,6 +31,26 @@ It sits at `api/v1/profile` and `api/v1/profile/avatar`, beside addresses and
 identifications. `auth/*` is for proving who you are and holding the token, not
 for editing what the account says about itself.
 
+## A passkey is bound to a domain, and the app must prove it owns one
+`react-native-passkeys` asks the platform, and the platform refuses until it has
+fetched a file from that domain over HTTPS: iOS reads
+`/.well-known/apple-app-site-association` and looks for this bundle, Android
+reads `/.well-known/assetlinks.json` and looks for the signing certificate. An
+IP or `localhost` can never satisfy either, so passkeys do not work against a
+dev server no matter what else is right.
+
+`EXPO_PUBLIC_PASSKEY_RP_ID` names the domain, and it must equal `PASSKEY_RP_ID`
+on the server -- it drives the iOS Associated Domains entitlement in
+`app.config.ts`, so changing it means `expo prebuild` and a rebuild. Unset, the
+buttons hide rather than offering something that cannot work.
+
+The server parks each ceremony behind a `challenge_token` because there is no
+session to hold it in; send it back untouched with the credential. The options
+it returns are already in the JSON shape `create`/`get` take, so they are passed
+straight through -- restating that shape here would only be somewhere for it to
+drift. A null answer from either is the sheet being dismissed, which says
+nothing, exactly as Google does.
+
 ## Two flows finish in a browser, by design
 Password reset and email verification are completed by the server, which reuses
 Laravel's broker and consumes the signed link itself. The app cannot confirm

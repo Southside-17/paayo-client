@@ -4,6 +4,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FormMessage } from '@/components/form-message';
+import { PasskeyCard } from '@/components/passkey-card';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { FieldError } from '@/components/ui/field-error';
@@ -68,6 +69,8 @@ export default function Security() {
                             Done
                         </Button>
                     </View>
+
+                    <PasskeyCard />
 
                     <Card className="gap-3">
                         <Text className="font-semibold">Two factor authentication</Text>

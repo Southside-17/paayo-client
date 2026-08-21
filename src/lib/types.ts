@@ -39,6 +39,13 @@ export type Address = {
     line: string;
 };
 
+export type Passkey = {
+    id: string;
+    name: string;
+    last_used_at: string | null;
+    created_at: string;
+};
+
 export type Social = {
     provider: string;
     label: string;

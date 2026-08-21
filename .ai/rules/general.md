@@ -53,6 +53,13 @@ React Native's own included. So a warning shows up as an empty white bar with
 an amber `!` and a dismiss cross, and looks like a rendering fault. The text is
 there; read it in the Metro terminal instead.
 
+## There is no Prettier config, so do not run Prettier
+The repo is 4-space and single-quoted; `npx prettier` defaults to 2-space and
+double quotes and there is nothing here to tell it otherwise. Running it on a
+file rewrites the whole thing, and `expo lint` passes either way, so the damage
+shows up only as a 200-line diff on a two-line change. Match the file you are
+editing by hand.
+
 ## Brand marks are copied out of Simple Icons, not imported from it
 Lucide carries no brand marks, so Google's comes from Simple Icons -- but that
 package is one 5MB barrel with no per-icon JS entry point, and Metro does not

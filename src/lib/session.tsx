@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { ApiError, DEVICE_NAME, request, type RequestMethod } from './api';
+import { passkeyAssertion } from './passkey';
 import { clearToken, readToken, writeToken } from './tokens';
 import { isTwoFactorChallenge, type LoginResult, type TokenResponse, type User } from './types';
 
@@ -14,6 +15,7 @@ type SessionValue = SessionState & {
     token: string | null;
     login: (email: string, password: string) => Promise<LoginResult>;
     signInWithGoogle: (accessToken: string) => Promise<LoginResult>;
+    signInWithPasskey: () => Promise<LoginResult | null>;
     completeTwoFactor: (challengeToken: string, code: string, recoveryCode?: string) => Promise<void>;
     register: (fields: RegisterFields) => Promise<void>;
     logout: () => Promise<void>;
@@ -180,6 +182,27 @@ export function SessionProvider({ children }: { children: ReactNode }) {
      * address is new. The server answers exactly as password login does, second
      * factor included, so the caller branches the same way.
      */
+    // Null when the sheet was dismissed, which is a decision and not a failure
+    // -- the screen above says nothing, exactly as it does for Google.
+    const signInWithPasskey = useCallback(async (): Promise<LoginResult | null> => {
+        const answered = await passkeyAssertion();
+
+        if (answered === null) {
+            return null;
+        }
+
+        const result = await request<LoginResult>('/auth/passkeys/login', {
+            method: 'POST',
+            body: { ...answered, device_name: DEVICE_NAME },
+        });
+
+        if (!isTwoFactorChallenge(result)) {
+            await adopt(result);
+        }
+
+        return result;
+    }, [adopt]);
+
     const signInWithGoogle = useCallback(
         async (accessToken: string): Promise<LoginResult> => {
             const result = await request<LoginResult>('/auth/socials/google', {
@@ -247,8 +270,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }, [authenticatedRequest, token]);
 
     const value = useMemo<SessionValue>(
-        () => ({ ...state, token, login, signInWithGoogle, completeTwoFactor, register, logout, reload, authenticatedRequest }),
-        [authenticatedRequest, completeTwoFactor, login, logout, register, reload, signInWithGoogle, state, token],
+        () => ({ ...state, token, login, signInWithGoogle, signInWithPasskey, completeTwoFactor, register, logout, reload, authenticatedRequest }),
+        [authenticatedRequest, completeTwoFactor, login, logout, register, reload, signInWithGoogle, signInWithPasskey, state, token],
     );
 
     return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

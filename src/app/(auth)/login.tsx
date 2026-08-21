@@ -1,4 +1,5 @@
 import { Link, router } from 'expo-router';
+import KeyRound from 'lucide-react-native/icons/key-round';
 import { useColorScheme } from 'nativewind';
 import { useState } from 'react';
 import { View } from 'react-native';
@@ -12,15 +13,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Text } from '@/components/ui/text';
-import { useSession } from '@/lib/session';
 import { GOOGLE } from '@/lib/brands';
 import { useGoogleSignIn } from '@/lib/google';
+import { passkeysAreSupported } from '@/lib/passkey';
+import { useSession } from '@/lib/session';
 import { isTwoFactorChallenge, type LoginResult } from '@/lib/types';
 import { useSubmit } from '@/lib/use-submit';
 import palette from '@/theme/palette';
 
 export default function Login() {
-    const { login, signInWithGoogle } = useSession();
+    const { login, signInWithGoogle, signInWithPasskey } = useSession();
     const { busy, message, errorFor, submit } = useSubmit();
     const google = useGoogleSignIn();
     const { colorScheme } = useColorScheme();
@@ -38,6 +40,16 @@ export default function Login() {
 
     const signIn = () => submit(async () => challenge(await login(email.trim(), password)));
 
+    const signInWithAPasskey = () =>
+        submit(async () => {
+            const result = await signInWithPasskey();
+
+            // Dismissing the sheet is a decision, not a failure.
+            if (result !== null) {
+                challenge(result);
+            }
+        });
+
     const continueWithGoogle = () =>
         submit(async () => {
             const token = await google.requestToken();
@@ -54,6 +66,19 @@ export default function Login() {
         <AuthScreen title="Log in to your account" subtitle="Enter your email and password to log in">
             <View className="gap-4">
                 <FormMessage message={message} />
+
+                {passkeysAreSupported() ? (
+                    <Button
+                        variant="outline"
+                        onPress={signInWithAPasskey}
+                        busy={busy}
+                        icon={
+                            <KeyRound size={18} color={palette[colorScheme ?? 'light'].foreground} />
+                        }
+                    >
+                        Sign in with passkey
+                    </Button>
+                ) : null}
 
                 {google.ready ? (
                     <>

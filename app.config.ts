@@ -37,6 +37,14 @@ const config: ExpoConfig = {
     ios: {
         bundleIdentifier: 'com.paayo.ph',
         supportsTablet: false,
+        // A passkey is bound to a domain, and iOS will not let the app speak
+        // for one until it has read https://{domain}/.well-known/
+        // apple-app-site-association and found this bundle listed there. No
+        // domain, no entry -- an empty webcredentials claim is refused outright
+        // rather than ignored.
+        associatedDomains: process.env.EXPO_PUBLIC_PASSKEY_RP_ID
+            ? [`webcredentials:${process.env.EXPO_PUBLIC_PASSKEY_RP_ID}`]
+            : undefined,
         infoPlist: {
             NSLocalNetworkUsageDescription:
                 'Paayo reaches the development server running on your computer.',
