@@ -1,8 +1,10 @@
 import { Link, router } from 'expo-router';
+import { useColorScheme } from 'nativewind';
 import { useState } from 'react';
 import { View } from 'react-native';
 
 import { AuthScreen } from '@/components/auth-screen';
+import { BrandIcon } from '@/components/brand-icon';
 import { FormMessage } from '@/components/form-message';
 import { Button } from '@/components/ui/button';
 import { FieldError } from '@/components/ui/field-error';
@@ -11,14 +13,17 @@ import { Label } from '@/components/ui/label';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Text } from '@/components/ui/text';
 import { useSession } from '@/lib/session';
+import { GOOGLE } from '@/lib/brands';
 import { useGoogleSignIn } from '@/lib/google';
 import { isTwoFactorChallenge, type LoginResult } from '@/lib/types';
 import { useSubmit } from '@/lib/use-submit';
+import palette from '@/theme/palette';
 
 export default function Login() {
     const { login, signInWithGoogle } = useSession();
     const { busy, message, errorFor, submit } = useSubmit();
     const google = useGoogleSignIn();
+    const { colorScheme } = useColorScheme();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
@@ -52,8 +57,18 @@ export default function Login() {
 
                 {google.ready ? (
                     <>
-                        <Button variant="outline" onPress={continueWithGoogle} busy={busy}>
-                            Continue with Google
+                        <Button
+                            variant="outline"
+                            onPress={continueWithGoogle}
+                            busy={busy}
+                            icon={
+                                <BrandIcon
+                                    brand={GOOGLE}
+                                    color={palette[colorScheme ?? 'light'].foreground}
+                                />
+                            }
+                        >
+                            Sign in with Google
                         </Button>
 
                         <View className="flex-row items-center gap-3">

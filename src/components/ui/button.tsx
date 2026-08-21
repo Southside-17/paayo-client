@@ -1,4 +1,5 @@
 import { cva, type VariantProps } from 'class-variance-authority';
+import type { ReactNode } from 'react';
 import { ActivityIndicator, Pressable, type PressableProps } from 'react-native';
 
 import { cn } from '@/lib/utils';
@@ -33,9 +34,10 @@ type Props = Omit<PressableProps, 'children'> &
         children: string;
         className?: string;
         busy?: boolean;
+        icon?: ReactNode;
     };
 
-export function Button({ children, className, variant, busy, disabled, ...props }: Props) {
+export function Button({ children, className, variant, busy, icon, disabled, ...props }: Props) {
     const inactive = disabled || busy;
 
     return (
@@ -45,7 +47,7 @@ export function Button({ children, className, variant, busy, disabled, ...props 
             className={cn(button({ variant }), inactive && 'opacity-60', className)}
             {...props}
         >
-            {busy ? <ActivityIndicator size="small" /> : null}
+            {busy ? <ActivityIndicator size="small" /> : icon}
             <Text className={label({ variant })}>{children}</Text>
         </Pressable>
     );

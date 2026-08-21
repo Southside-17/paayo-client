@@ -53,6 +53,19 @@ React Native's own included. So a warning shows up as an empty white bar with
 an amber `!` and a dismiss cross, and looks like a rendering fault. The text is
 there; read it in the Metro terminal instead.
 
+## Brand marks are copied out of Simple Icons, not imported from it
+Lucide carries no brand marks, so Google's comes from Simple Icons -- but that
+package is one 5MB barrel with no per-icon JS entry point, and Metro does not
+shake it. Importing a single mark would carry all ~3300, which is the same trap
+the lucide rule below exists for. `src/lib/brands.ts` holds the paths;
+`simple-icons` stays a devDependency and `brand-icon.test.tsx` reads it for real
+and fails if a copied path has drifted, so the copy cannot rot in silence.
+
+The mark takes its `color` as a prop. There is no `currentColor` to inherit
+here, and NativeWind does not reach `react-native-svg`, so it is fed from
+`src/theme/palette.js` like every other icon. Passkey is a Lucide glyph
+(`key-round`), not a brand mark -- the console does the same.
+
 ## Import each lucide icon by its own path
 `lucide-react-native`'s barrel carries every one of its ~1500 icons, and Jest
 transforms all of them: one test file that reached it took 25s, and 1s once the
