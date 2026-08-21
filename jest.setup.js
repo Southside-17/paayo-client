@@ -22,3 +22,9 @@ jest.mock('react-native-passkeys', () => ({
     create: jest.fn(),
     get: jest.fn(),
 }));
+
+// A configured build is the default the suite runs as: a relying party domain,
+// and the iOS entitlement a paid Apple team can carry. Tests that care about
+// the unconfigured cases reload the module with these cleared.
+process.env.EXPO_PUBLIC_PASSKEY_RP_ID = 'www.paayo.test';
+process.env.EXPO_PUBLIC_PASSKEY_IOS = '1';

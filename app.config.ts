@@ -37,14 +37,18 @@ const config: ExpoConfig = {
     ios: {
         bundleIdentifier: 'com.paayo.ph',
         supportsTablet: false,
-        // A passkey is bound to a domain, and iOS will not let the app speak
-        // for one until it has read https://{domain}/.well-known/
-        // apple-app-site-association and found this bundle listed there. No
-        // domain, no entry -- an empty webcredentials claim is refused outright
-        // rather than ignored.
-        associatedDomains: process.env.EXPO_PUBLIC_PASSKEY_RP_ID
-            ? [`webcredentials:${process.env.EXPO_PUBLIC_PASSKEY_RP_ID}`]
-            : undefined,
+        // A passkey is bound to a domain, and iOS will not let the app speak for
+        // one until it has read https://{domain}/.well-known/
+        // apple-app-site-association and found this bundle listed there.
+        //
+        // Gated on its own flag and not on the domain alone, because Associated
+        // Domains is a paid Apple Developer Program capability: a free Personal
+        // Team cannot claim a domain, and asking it to fails the entire build
+        // rather than only passkeys. Android needs none of this.
+        associatedDomains:
+            process.env.EXPO_PUBLIC_PASSKEY_RP_ID && process.env.EXPO_PUBLIC_PASSKEY_IOS
+                ? [`webcredentials:${process.env.EXPO_PUBLIC_PASSKEY_RP_ID}`]
+                : undefined,
         infoPlist: {
             NSLocalNetworkUsageDescription:
                 'Paayo reaches the development server running on your computer.',

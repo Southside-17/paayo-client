@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { create, get, isSupported } from 'react-native-passkeys';
 
 import { DisplayableError, request } from './api';
@@ -14,8 +15,24 @@ type Ceremony = { challenge_token: string; options: Record<string, unknown> };
 /** What the server needs back to close a ceremony it opened. */
 export type PasskeyAnswer = { challenge_token: string; credential: unknown };
 
-/** Whether this device can hold a passkey at all. */
+/**
+ * Whether this build can hold a passkey at all.
+ *
+ * Three things have to be true, and only the first is about the phone. There
+ * must be a domain to bind one to, or every ceremony is refused. And on iOS the
+ * app must carry the Associated Domains entitlement, which is a paid Apple
+ * Developer Program capability -- a build signed by a free Personal Team cannot
+ * have it, so the buttons stay hidden rather than opening a sheet that fails.
+ */
 export function passkeysAreSupported(): boolean {
+    if (!process.env.EXPO_PUBLIC_PASSKEY_RP_ID) {
+        return false;
+    }
+
+    if (Platform.OS === 'ios' && !process.env.EXPO_PUBLIC_PASSKEY_IOS) {
+        return false;
+    }
+
     return isSupported();
 }
 

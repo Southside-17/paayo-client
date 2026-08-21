@@ -129,3 +129,20 @@ Coordinates are placed on the map and nowhere else. There is no latitude or
 longitude input -- a seven-decimal pair typed on a phone is a worse fix than a
 tap, and a half-typed one is the only way to reach the server's
 `required_with` refusal. The saved pair is shown back as read-only mono text.
+
+## Associated Domains is a paid Apple capability, and it fails the whole build
+A free Personal Team cannot claim a domain. Put `associatedDomains` in
+`app.config.ts` under one and Xcode refuses to mint a profile at all --
+"Personal development teams ... do not support the Associated Domains
+capability" -- so the app stops building and installing, not just passkeys.
+
+That is why the entitlement hangs off `EXPO_PUBLIC_PASSKEY_IOS` rather than off
+`EXPO_PUBLIC_PASSKEY_RP_ID`. The domain is shared with Android, which needs no
+entitlement and works on the debug keystore today; the flag is the one thing
+that is iOS-only and costs a Developer Program membership. Empty means iOS
+builds as before with the passkey buttons hidden.
+
+`passkeysAreSupported()` reads the same pair, so the UI cannot offer a sheet the
+build has no entitlement to open. Both are read through Expo's env shim as the
+module graph is built, not per call, which is why the tests reload the module
+inside `jest.isolateModules` instead of setting `process.env` and calling again.

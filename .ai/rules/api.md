@@ -39,6 +39,8 @@ reads `/.well-known/assetlinks.json` and looks for the signing certificate. An
 IP or `localhost` can never satisfy either, so passkeys do not work against a
 dev server no matter what else is right.
 
+iOS additionally needs `EXPO_PUBLIC_PASSKEY_IOS`, which gates the Associated Domains entitlement -- a paid Apple Developer Program capability, and a build without it hides the buttons rather than failing at the sheet. See `.ai/rules/toolchain.md`.
+
 `EXPO_PUBLIC_PASSKEY_RP_ID` names the domain -- `www.paayo.ph`, and the `www` is
 load-bearing: the apex carries no A record, so a relying party there fails at
 DNS. It must equal `PASSKEY_RP_ID`
