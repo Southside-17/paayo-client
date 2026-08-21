@@ -13,11 +13,10 @@ export const Input = forwardRef<TextInput, Props>(function Input(
         <TextInput
             ref={ref}
             className={cn(
-                'bg-card text-foreground h-12 rounded-lg border px-3.5 text-base',
+                'bg-card text-foreground placeholder:text-muted-foreground h-12 rounded-lg border px-3.5 text-base',
                 invalid ? 'border-destructive' : 'border-input',
                 className,
             )}
-            placeholderClassName="text-muted-foreground"
             {...props}
         />
     );

@@ -17,3 +17,11 @@ These hold here exactly as they do in the server repo. See its `.ai/rules/genera
 
 ## UI primitives are hand-written
 Do not add a component generator. `src/components/ui/*` is written by hand, matching the console's rule about shadcn. Keep them small, take `className`, and merge with `cn()`.
+
+## NativeWind maps `className`, and nothing beside it
+`react-native-css-interop` registers one prop per component, and on `TextInput`
+that prop is `className`. There is no `placeholderClassName` -- passing one is
+dropped in silence, so the placeholder quietly keeps iOS's near-invisible
+default grey and nothing warns. Style it through the variant the console
+already uses: `placeholder:text-muted-foreground`, which compiles to
+`@rn-move color placeholderTextColor`.
