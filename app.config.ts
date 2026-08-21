@@ -121,7 +121,13 @@ function isBuildConfiguration(entry: unknown): entry is BuildConfiguration {
     return typeof entry === 'object' && entry !== null && 'buildSettings' in entry;
 }
 
-/** Settings Xcode owns that a regenerated project would otherwise lose. */
+/**
+ * Settings Xcode owns that a regenerated project would otherwise lose.
+ *
+ * The development team is deliberately left out. `expo run:ios` passes
+ * -allowProvisioningUpdates only when it finds no team in the project, so
+ * pinning one here stops it minting the profile a device build needs.
+ */
 function withIosBuildSettings(expoConfig: ExpoConfig): ExpoConfig {
     return withXcodeProject(expoConfig, (xcodeConfig) => {
         const configurations = xcodeConfig.modResults.pbxXCBuildConfigurationSection();
@@ -132,10 +138,6 @@ function withIosBuildSettings(expoConfig: ExpoConfig): ExpoConfig {
             }
 
             entry.buildSettings.ENABLE_USER_SCRIPT_SANDBOXING = 'NO';
-
-            if (process.env.APPLE_TEAM_ID) {
-                entry.buildSettings.DEVELOPMENT_TEAM = process.env.APPLE_TEAM_ID;
-            }
         }
 
         return xcodeConfig;
