@@ -1,0 +1,29 @@
+node_modules/
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native projects are generated from app.config.ts (Expo CNG), never committed.
+# Regenerate with `npx expo prebuild`; `expo run:*` does it for you.
+/android/
+/ios/
+
+# Secrets and machine-local config
+.env*
+!.env.example
+
+# Signing material never belongs in git
+*.keystore
+*.jks
+
+# Packaged artifacts
+*.apk
+*.aab
+*.ipa
+
+# Metro
+.metro-health-check*
+
+# OS
+.DS_Store

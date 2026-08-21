@@ -1,0 +1,99 @@
+import { Head, Link } from '@inertiajs/react';
+import { ChevronLeft, Navigation } from 'lucide-react';
+
+import ClientLayout from '@/layouts/client-layout';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { StatusPill, type StatusTone } from '@/components/ui/status-pill';
+import {
+    VerticalTimeline,
+    type VerticalTimelineStep,
+} from '@/components/ui/vertical-timeline';
+
+type Props = {
+    request: {
+        ref: string;
+        title: string;
+        area: string;
+        provider: string;
+        status: { tone: StatusTone; label: string };
+        estimateCents: number;
+    };
+    timeline: VerticalTimelineStep[];
+    backHref: string;
+};
+
+const peso = (cents: number) =>
+    new Intl.NumberFormat('en-PH', {
+        style: 'currency',
+        currency: 'PHP',
+        maximumFractionDigits: 0,
+    }).format(cents / 100);
+
+/** Client mobile service-request detail — live status timeline + estimate + actions. */
+export default function MobileRequestDetail({ request, timeline, backHref }: Props) {
+    return (
+        <ClientLayout>
+            <Head title={`${request.ref} ${request.title}`} />
+
+            <div className="mx-auto max-w-md pb-6">
+                <div className="px-4 pb-2 pt-1">
+                    <Link
+                        href={backHref}
+                        className="text-brand-strong inline-flex items-center gap-1 p-1.5 text-[15px] font-medium"
+                    >
+                        <ChevronLeft className="size-5" />
+                        Requests
+                    </Link>
+                </div>
+
+                <div className="px-5">
+                    <div className="flex items-center gap-2.5">
+                        <h1 className="text-2xl font-bold tracking-tight">{request.title}</h1>
+                        <StatusPill tone={request.status.tone} label={request.status.label} />
+                    </div>
+                    <p className="text-muted-foreground mt-1 text-[13px]">
+                        {request.ref} · {request.area} · {request.provider}
+                    </p>
+                </div>
+
+                <div className="mt-4 flex flex-col gap-3.5 px-5">
+                    <Card className="gap-0 py-4">
+                        <CardContent className="px-4">
+                            <h2 className="mb-3 text-[15px] font-bold">Visit status</h2>
+                            <VerticalTimeline steps={timeline} />
+                        </CardContent>
+                    </Card>
+
+                    <Card className="gap-0 py-4">
+                        <CardContent className="px-4">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-[15px] font-bold">Estimate</h2>
+                                <Badge variant="secondary">cash on service</Badge>
+                            </div>
+                            <div className="mt-2.5 flex items-baseline gap-2">
+                                <span className="text-3xl font-bold tabular-nums tracking-tight">
+                                    {peso(request.estimateCents)}
+                                </span>
+                                <span className="text-muted-foreground text-[13px]">
+                                    pay after completion
+                                </span>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <div className="flex gap-2.5">
+                        <Button variant="outline" className="h-[46px] flex-1">
+                            Message
+                        </Button>
+                        <Button className="h-[46px] flex-[2]">
+                            <Navigation className="size-[17px]" />
+                            Track visit
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        </ClientLayout>
+    );
+}

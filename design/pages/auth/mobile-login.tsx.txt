@@ -1,0 +1,132 @@
+import { Form, Head } from '@inertiajs/react';
+
+import AppLogoIcon from '@/components/app-logo-icon';
+import InputError from '@/components/input-error';
+import PasswordInput from '@/components/password-input';
+import SocialProviderButtons from '@/components/social-provider-buttons';
+import TextLink from '@/components/text-link';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Spinner } from '@/components/ui/spinner';
+import { register } from '@/routes';
+import { store } from '@/routes/login';
+import { request } from '@/routes/password';
+import type { SocialProvider } from '@/types';
+
+type Props = {
+    canResetPassword: boolean;
+    canRegister: boolean;
+    socialProviders: SocialProvider[];
+};
+
+/**
+ * Mobile-first login. Centred brand mark + heading, social providers, an
+ * "or use email" divider, then the email/password form. Uses the app's own
+ * auth primitives — this is the same form as pages/auth/login.tsx, laid out
+ * for a phone (no AuthLayout split panel).
+ */
+export default function MobileLogin({
+    canResetPassword,
+    canRegister,
+    socialProviders,
+}: Props) {
+    return (
+        <div className="bg-background text-foreground flex min-h-svh flex-col px-6 pb-8 pt-16">
+            <Head title="Log in" />
+
+            <div className="mx-auto flex w-full max-w-sm flex-col gap-6">
+                <div className="flex flex-col items-center gap-3 text-center">
+                    <div className="bg-brand-soft flex size-[52px] items-center justify-center rounded-[15px]">
+                        <AppLogoIcon className="fill-brand size-8" />
+                    </div>
+                    <div>
+                        <h1 className="text-[23px] font-bold tracking-tight">
+                            Log in to your account
+                        </h1>
+                        <p className="text-muted-foreground mt-1 text-sm">
+                            Enter your email and password to log in
+                        </p>
+                    </div>
+                </div>
+
+                <Form
+                    {...store.form()}
+                    resetOnSuccess={['password']}
+                    className="flex flex-col gap-6"
+                >
+                    {({ processing, errors }) => (
+                        <>
+                            <SocialProviderButtons providers={socialProviders} />
+
+                            {socialProviders.length > 0 ? (
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-border h-px flex-1" />
+                                    <span className="text-muted-foreground text-xs font-medium">
+                                        Or use email
+                                    </span>
+                                    <div className="bg-border h-px flex-1" />
+                                </div>
+                            ) : null}
+
+                            <div className="grid gap-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="email">Email address</Label>
+                                    <Input
+                                        id="email"
+                                        name="email"
+                                        autoFocus
+                                        placeholder="email@example.com"
+                                    />
+                                    <InputError message={errors.email} />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <div className="flex items-center">
+                                        <Label htmlFor="password">Password</Label>
+                                        {canResetPassword ? (
+                                            <TextLink
+                                                href={request()}
+                                                className="ml-auto text-sm"
+                                            >
+                                                Forgot password?
+                                            </TextLink>
+                                        ) : null}
+                                    </div>
+                                    <PasswordInput
+                                        id="password"
+                                        name="password"
+                                        placeholder="Password"
+                                    />
+                                    <InputError message={errors.password} />
+                                </div>
+
+                                <div className="flex items-center gap-3">
+                                    <Checkbox id="remember" name="remember" />
+                                    <Label htmlFor="remember">Remember me</Label>
+                                </div>
+
+                                <Button
+                                    type="submit"
+                                    className="mt-2 h-12 w-full"
+                                    disabled={processing}
+                                >
+                                    {processing ? <Spinner /> : null}
+                                    Log in
+                                </Button>
+                            </div>
+
+                            {canRegister ? (
+                                <p className="text-muted-foreground text-center text-sm">
+                                    Don&apos;t have an account?{' '}
+                                    <TextLink href={register()}>Sign up</TextLink>
+                                </p>
+                            ) : null}
+                        </>
+                    )}
+                </Form>
+            </div>
+        </div>
+    );
+}
