@@ -31,3 +31,11 @@ modifiers still resolve; tokens that already carry alpha are emitted as complete
 `design/README.md` proposes a green `#00b14f`. That was never adopted. The live
 brand is signal amber -- `--brand: oklch(0.672 0.146 62)` in the console, which
 converts to `212 126 29`. Take colours from the console, not from the handoff.
+
+## Dark mode hangs on `darkMode: 'class'`
+The dark tokens sit under `.dark:root`, and NativeWind only reads that selector
+as a dark variable set when `tailwind.config.js` says `darkMode: 'class'`.
+Without it the whole block compiles to a class that never matches and the app
+stays light for ever, with nothing to say why. The setting does not make the
+scheme manual: NativeWind still follows the device, it only also permits
+`colorScheme.set()` to override it, which `darkMode: 'media'` refuses outright.
