@@ -12,7 +12,6 @@ const config: ExpoConfig = {
     scheme: 'paayo',
     userInterfaceStyle: 'automatic',
     icon: './assets/images/icon.png',
-    newArchEnabled: true,
     android: {
         package: 'com.paayo.mobile',
         adaptiveIcon: {
