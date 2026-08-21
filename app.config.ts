@@ -2,6 +2,7 @@ import type { ExpoConfig } from 'expo/config';
 import { withXcodeProject } from 'expo/config-plugins';
 
 import { withIosSceneLifecycle } from './scripts/with-ios-scene-lifecycle';
+import palette from './src/theme/palette';
 
 /**
  * Expo app configuration. Native android/ and ios/ projects are generated from
@@ -44,6 +45,8 @@ const config: ExpoConfig = {
                 image: './assets/images/splash-icon.png',
                 imageWidth: 96,
                 resizeMode: 'contain',
+                backgroundColor: palette.light.background,
+                dark: { backgroundColor: palette.dark.background },
             },
         ],
     ],
