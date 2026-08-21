@@ -97,7 +97,11 @@ export default function TwoFactorSetup() {
                         <Text className="text-muted-foreground text-center text-sm">
                             Scan this with your authenticator app.
                         </Text>
-                        <SvgXml xml={qr.svg} width={200} height={200} />
+                        {/* Fortify draws dark modules on white, which a scanner needs; the
+                            surface is white in either theme so that reads as deliberate. */}
+                        <View className="rounded-lg bg-white p-3">
+                            <SvgXml xml={qr.svg} width={200} height={200} />
+                        </View>
                         <Text className="text-muted-foreground text-center text-xs">
                             Cannot scan? Enter this key instead: {qr.url}
                         </Text>
