@@ -115,3 +115,17 @@ Cost is nothing. The Android map draws the Mobile Native Dynamic Maps SKU, which
 Google lists as unlimited -- not the 10,000/month tier the billed services use.
 Places, Geocoding and Directions are the billed ones; none are used, and address
 autocomplete would be Places.
+
+`cameraPosition` is the camera the view *opens* with, not one it tracks. Both
+platforms document it as the initial position, and passing a fresh object on
+every render makes the map jump back over the pin at full zoom each time
+someone taps -- the pin lands, and the view they were reading is gone. So
+`PinMap` reads it once into state and moves the camera afterwards only through
+the ref's `setCameraPosition`, driven by a separate `focus` prop. Dropping a pin
+never sets `focus`; loading a saved address and reading the device's fix both
+do.
+
+Coordinates are placed on the map and nowhere else. There is no latitude or
+longitude input -- a seven-decimal pair typed on a phone is a worse fix than a
+tap, and a half-typed one is the only way to reach the server's
+`required_with` refusal. The saved pair is shown back as read-only mono text.

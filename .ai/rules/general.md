@@ -26,6 +26,20 @@ default grey and nothing warns. Style it through the variant the console
 already uses: `placeholder:text-muted-foreground`, which compiles to
 `@rn-move color placeholderTextColor`.
 
+## A jest.mock factory cannot build JSX
+NativeWind rewrites this repo's JSX, and every bare `createElement` call, into a
+module-scoped `_ReactNativeCSSInterop` helper -- and `babel-plugin-jest-hoist`
+lifts `jest.mock` above that helper, so anything the factory renders throws
+"not allowed to reference any out-of-scope variables". Aliasing `createElement`
+does not help; the rewrite matches the name.
+
+Declare the stand-in as a `function` in module scope instead and let the factory
+hand it back. A function declaration is hoisted, so it exists by the time the
+factory runs, which no `const` does. Name it `MockThing`: jest's prefix check is
+case-insensitive, and `react-hooks/rules-of-hooks` needs the capital before it
+will allow a hook inside. `src/components/__tests__/pin-map.test.tsx` is the
+worked example.
+
 ## Take SafeAreaView from react-native-safe-area-context
 React Native's own is deprecated, and it insets on iOS only. The context
 package is already a dependency, expo-router mounts its provider, and NativeWind

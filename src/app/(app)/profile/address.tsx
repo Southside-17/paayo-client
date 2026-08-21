@@ -5,7 +5,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FormMessage } from '@/components/form-message';
-import { PinMap } from '@/components/pin-map';
+import { PinMap, type Pin } from '@/components/pin-map';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { FieldError } from '@/components/ui/field-error';
@@ -51,8 +51,10 @@ export default function EditAddress() {
         postal_code: '',
     });
     const [isDefault, setIsDefault] = useState(false);
-    const [latitude, setLatitude] = useState<string>('');
-    const [longitude, setLongitude] = useState<string>('');
+    const [pin, setPin] = useState<Pin | null>(null);
+    // Separate from the pin: this is what the map should look at, and it is set
+    // only where a jump is wanted, never when a tap moves the pin.
+    const [focus, setFocus] = useState<Pin | null>(null);
     const [locationNotice, setLocationNotice] = useState<string | null>(null);
 
     const authenticatedRequest =
@@ -73,8 +75,14 @@ export default function EditAddress() {
         setLabel(address.label);
         setLandmark(address.landmark ?? '');
         setIsDefault(address.is_default);
-        setLatitude(address.latitude === null ? '' : String(address.latitude));
-        setLongitude(address.longitude === null ? '' : String(address.longitude));
+
+        if (address.latitude !== null && address.longitude !== null) {
+            const saved = { latitude: address.latitude, longitude: address.longitude };
+
+            setPin(saved);
+            setFocus(saved);
+        }
+
         setFields({
             unit: address.unit ?? '',
             street: address.street,
@@ -101,15 +109,16 @@ export default function EditAddress() {
             const { granted } = await Location.requestForegroundPermissionsAsync();
 
             if (!granted) {
-                setLocationNotice('Paayo cannot read this location. Type the coordinates instead.');
+                setLocationNotice('Paayo cannot read this location. Tap the map to place the pin.');
 
                 return;
             }
 
             const { coords } = await Location.getCurrentPositionAsync({});
+            const here = { latitude: coords.latitude, longitude: coords.longitude };
 
-            setLatitude(coords.latitude.toFixed(7));
-            setLongitude(coords.longitude.toFixed(7));
+            setPin(here);
+            setFocus(here);
         });
 
     const save = () =>
@@ -118,8 +127,8 @@ export default function EditAddress() {
                 label: label.trim(),
                 landmark: landmark.trim() === '' ? null : landmark.trim(),
                 is_default: isDefault,
-                latitude: latitude.trim() === '' ? null : Number(latitude),
-                longitude: longitude.trim() === '' ? null : Number(longitude),
+                latitude: pin?.latitude ?? null,
+                longitude: pin?.longitude ?? null,
                 ...Object.fromEntries(
                     FIELDS.map(({ key }) => [key, fields[key].trim() === '' ? null : fields[key].trim()]),
                 ),
@@ -195,14 +204,11 @@ export default function EditAddress() {
 
                         <View className="gap-2">
                             <Label>Pin</Label>
-                            <PinMap
-                                latitude={latitude.trim() === '' ? null : Number(latitude)}
-                                longitude={longitude.trim() === '' ? null : Number(longitude)}
-                                onMove={(pinLatitude, pinLongitude) => {
-                                    setLatitude(pinLatitude.toFixed(7));
-                                    setLongitude(pinLongitude.toFixed(7));
-                                }}
-                            />
+                            <Text className="text-muted-foreground text-sm">
+                                Tap the map where the work happens.
+                            </Text>
+
+                            <PinMap pin={pin} focus={focus} onMove={setPin} />
 
                             <Button variant="outline" onPress={useMyLocation} busy={busy}>
                                 Use my location
@@ -210,35 +216,17 @@ export default function EditAddress() {
 
                             <FieldError message={locationNotice ?? undefined} />
 
-                            <View className="flex-row gap-3">
-                                <View className="flex-1">
-                                    <Label>Latitude</Label>
-                                    <Input
-                                        value={latitude}
-                                        onChangeText={setLatitude}
-                                        keyboardType="numbers-and-punctuation"
-                                        placeholder="7.0731"
-                                        invalid={Boolean(errorFor('latitude'))}
-                                    />
-                                </View>
-                                <View className="flex-1">
-                                    <Label>Longitude</Label>
-                                    <Input
-                                        value={longitude}
-                                        onChangeText={setLongitude}
-                                        keyboardType="numbers-and-punctuation"
-                                        placeholder="125.6128"
-                                        invalid={Boolean(errorFor('longitude'))}
-                                    />
-                                </View>
-                            </View>
-                            <FieldError message={errorFor('latitude') ?? errorFor('longitude')} />
-
-                            {latitude.trim() === '' ? (
+                            {pin === null ? (
                                 <Text className="text-warning text-sm">
                                     Without a pin, no provider can be matched to this address.
                                 </Text>
-                            ) : null}
+                            ) : (
+                                <Text className="text-muted-foreground font-mono text-[13px] tracking-wide">
+                                    {pin.latitude.toFixed(7)}, {pin.longitude.toFixed(7)}
+                                </Text>
+                            )}
+
+                            <FieldError message={errorFor('latitude') ?? errorFor('longitude')} />
                         </View>
 
                         <Button

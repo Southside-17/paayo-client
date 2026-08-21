@@ -1,16 +1,23 @@
 import { AppleMaps, GoogleMaps } from 'expo-maps';
+import { useEffect, useRef, useState } from 'react';
 import { Platform, View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 
+export type Pin = { latitude: number; longitude: number };
+
 type Props = {
-    latitude: number | null;
-    longitude: number | null;
-    onMove: (latitude: number, longitude: number) => void;
+    pin: Pin | null;
+    /** Where to aim the camera. A new object moves it; dropping a pin does not. */
+    focus: Pin | null;
+    onMove: (pin: Pin) => void;
 };
 
 /** Roughly the middle of the Philippines, for a map with nothing to centre on. */
-const FALLBACK = { latitude: 12.8797, longitude: 121.774 };
+const FALLBACK: Pin = { latitude: 12.8797, longitude: 121.774 };
+
+const STREET_ZOOM = 16;
+const COUNTRY_ZOOM = 5;
 
 /**
  * A map you tap to place the pin.
@@ -19,40 +26,51 @@ const FALLBACK = { latitude: 12.8797, longitude: 121.774 };
  * Android -- and neither renders on the other platform, so the choice is made
  * here and every screen above stays platform blind.
  */
-export function PinMap({ latitude, longitude, onMove }: Props) {
-    const pinned = latitude !== null && longitude !== null;
-    const centre = pinned ? { latitude, longitude } : FALLBACK;
+export function PinMap({ pin, focus, onMove }: Props) {
+    const map = useRef<AppleMaps.MapView & GoogleMaps.MapView>(null);
 
-    const camera = { coordinates: centre, zoom: pinned ? 16 : 5 };
-    const markers = pinned ? [{ coordinates: { latitude, longitude } }] : [];
+    // cameraPosition is the camera the view opens with, not one it keeps in step
+    // with a prop. Recomputing it per render is what made every tap snap the map
+    // back over the pin at full zoom, so it is read once and then left alone.
+    const [openingCamera] = useState(() => ({
+        coordinates: focus ?? FALLBACK,
+        zoom: focus ? STREET_ZOOM : COUNTRY_ZOOM,
+    }));
 
-    const onMapClick = (event: { coordinates?: { latitude?: number; longitude?: number } }) => {
-        const { latitude: tappedLatitude, longitude: tappedLongitude } = event.coordinates ?? {};
-
-        if (typeof tappedLatitude === 'number' && typeof tappedLongitude === 'number') {
-            onMove(tappedLatitude, tappedLongitude);
+    // The camera moves only when something other than a tap asks it to: an
+    // address arriving from the server, or a fix read off the device.
+    useEffect(() => {
+        if (focus !== null) {
+            map.current?.setCameraPosition({ coordinates: focus, zoom: STREET_ZOOM });
         }
-    };
+    }, [focus]);
 
     if (Platform.OS !== 'ios' && Platform.OS !== 'android') {
         return (
             <View className="bg-muted h-56 items-center justify-center rounded-lg">
                 <Text className="text-muted-foreground text-sm">
-                    Maps are only drawn on a phone. Type the coordinates instead.
+                    Maps are only drawn on a phone.
                 </Text>
             </View>
         );
     }
 
-    const View_ = Platform.OS === 'ios' ? AppleMaps.View : GoogleMaps.View;
+    const MapView = Platform.OS === 'ios' ? AppleMaps.View : GoogleMaps.View;
 
     return (
         <View className="h-56 overflow-hidden rounded-lg">
-            <View_
+            <MapView
+                ref={map}
                 style={{ flex: 1 }}
-                cameraPosition={camera}
-                markers={markers}
-                onMapClick={onMapClick}
+                cameraPosition={openingCamera}
+                markers={pin === null ? [] : [{ coordinates: pin }]}
+                onMapClick={({ coordinates }) => {
+                    const { latitude, longitude } = coordinates ?? {};
+
+                    if (typeof latitude === 'number' && typeof longitude === 'number') {
+                        onMove({ latitude, longitude });
+                    }
+                }}
             />
         </View>
     );
