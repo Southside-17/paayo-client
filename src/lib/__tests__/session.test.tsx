@@ -7,10 +7,13 @@ const user = {
     id: 'u1',
     nickname: 'Mara',
     fullname: null,
+    phone: null,
+    avatar: false,
     email: 'mara@example.com',
     email_verified: true,
     identification_verified: false,
     two_factor_enabled: false,
+    has_password: true,
     administrator: false,
     created_at: '2026-01-01T00:00:00.000000Z',
 };

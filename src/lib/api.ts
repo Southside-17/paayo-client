@@ -45,8 +45,10 @@ export class ApiError extends Error {
     }
 }
 
+export type RequestMethod = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
+
 type RequestOptions = {
-    method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+    method?: RequestMethod;
     body?: unknown;
     token?: string | null;
 };
@@ -56,18 +58,23 @@ type RequestOptions = {
  *
  * A 204 carries no body, which JSON.parse would choke on, so it resolves to
  * undefined and callers that expect nothing type it as void.
+ *
+ * FormData is passed through untouched and deliberately carries no
+ * Content-Type: only the runtime knows the multipart boundary it is about to
+ * generate, and naming the type ourselves omits it and the request is rejected.
  */
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
     const { method = 'GET', body, token } = options;
+    const multipart = body instanceof FormData;
 
     const response = await fetch(`${API_URL}${PREFIX}${path}`, {
         method,
         headers: {
             Accept: 'application/json',
-            ...(body ? { 'Content-Type': 'application/json' } : {}),
+            ...(body && !multipart ? { 'Content-Type': 'application/json' } : {}),
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: body ? JSON.stringify(body) : undefined,
+        body: multipart ? body : body ? JSON.stringify(body) : undefined,
     });
 
     if (response.status === 204) {

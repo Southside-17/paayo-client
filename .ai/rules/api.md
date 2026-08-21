@@ -24,3 +24,14 @@ Password reset and email verification are completed by the server, which reuses
 Laravel's broker and consumes the signed link itself. The app cannot confirm
 either one locally -- it can only request another email and re-read the account.
 Do not add an API endpoint for reset-with-token without revisiting that decision.
+
+## FormData goes through untouched, and names no Content-Type
+`request()` passes a `FormData` body straight to `fetch` and deliberately omits
+the header. Only the runtime knows the multipart boundary it is about to
+generate; writing `multipart/form-data` ourselves omits the boundary and the
+server rejects the body. A plain object still gets `application/json`.
+
+Re-sending the same `FormData` after a 401 refresh is safe here in a way it is
+not on the web: React Native holds file parts as URIs and re-reads them per
+request, rather than consuming a stream. So `authenticatedRequest` needs no
+body factory for the retry.

@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
-import { ApiError, DEVICE_NAME, request } from './api';
+import { ApiError, DEVICE_NAME, request, type RequestMethod } from './api';
 import { clearToken, readToken, writeToken } from './tokens';
 import { isTwoFactorChallenge, type LoginResult, type TokenResponse, type User } from './types';
 
@@ -26,7 +26,7 @@ type RegisterFields = {
 };
 
 type AuthenticatedOptions = {
-    method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+    method?: RequestMethod;
     body?: unknown;
 };
 
