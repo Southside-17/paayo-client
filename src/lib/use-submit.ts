@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 
-import { ApiError } from './api';
+import { ApiError, DisplayableError } from './api';
 
 type Submission = {
     busy: boolean;
@@ -33,6 +33,8 @@ export function useSubmit(): Submission {
             if (error instanceof ApiError) {
                 setErrors(error.errors);
                 setMessage(Object.keys(error.errors).length === 0 ? error.message : null);
+            } else if (error instanceof DisplayableError) {
+                setMessage(error.message);
             } else {
                 setMessage('Could not reach Paayo. Check your connection and try again.');
             }

@@ -13,7 +13,11 @@ const config: ExpoConfig = {
     slug: 'paayo',
     version: '1.0.0',
     orientation: 'portrait',
-    scheme: 'paayo',
+    // Two schemes: 'paayo' for our own deep links, and the bundle identifier
+    // because expo-auth-session redirects Google back to
+    // `${Application.applicationId}:/oauthredirect`. Prebuild adds the second
+    // one to iOS by itself but not to the Android intent filter.
+    scheme: ['paayo', 'com.paayo.ph'],
     userInterfaceStyle: 'automatic',
     icon: './assets/images/icon.png',
     android: {

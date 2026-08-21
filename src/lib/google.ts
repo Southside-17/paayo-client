@@ -1,5 +1,8 @@
+import { exchangeCodeAsync, type AuthRequest, type AuthSessionResult } from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
 import { Platform } from 'react-native';
+
+import { DisplayableError } from './api';
 
 /**
  * The OAuth clients Google issues tokens against.
@@ -26,25 +29,90 @@ export function googleIsConfigured(): boolean {
     return Boolean(platform);
 }
 
+/** The result shape that carries a reason, which spans both error and success. */
+type AnsweredResult = Extract<AuthSessionResult, { params: Record<string, string> }>;
+
+/** Whatever Google gave as the reason, in the order it tends to carry one. */
+function refusal(result: AnsweredResult): string {
+    return (
+        result.error?.message ??
+        result.params.error_description ??
+        result.params.error ??
+        'Google could not sign you in.'
+    );
+}
+
+/**
+ * Trade the one-use authorization code for the access token the API wants.
+ *
+ * Google hands a native app a code and never a token, so this second leg is
+ * the one that produces something the server can verify. The client id and
+ * redirect are read back off the request rather than rebuilt, so they cannot
+ * drift from what was actually sent and earn a redirect_uri_mismatch.
+ */
+async function redeem(request: AuthRequest, code: string | undefined): Promise<string> {
+    if (code === undefined) {
+        throw new DisplayableError('Google did not return an authorization code.');
+    }
+
+    try {
+        const { accessToken } = await exchangeCodeAsync(
+            {
+                clientId: request.clientId,
+                redirectUri: request.redirectUri,
+                code,
+                extraParams: request.codeVerifier ? { code_verifier: request.codeVerifier } : {},
+            },
+            Google.discovery,
+        );
+
+        return accessToken;
+    } catch (error) {
+        throw new DisplayableError(
+            error instanceof Error ? error.message : 'Google refused to issue a token.',
+        );
+    }
+}
+
 /**
  * Ask Google for an access token, which the API trades for a session.
  *
  * Returns null when the person backs out of the sheet -- that is a decision,
- * not a failure, and the screen should say nothing.
+ * not a failure, and the screen should say nothing. Every other refusal throws
+ * with what Google said, because a sign-in that stops silently reads as an app
+ * that ignored the tap.
  */
 export function useGoogleSignIn(): { ready: boolean; requestToken: () => Promise<string | null> } {
-    const [request, , promptAsync] = Google.useAuthRequest(CLIENTS);
+    // shouldAutoExchangeCode is off because the hook's own exchange resolves
+    // into its response state long after promptAsync() has returned, and a code
+    // can only be redeemed once -- both running is one invalid_grant.
+    const [request, , promptAsync] = Google.useAuthRequest({
+        ...CLIENTS,
+        shouldAutoExchangeCode: false,
+    });
 
     return {
         ready: request !== null && googleIsConfigured(),
         requestToken: async () => {
-            const result = await promptAsync();
-
-            if (result.type !== 'success') {
-                return null;
+            if (request === null) {
+                throw new DisplayableError('Google sign-in is still loading. Try again.');
             }
 
-            return result.authentication?.accessToken ?? null;
+            const result = await promptAsync();
+
+            switch (result.type) {
+                case 'cancel':
+                case 'dismiss':
+                    return null;
+                case 'error':
+                    throw new DisplayableError(refusal(result));
+                // Web asks for a token outright and holds one already; a
+                // native client is only ever given a code to trade.
+                case 'success':
+                    return result.authentication?.accessToken ?? redeem(request, result.params.code);
+                default:
+                    throw new DisplayableError('Google could not be opened. Try again.');
+            }
         },
     };
 }

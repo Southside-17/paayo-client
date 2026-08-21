@@ -18,6 +18,19 @@ export const DEVICE_NAME = `${Constants.deviceName ?? 'Unknown device'} (${Platf
 type ValidationErrors = Record<string, string[]>;
 
 /**
+ * An error whose message was written for the person to read.
+ *
+ * Everything else a form catches is a transport failure, which gets the generic
+ * wording, so a refusal that already explains itself needs a way to say so.
+ */
+export class DisplayableError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'DisplayableError';
+    }
+}
+
+/**
  * A response the server refused. Carries the field errors from a 422 so a form
  * can render them against the inputs that caused them.
  */
