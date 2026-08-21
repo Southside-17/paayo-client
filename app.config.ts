@@ -17,7 +17,7 @@ const config: ExpoConfig = {
     userInterfaceStyle: 'automatic',
     icon: './assets/images/icon.png',
     android: {
-        package: 'com.paayo.mobile',
+        package: 'com.paayo.ph',
         adaptiveIcon: {
             foregroundImage: './assets/images/android-icon-foreground.png',
             backgroundImage: './assets/images/android-icon-background.png',
@@ -25,7 +25,7 @@ const config: ExpoConfig = {
         },
     },
     ios: {
-        bundleIdentifier: 'com.paayo.mobile',
+        bundleIdentifier: 'com.paayo.ph',
         supportsTablet: false,
         infoPlist: {
             NSLocalNetworkUsageDescription:
