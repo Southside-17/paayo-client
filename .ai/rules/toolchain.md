@@ -46,19 +46,28 @@ the team in Xcode once, then the CLI works from then on.
 A free Personal Team signs for **7 days**. When a build that worked yesterday
 refuses to launch, re-run `npx expo run:ios --device`; nothing is wrong.
 
-## iOS 27 devices cannot run this yet
+## iOS 27 needs a scene life cycle we patch in ourselves
 iOS 27 makes UIKit's scene life cycle mandatory: an app linked against the
-iOS 27 SDK that declares no `UIApplicationSceneManifest` is trapped inside
-UIKit before any of our code runs, with `Application failed to launch: UIScene
-life cycle is required for apps built with this SDK`. It dies instantly, writes
-no crash log and prints nothing -- only a debugger attached in Xcode shows why.
+iOS 27 SDK that builds its own `UIWindow` in `didFinishLaunchingWithOptions`
+is trapped inside UIKit before any of our code runs, with `Application failed
+to launch: UIScene life cycle is required for apps built with this SDK`. It
+dies instantly, writes no crash log and prints nothing -- only a debugger
+attached in Xcode shows why. Simulators on iOS 26 only warn, so the same binary
+runs there; check the device's iOS version before assuming a fault is ours.
 
-Expo's prebuild template has not adopted scenes (expo/expo#46663, #46664) and
-neither `expo@57.0.15` nor `react-native@0.86.2` ships a scene delegate. There
-is no config-level fix; the generated `AppDelegate.swift` builds the window
-itself, which scene adoption forbids.
+Expo has not adopted scenes (expo/expo#46663, #46664), so
+`scripts/with-ios-scene-lifecycle.js` does it: it declares the manifest and
+rewrites the generated `AppDelegate.swift` to boot React Native from
+`scene(_:willConnectTo:options:)`.
 
-Until Expo ships it: **simulators run iOS 26.4 and are unaffected**, so develop
-there. Do not conclude a device failure is ours before checking the device's iOS
-version -- this one cost hours behind two unrelated blockers that had to be
-cleared first.
+**It is temporary.** Delete the file and the two lines in `app.config.ts` that
+use it once Expo ships the real thing. It throws during prebuild if the
+template stops matching, so it fails loudly rather than silently patching the
+wrong thing.
+
+## A physical device needs the LAN address
+`EXPO_PUBLIC_API_URL` in `.env` points the app at the host's LAN address,
+because `localhost` on a phone is the phone. Laravel must answer there too
+(`--host=0.0.0.0`), and macOS must not be set to block all incoming
+connections -- that setting overrides per-app firewall rules, so allowing
+`node` alone does nothing while it is on.

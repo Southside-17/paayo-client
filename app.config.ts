@@ -1,6 +1,8 @@
 import type { ExpoConfig } from 'expo/config';
 import { withXcodeProject } from 'expo/config-plugins';
 
+import { withIosSceneLifecycle } from './scripts/with-ios-scene-lifecycle';
+
 /**
  * Expo app configuration. Native android/ and ios/ projects are generated from
  * this file, so it is the only place platform settings are declared.
@@ -79,4 +81,4 @@ function withIosBuildSettings(expoConfig: ExpoConfig): ExpoConfig {
     });
 }
 
-export default withIosBuildSettings(config);
+export default withIosSceneLifecycle(withIosBuildSettings(config));
