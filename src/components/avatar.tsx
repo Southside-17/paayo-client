@@ -23,7 +23,7 @@ export function Avatar({ nickname, token, version, size = 72 }: Props) {
     return (
         <Image
             source={{
-                uri: `${API_URL}/api/v1/auth/profile/avatar?v=${version}`,
+                uri: `${API_URL}/api/v1/profile/avatar?v=${version}`,
                 headers: { Authorization: `Bearer ${token}` },
             }}
             style={{ width: size, height: size, borderRadius: size / 2 }}

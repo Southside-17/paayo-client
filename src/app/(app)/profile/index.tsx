@@ -49,7 +49,7 @@ export default function Profile() {
                 type: asset.mimeType ?? 'image/jpeg',
             } as unknown as Blob);
 
-            await session.authenticatedRequest<MessageResponse>('/auth/profile/avatar', {
+            await session.authenticatedRequest<MessageResponse>('/profile/avatar', {
                 method: 'POST',
                 body,
             });
@@ -60,7 +60,7 @@ export default function Profile() {
 
     const removePicture = () =>
         submit(async () => {
-            await session.authenticatedRequest<void>('/auth/profile/avatar', { method: 'DELETE' });
+            await session.authenticatedRequest<void>('/profile/avatar', { method: 'DELETE' });
 
             await session.reload();
             setVersion((seen) => seen + 1);

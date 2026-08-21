@@ -32,7 +32,7 @@ export default function EditProfile() {
 
     const save = () =>
         submit(async () => {
-            await session.authenticatedRequest<MessageResponse>('/auth/profile', {
+            await session.authenticatedRequest<MessageResponse>('/profile', {
                 method: 'PUT',
                 body: {
                     nickname: nickname.trim(),

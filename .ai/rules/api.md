@@ -26,6 +26,11 @@ shape. The locality is `town` -- one word covering cities and municipalities --
 never `city`. `Address` in `src/lib/types.ts` and the form's `FIELDS` mirror the
 server's `.ai/rules/models.md` on this; do not put either name back.
 
+## Profile is not an auth route
+It sits at `api/v1/profile` and `api/v1/profile/avatar`, beside addresses and
+identifications. `auth/*` is for proving who you are and holding the token, not
+for editing what the account says about itself.
+
 ## Two flows finish in a browser, by design
 Password reset and email verification are completed by the server, which reuses
 Laravel's broker and consumes the signed link itself. The app cannot confirm
