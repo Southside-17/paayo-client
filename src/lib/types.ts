@@ -37,6 +37,8 @@ export type MessageResponse = {
 export type QrCode = {
     svg: string;
     url: string;
+    /** The base32 secret, for typing into an authenticator by hand. */
+    secret_key: string;
 };
 
 export function isTwoFactorChallenge(result: LoginResult): result is TwoFactorChallenge {

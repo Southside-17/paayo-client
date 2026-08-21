@@ -110,7 +110,10 @@ export default function TwoFactorSetup() {
                                 <SvgXml xml={qr.svg} width={200} height={200} />
                             </View>
                             <Text className="text-muted-foreground text-center text-xs">
-                                Cannot scan? Enter this key instead: {qr.url}
+                                Cannot scan? Enter this key instead.
+                            </Text>
+                            <Text selectable className="text-center font-mono text-sm">
+                                {qr.secret_key}
                             </Text>
                         </Card>
                     ) : null}
