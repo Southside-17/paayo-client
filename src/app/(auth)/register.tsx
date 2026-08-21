@@ -37,12 +37,12 @@ export default function Register() {
                 <FormMessage message={message} />
 
                 <View>
-                    <Label>Name</Label>
+                    <Label>Nickname</Label>
                     <Input
                         value={nickname}
                         onChangeText={setNickname}
-                        autoComplete="name"
-                        placeholder="How should we call you?"
+                        autoComplete="nickname"
+                        placeholder="What you go by"
                         invalid={Boolean(errorFor('nickname'))}
                     />
                     <FieldError message={errorFor('nickname')} />

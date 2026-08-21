@@ -49,3 +49,11 @@ Icons also sit outside NativeWind's reach -- they render `react-native-svg`, and
 no `className` prop is registered on them. Feed the `color` prop from
 `src/theme/palette.js` keyed by `useColorScheme()`, the same way
 `src/app/_layout.tsx` feeds the navigation theme.
+
+## The only name a person types is their nickname
+Labels say **Nickname**, never Name. `users.nickname` is the freeform display
+name; the legal-name columns are written solely by approving an identification
+and no form may reach them, so a field labelled "Name" invites exactly the value
+that must never land there. Match the console: label `Nickname`, placeholder
+`What you go by`, and `autoComplete="nickname"` -- `autoComplete="name"` makes
+iOS and Android offer the saved legal name off the device contact card.
