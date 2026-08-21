@@ -25,3 +25,16 @@ dropped in silence, so the placeholder quietly keeps iOS's near-invisible
 default grey and nothing warns. Style it through the variant the console
 already uses: `placeholder:text-muted-foreground`, which compiles to
 `@rn-move color placeholderTextColor`.
+
+## Take SafeAreaView from react-native-safe-area-context
+React Native's own is deprecated, and it insets on iOS only. The context
+package is already a dependency, expo-router mounts its provider, and NativeWind
+registers its `SafeAreaView`, so `className` keeps working across the swap.
+
+## A blank white bar at the foot of the screen is a warning
+It is React Native's LogBox notification, not our UI. LogBox paints the bar
+white and its message white, relying on a dark `Pressable` in between -- and
+that background never lands, because NativeWind replaces every `Pressable`,
+React Native's own included. So a warning shows up as an empty white bar with
+an amber `!` and a dismiss cross, and looks like a rendering fault. The text is
+there; read it in the Metro terminal instead.
