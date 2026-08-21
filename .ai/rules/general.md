@@ -57,3 +57,14 @@ and no form may reach them, so a field labelled "Name" invites exactly the value
 that must never land there. Match the console: label `Nickname`, placeholder
 `What you go by`, and `autoComplete="nickname"` -- `autoComplete="name"` makes
 iOS and Android offer the saved legal name off the device contact card.
+
+## The two gates run in the server's order
+`src/app/(app)/_layout.tsx` redirects on an unconfirmed address first, then on an
+empty nickname -- matching `auth:sanctum` -> `verified` -> `EnsureHasNickname` on
+the API. Reversing them strands a provider signup whose address is unconfirmed:
+it would be sent to pick a name while every route it needs answers 403 about the
+address instead.
+
+`nickname === ''` is the signal, and it is already on the wire in `UserResource`.
+A provider signup arrives confirmed, so in practice only the nickname gate is
+ever met.
