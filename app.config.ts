@@ -24,6 +24,10 @@ const config: ExpoConfig = {
     ios: {
         bundleIdentifier: 'com.paayo.mobile',
         supportsTablet: false,
+        infoPlist: {
+            NSLocalNetworkUsageDescription:
+                'Paayo reaches the development server running on your computer.',
+        },
     },
     web: {
         output: 'static',

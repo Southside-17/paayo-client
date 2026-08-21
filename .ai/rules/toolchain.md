@@ -45,3 +45,20 @@ the team in Xcode once, then the CLI works from then on.
 
 A free Personal Team signs for **7 days**. When a build that worked yesterday
 refuses to launch, re-run `npx expo run:ios --device`; nothing is wrong.
+
+## iOS 27 devices cannot run this yet
+iOS 27 makes UIKit's scene life cycle mandatory: an app linked against the
+iOS 27 SDK that declares no `UIApplicationSceneManifest` is trapped inside
+UIKit before any of our code runs, with `Application failed to launch: UIScene
+life cycle is required for apps built with this SDK`. It dies instantly, writes
+no crash log and prints nothing -- only a debugger attached in Xcode shows why.
+
+Expo's prebuild template has not adopted scenes (expo/expo#46663, #46664) and
+neither `expo@57.0.15` nor `react-native@0.86.2` ships a scene delegate. There
+is no config-level fix; the generated `AppDelegate.swift` builds the window
+itself, which scene adoption forbids.
+
+Until Expo ships it: **simulators run iOS 26.4 and are unaffected**, so develop
+there. Do not conclude a device failure is ours before checking the device's iOS
+version -- this one cost hours behind two unrelated blockers that had to be
+cleared first.
