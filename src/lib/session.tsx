@@ -11,6 +11,7 @@ type SessionState =
 
 type SessionValue = SessionState & {
     login: (email: string, password: string) => Promise<LoginResult>;
+    signInWithGoogle: (accessToken: string) => Promise<LoginResult>;
     completeTwoFactor: (challengeToken: string, code: string, recoveryCode?: string) => Promise<void>;
     register: (fields: RegisterFields) => Promise<void>;
     logout: () => Promise<void>;
@@ -172,6 +173,27 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         [adopt],
     );
 
+    /**
+     * Trade a provider access token for a session, opening an account if the
+     * address is new. The server answers exactly as password login does, second
+     * factor included, so the caller branches the same way.
+     */
+    const signInWithGoogle = useCallback(
+        async (accessToken: string): Promise<LoginResult> => {
+            const result = await request<LoginResult>('/auth/socials/google', {
+                method: 'POST',
+                body: { token: accessToken, device_name: DEVICE_NAME },
+            });
+
+            if (!isTwoFactorChallenge(result)) {
+                await adopt(result);
+            }
+
+            return result;
+        },
+        [adopt],
+    );
+
     const completeTwoFactor = useCallback(
         async (challengeToken: string, code: string, recoveryCode?: string) => {
             const response = await request<TokenResponse>('/auth/two-factor-challenge', {
@@ -223,8 +245,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }, [authenticatedRequest, token]);
 
     const value = useMemo<SessionValue>(
-        () => ({ ...state, login, completeTwoFactor, register, logout, reload, authenticatedRequest }),
-        [authenticatedRequest, completeTwoFactor, login, logout, register, reload, state],
+        () => ({ ...state, login, signInWithGoogle, completeTwoFactor, register, logout, reload, authenticatedRequest }),
+        [authenticatedRequest, completeTwoFactor, login, logout, register, reload, signInWithGoogle, state],
     );
 
     return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

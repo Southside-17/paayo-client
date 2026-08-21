@@ -35,3 +35,24 @@ Re-sending the same `FormData` after a 401 refresh is safe here in a way it is
 not on the web: React Native holds file parts as URIs and re-reads them per
 request, rather than consuming a stream. So `authenticatedRequest` needs no
 body factory for the retry.
+
+## Google sign-in posts a token; it never redirects
+The API is a stateless exchange: `src/lib/google.ts` gets an access token from
+`expo-auth-session`, and `signInWithGoogle()` posts it to
+`POST auth/socials/google`. The server answers exactly as password login does --
+a token response, or a second-factor challenge -- so callers branch on
+`isTwoFactorChallenge()` either way. A brand new account comes back 201 rather
+than 200; nothing on the client needs to care.
+
+Three client ids, because Google verifies each kind of app differently: web by
+its secret, Android by package name plus signing fingerprint, iOS by bundle
+identifier. Only ids live in `.env` -- a mobile OAuth client has no usable
+secret. Both mobile ids are bound to `com.paayo.ph`, so renaming the app means
+new clients.
+
+The server refuses a token minted for a client it does not know, so these ids
+must appear in its `services.google.audiences`. A build without the id its
+platform needs hides the button rather than offering one that cannot work.
+
+Declining the sheet returns null and the screen says nothing: backing out is a
+decision, not a failure.

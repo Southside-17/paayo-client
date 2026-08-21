@@ -11,31 +11,60 @@ import { Label } from '@/components/ui/label';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Text } from '@/components/ui/text';
 import { useSession } from '@/lib/session';
-import { isTwoFactorChallenge } from '@/lib/types';
+import { useGoogleSignIn } from '@/lib/google';
+import { isTwoFactorChallenge, type LoginResult } from '@/lib/types';
 import { useSubmit } from '@/lib/use-submit';
 
 export default function Login() {
-    const { login } = useSession();
+    const { login, signInWithGoogle } = useSession();
     const { busy, message, errorFor, submit } = useSubmit();
+    const google = useGoogleSignIn();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
-    const signIn = () =>
-        submit(async () => {
-            const result = await login(email.trim(), password);
+    const challenge = (result: LoginResult) => {
+        if (isTwoFactorChallenge(result)) {
+            router.push({
+                pathname: '/two-factor',
+                params: { challenge: result.challenge_token },
+            });
+        }
+    };
 
-            if (isTwoFactorChallenge(result)) {
-                router.push({
-                    pathname: '/two-factor',
-                    params: { challenge: result.challenge_token },
-                });
+    const signIn = () => submit(async () => challenge(await login(email.trim(), password)));
+
+    const continueWithGoogle = () =>
+        submit(async () => {
+            const token = await google.requestToken();
+
+            // Backing out of the sheet is a decision, not a failure.
+            if (token === null) {
+                return;
             }
+
+            challenge(await signInWithGoogle(token));
         });
 
     return (
         <AuthScreen title="Log in to your account" subtitle="Enter your email and password to log in">
             <View className="gap-4">
                 <FormMessage message={message} />
+
+                {google.ready ? (
+                    <>
+                        <Button variant="outline" onPress={continueWithGoogle} busy={busy}>
+                            Continue with Google
+                        </Button>
+
+                        <View className="flex-row items-center gap-3">
+                            <View className="bg-border h-px flex-1" />
+                            <Text className="text-muted-foreground text-xs font-medium">
+                                Or use email
+                            </Text>
+                            <View className="bg-border h-px flex-1" />
+                        </View>
+                    </>
+                ) : null}
 
                 <View>
                     <Label>Email address</Label>
