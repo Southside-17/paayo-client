@@ -40,6 +40,43 @@ const config: ExpoConfig = {
         'expo-router',
         'expo-secure-store',
         [
+            // Embedded rather than loaded with useFonts, so type is right at
+            // first paint with no async gate. The two halves are not symmetric:
+            // Android maps files to weights under one family, iOS lists paths
+            // and reads the weight out of each file's own metadata.
+            'expo-font',
+            {
+                android: {
+                    fonts: [
+                        {
+                            fontFamily: 'Urbanist',
+                            fontDefinitions: [
+                                { path: './assets/fonts/Urbanist_400Regular.ttf', weight: 400 },
+                                { path: './assets/fonts/Urbanist_500Medium.ttf', weight: 500 },
+                                { path: './assets/fonts/Urbanist_600SemiBold.ttf', weight: 600 },
+                                { path: './assets/fonts/Urbanist_700Bold.ttf', weight: 700 },
+                            ],
+                        },
+                        {
+                            fontFamily: 'JetBrains Mono',
+                            fontDefinitions: [
+                                { path: './assets/fonts/JetBrainsMono_400Regular.ttf', weight: 400 },
+                            ],
+                        },
+                    ],
+                },
+                ios: {
+                    fonts: [
+                        './assets/fonts/Urbanist_400Regular.ttf',
+                        './assets/fonts/Urbanist_500Medium.ttf',
+                        './assets/fonts/Urbanist_600SemiBold.ttf',
+                        './assets/fonts/Urbanist_700Bold.ttf',
+                        './assets/fonts/JetBrainsMono_400Regular.ttf',
+                    ],
+                },
+            },
+        ],
+        [
             'expo-splash-screen',
             {
                 image: './assets/images/splash-icon.png',

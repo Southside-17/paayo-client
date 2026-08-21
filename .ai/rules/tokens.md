@@ -51,3 +51,25 @@ Without it the whole block compiles to a class that never matches and the app
 stays light for ever, with nothing to say why. The setting does not make the
 scheme manual: NativeWind still follows the device, it only also permits
 `colorScheme.set()` to override it, which `darkMode: 'media'` refuses outright.
+
+## Urbanist reaches the screen through two files, not a body rule
+React Native has no cascade, so `fontFamily: sans` in `tailwind.config.js` only
+matters where a `className` carries `font-sans`. That is `src/components/ui/text.tsx`
+-- the one file importing React Native's `Text` -- and `src/components/ui/input.tsx`.
+Add a third funnel point if one ever appears; do not sprinkle `font-sans` at call
+sites.
+
+`Text` also sets `fontVariant: ['tabular-nums']`, which is the console's `body`
+rule. It comes through `style` rather than a class because NativeWind 4 has no
+utility for it.
+
+Weights work through the family, not through separate families: NativeWind emits
+numeric `font-weight: 600`, Android's generated `xml_urbanist.xml` carries a
+`fontWeight` per file, and iOS reads it from each file's own metadata. The string
+`"bold"` form is the one that goes wrong; nothing here produces it.
+
+Mono drops to `text-[13px] tracking-wide` where it appears. JetBrains Mono runs
+optically large beside Urbanist -- the console sets `code { font-size: 0.92em }`
+for the same reason -- and the two places using it are strings someone has to
+read out and type. The console's `--tracking-display` is deliberately not ported:
+it is reserved for display sizes, and there are none here yet.

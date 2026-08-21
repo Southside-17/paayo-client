@@ -80,3 +80,20 @@ babel-jest only for `.[jt]sx?`, so the file arrives untransformed and throws
 works alone: the package added to `transformIgnorePatterns`, and
 `"transform": {"\\.mjs$": "babel-jest"}` in `package.json`, which Jest merges
 into the preset's transforms rather than replacing them.
+
+## Fonts are embedded by the config plugin, never loaded at runtime
+`assets/fonts/` holds five `.ttf` files -- Urbanist 400/500/600/700 and JetBrains
+Mono 400 -- matching the console's `vite.config.ts`. They are declared to the
+`expo-font` config plugin in `app.config.ts`, so they exist at first paint with no
+`useFonts` gate and no flash of a fallback face. `expo-font` was already a
+dependency; no package was added to get them.
+
+The plugin's two halves are not symmetric and both are needed. `android.fonts`
+takes `fontDefinitions` mapping each file to a `weight` under one `fontFamily`;
+`ios.fonts` takes bare paths and leans on each file's CoreText metadata.
+
+A space in a family name is fine. Prebuild writes
+`ReactFontManager.getInstance().addCustomFont(this, "JetBrains Mono", R.font.xml_jet_brains_mono)`
+into `MainApplication.kt`, so Android registers the human name and the `xml_`
+prefix is only a resource-name collision guard. Adding or removing a face means
+`expo prebuild --clean` and a rebuild -- it is native configuration, not JS.

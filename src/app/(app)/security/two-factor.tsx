@@ -112,7 +112,7 @@ export default function TwoFactorSetup() {
                             <Text className="text-muted-foreground text-center text-xs">
                                 Cannot scan? Enter this key instead.
                             </Text>
-                            <Text selectable className="text-center font-mono text-sm">
+                            <Text selectable className="text-center font-mono text-[13px] tracking-wide">
                                 {qr.secret_key}
                             </Text>
                         </Card>
@@ -126,7 +126,7 @@ export default function TwoFactorSetup() {
                                 authenticator.
                             </Text>
                             {codes.map((recoveryCode) => (
-                                <Text key={recoveryCode} className="font-mono text-sm">
+                                <Text key={recoveryCode} className="font-mono text-[13px] tracking-wide">
                                     {recoveryCode}
                                 </Text>
                             ))}

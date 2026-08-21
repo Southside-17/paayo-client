@@ -13,6 +13,13 @@ module.exports = {
     theme: {
         extend: {
             colors,
+            // Matches the console's vite.config.ts. React Native has no
+            // cascade, so these reach the app through ui/text.tsx and
+            // ui/input.tsx rather than a body rule.
+            fontFamily: {
+                sans: ['Urbanist'],
+                mono: ['JetBrains Mono'],
+            },
             // Mirrors the console, where every step derives from --radius: 0.5rem.
             borderRadius: {
                 xs: '2px',
