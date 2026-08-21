@@ -58,7 +58,6 @@ src/components/   ui/ primitives, hand-written
 src/lib/          api client, session, secure token store, types
 src/theme/        generated colour map — do not edit
 scripts/          token sync, JDK preflight
-design/           UI references carried over from the android branch
 .ai/rules/        conventions; read before editing
 ```
 

@@ -28,9 +28,12 @@ modifiers still resolve; tokens that already carry alpha are emitted as complete
 `rgba()` and used as-is.
 
 ## The brand is amber, not green
-`design/README.md` proposes a green `#00b14f`. That was never adopted. The live
-brand is signal amber -- `--brand: oklch(0.672 0.146 62)` in the console, which
-converts to `212 126 29`. Take colours from the console, not from the handoff.
+A design handoff proposed a green `#00b14f`. It was never adopted, and the
+handoff itself is gone -- it was web code for the Inertia console, against a
+domain this server does not have (`git show 83029f0 -- design` recovers it).
+The live brand is signal amber -- `--brand: oklch(0.672 0.146 62)` in the
+console, which converts to `212 126 29`. Take colours from the console, and
+from nowhere else.
 
 ## Three outputs, because not everything can read a variable
 `global.css` holds the variables, `colors.js` points Tailwind at them, and
