@@ -71,3 +71,12 @@ because `localhost` on a phone is the phone. Laravel must answer there too
 (`--host=0.0.0.0`), and macOS must not be set to block all incoming
 connections -- that setting overrides per-app firewall rules, so allowing
 `node` alone does nothing while it is on.
+
+## Jest needs its own transformer for `.mjs`
+jest-expo resolves the `react-native` export condition, which for packages like
+`lucide-react-native` is an ESM `.mjs` build -- but its preset registers
+babel-jest only for `.[jt]sx?`, so the file arrives untransformed and throws
+`SyntaxError: Unexpected token 'export'`. Two things are needed and neither
+works alone: the package added to `transformIgnorePatterns`, and
+`"transform": {"\\.mjs$": "babel-jest"}` in `package.json`, which Jest merges
+into the preset's transforms rather than replacing them.

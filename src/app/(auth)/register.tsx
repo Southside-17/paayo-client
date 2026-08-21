@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { FieldError } from '@/components/ui/field-error';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Text } from '@/components/ui/text';
 import { useSession } from '@/lib/session';
 import { useSubmit } from '@/lib/use-submit';
@@ -63,10 +64,9 @@ export default function Register() {
 
                 <View>
                     <Label>Password</Label>
-                    <Input
+                    <PasswordInput
                         value={password}
                         onChangeText={setPassword}
-                        secureTextEntry
                         autoComplete="new-password"
                         placeholder="Password"
                         invalid={Boolean(errorFor('password'))}
@@ -76,10 +76,9 @@ export default function Register() {
 
                 <View>
                     <Label>Confirm password</Label>
-                    <Input
+                    <PasswordInput
                         value={confirmation}
                         onChangeText={setConfirmation}
-                        secureTextEntry
                         autoComplete="new-password"
                         placeholder="Confirm password"
                     />

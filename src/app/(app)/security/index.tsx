@@ -7,8 +7,8 @@ import { FormMessage } from '@/components/form-message';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { FieldError } from '@/components/ui/field-error';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Text } from '@/components/ui/text';
 import { useSession } from '@/lib/session';
 import type { MessageResponse } from '@/lib/types';
@@ -106,10 +106,9 @@ export default function Security() {
 
                         <View>
                             <Label>Current password</Label>
-                            <Input
+                            <PasswordInput
                                 value={current}
                                 onChangeText={setCurrent}
-                                secureTextEntry
                                 autoComplete="current-password"
                                 invalid={Boolean(password.errorFor('current_password'))}
                             />
@@ -118,10 +117,9 @@ export default function Security() {
 
                         <View>
                             <Label>New password</Label>
-                            <Input
+                            <PasswordInput
                                 value={next}
                                 onChangeText={setNext}
-                                secureTextEntry
                                 autoComplete="new-password"
                                 invalid={Boolean(password.errorFor('password'))}
                             />
@@ -130,10 +128,9 @@ export default function Security() {
 
                         <View>
                             <Label>Confirm new password</Label>
-                            <Input
+                            <PasswordInput
                                 value={confirmation}
                                 onChangeText={setConfirmation}
-                                secureTextEntry
                                 autoComplete="new-password"
                             />
                         </View>

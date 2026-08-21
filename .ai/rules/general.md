@@ -38,3 +38,14 @@ that background never lands, because NativeWind replaces every `Pressable`,
 React Native's own included. So a warning shows up as an empty white bar with
 an amber `!` and a dismiss cross, and looks like a rendering fault. The text is
 there; read it in the Metro terminal instead.
+
+## Import each lucide icon by its own path
+`lucide-react-native`'s barrel carries every one of its ~1500 icons, and Jest
+transforms all of them: one test file that reached it took 25s, and 1s once the
+import became `lucide-react-native/icons/eye`. Metro pays the same toll in the
+bundle. Deep import, one line per icon.
+
+Icons also sit outside NativeWind's reach -- they render `react-native-svg`, and
+no `className` prop is registered on them. Feed the `color` prop from
+`src/theme/palette.js` keyed by `useColorScheme()`, the same way
+`src/app/_layout.tsx` feeds the navigation theme.
