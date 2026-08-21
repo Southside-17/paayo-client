@@ -20,8 +20,8 @@ import { useSubmit } from '@/lib/use-submit';
  * The fields, in the order the console's address dialog fixes them.
  */
 const FIELDS = [
-    { key: 'unit', label: 'Unit / floor', required: false },
-    { key: 'street', label: 'House no. & street', required: true },
+    { key: 'unit', label: 'Unit', required: false },
+    { key: 'street', label: 'Street', required: true },
     { key: 'subdivision', label: 'Subdivision', required: false },
     { key: 'barangay', label: 'Barangay', required: true },
     { key: 'town', label: 'Town', required: true },
@@ -220,11 +220,7 @@ export default function EditAddress() {
                                 <Text className="text-warning text-sm">
                                     Without a pin, no provider can be matched to this address.
                                 </Text>
-                            ) : (
-                                <Text className="text-muted-foreground font-mono text-[13px] tracking-wide">
-                                    {pin.latitude.toFixed(7)}, {pin.longitude.toFixed(7)}
-                                </Text>
-                            )}
+                            ) : null}
 
                             <FieldError message={errorFor('latitude') ?? errorFor('longitude')} />
                         </View>
