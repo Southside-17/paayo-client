@@ -46,8 +46,8 @@ export default function Home() {
                     </View>
                 </Card>
 
-                <Link href="/security" asChild>
-                    <Button variant="outline">Security</Button>
+                <Link href="/profile" asChild>
+                    <Button variant="outline">Profile</Button>
                 </Link>
 
                 <Button variant="ghost" onPress={() => void session.logout()}>

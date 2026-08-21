@@ -10,6 +10,8 @@ type SessionState =
     | { status: 'authenticated'; user: User };
 
 type SessionValue = SessionState & {
+    /** The bearer token, for the one thing fetch cannot carry: an image URL. */
+    token: string | null;
     login: (email: string, password: string) => Promise<LoginResult>;
     signInWithGoogle: (accessToken: string) => Promise<LoginResult>;
     completeTwoFactor: (challengeToken: string, code: string, recoveryCode?: string) => Promise<void>;
@@ -245,8 +247,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }, [authenticatedRequest, token]);
 
     const value = useMemo<SessionValue>(
-        () => ({ ...state, login, signInWithGoogle, completeTwoFactor, register, logout, reload, authenticatedRequest }),
-        [authenticatedRequest, completeTwoFactor, login, logout, register, reload, signInWithGoogle, state],
+        () => ({ ...state, token, login, signInWithGoogle, completeTwoFactor, register, logout, reload, authenticatedRequest }),
+        [authenticatedRequest, completeTwoFactor, login, logout, register, reload, signInWithGoogle, state, token],
     );
 
     return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

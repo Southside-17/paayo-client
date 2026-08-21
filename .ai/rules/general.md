@@ -68,3 +68,14 @@ address instead.
 `nickname === ''` is the signal, and it is already on the wire in `UserResource`.
 A provider signup arrives confirmed, so in practice only the nickname gate is
 ever met.
+
+## A private image is fetched with the token, not from a URL
+Avatars and identity documents are served to their owner alone, so
+`components/avatar.tsx` passes `Authorization` in the image source's `headers`
+rather than pointing at a public URL. The route never changes, so an upload also
+bumps a `version` query the image cache can see -- without it the old picture
+stays on screen.
+
+That is the one thing `fetch` cannot carry for us, and the only reason
+`useSession()` exposes the raw `token`. Do not reach for it for anything a
+request can do.

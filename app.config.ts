@@ -40,6 +40,13 @@ const config: ExpoConfig = {
         'expo-router',
         'expo-secure-store',
         [
+            'expo-image-picker',
+            {
+                photosPermission: 'Paayo needs your photo library to set your picture and to send documents for verification.',
+                cameraPermission: 'Paayo needs the camera to photograph documents for verification.',
+            },
+        ],
+        [
             // Embedded rather than loaded with useFonts, so type is right at
             // first paint with no async gate. The two halves are not symmetric:
             // Android maps files to weights under one family, iOS lists paths
