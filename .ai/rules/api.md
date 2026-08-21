@@ -39,7 +39,9 @@ reads `/.well-known/assetlinks.json` and looks for the signing certificate. An
 IP or `localhost` can never satisfy either, so passkeys do not work against a
 dev server no matter what else is right.
 
-`EXPO_PUBLIC_PASSKEY_RP_ID` names the domain, and it must equal `PASSKEY_RP_ID`
+`EXPO_PUBLIC_PASSKEY_RP_ID` names the domain -- `www.paayo.ph`, and the `www` is
+load-bearing: the apex carries no A record, so a relying party there fails at
+DNS. It must equal `PASSKEY_RP_ID`
 on the server -- it drives the iOS Associated Domains entitlement in
 `app.config.ts`, so changing it means `expo prebuild` and a rebuild, not a Metro
 reload. It stays empty in development, where it could not work anyway, and the
