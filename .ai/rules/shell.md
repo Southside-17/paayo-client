@@ -42,6 +42,24 @@ Detail screens (`profile/*`, `security/*`) stay siblings of `(tabs)` in that
 Stack, so they push over the bar and `router.back()` lands on the tab that
 opened them.
 
+## A hold is the first gate, ahead of the address and the nickname
+`(app)/_layout.tsx` runs three gates in the server's order: suspension,
+`verified`, then `EnsureHasNickname`. The hold goes first because it outranks
+both -- the API does not permit `auth.email-verification.send` to a held
+account, so sending them to the address gate first strands them on a screen
+whose only button answers 403 with the suspension notice.
+
+`held.tsx` reads `user.suspension`, which `UserResource` sends on every read of
+the account and which is the only reason `api.v1.auth.user` is permitted while
+held. The check is truthy, not `!== null`: the app ships on its own schedule,
+and a strict comparison against an older server that omits the field would gate
+every account in the app.
+
+The heading follows `punitive` -- **suspended** when the reason attributes
+fault, **on hold** when it does not, matching the console word for word.
+Investigation, account compromise and a legal order are the three that do not,
+and calling a compromised account suspended accuses its victim.
+
 ## The tab bar is React Navigation, so it takes literals
 `Tabs` cannot read a `className`, exactly like the navigation theme in
 `src/app/_layout.tsx`. Colours come from `src/theme/palette.js` keyed by

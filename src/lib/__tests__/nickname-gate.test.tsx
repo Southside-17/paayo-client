@@ -31,7 +31,7 @@ jest.mock('expo-router', () => ({
 function signedInAs(overrides: Record<string, unknown>) {
     (useSession as jest.Mock).mockReturnValue({
         status: 'authenticated',
-        user: { nickname: 'Mara', email_verified: true, ...overrides },
+        user: { nickname: 'Mara', email_verified: true, suspension: null, ...overrides },
     });
 }
 
@@ -82,6 +82,34 @@ it('lets go of the nickname gate once a nickname is chosen', () => {
 it('renders the gate it is holding rather than redirecting to itself', () => {
     mockPathname = '/verify-email';
     signedInAs({ email_verified: false });
+
+    render(<AppLayout />);
+
+    expect(screen.getByText('app')).toBeOnTheScreen();
+});
+
+it('holds a suspended account ahead of every other gate', () => {
+    signedInAs({ suspension: { scope: 'activity' }, email_verified: false, nickname: '' });
+
+    render(<AppLayout />);
+
+    // Ahead of the address gate on purpose: the API refuses the verification
+    // email a held account would be sent there to ask for.
+    expect(screen.getByText('redirect:/held')).toBeOnTheScreen();
+});
+
+it('lets go of the hold once it is lifted', () => {
+    mockPathname = '/held';
+    signedInAs({});
+
+    render(<AppLayout />);
+
+    expect(screen.getByText('redirect:/')).toBeOnTheScreen();
+});
+
+it('renders the hold rather than redirecting to itself', () => {
+    mockPathname = '/held';
+    signedInAs({ suspension: { scope: 'activity' } });
 
     render(<AppLayout />);
 

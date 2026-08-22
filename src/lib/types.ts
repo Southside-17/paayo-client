@@ -22,7 +22,27 @@ export type User = {
     two_factor_enabled: boolean;
     has_password: boolean;
     administrator: boolean;
+    /** The sanction in force, or null. Present on every read of the account. */
+    suspension: SuspensionNotice | null;
     created_at: string;
+};
+
+/**
+ * What a suspended account is told about its own suspension.
+ *
+ * `scope` is branched on and `notice` is shown; neither can be derived from the
+ * other here, so both travel. `punitive` is false for an investigation, a
+ * compromised account and a legal order -- three reasons that attribute no
+ * fault, and must not be worded or coloured as though they did.
+ */
+export type SuspensionNotice = {
+    scope: 'access' | 'activity';
+    notice: string;
+    punitive: boolean;
+    reason: string;
+    starts_at: string;
+    ends_at: string | null;
+    appealed_at: string | null;
 };
 
 /** Where work should happen. Never the address printed on an ID. */
