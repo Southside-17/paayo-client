@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { View } from 'react-native';
 
 import CategoryServices from '@/app/(app)/category/[id]';
+import ServiceOffers from '@/app/(app)/service/[id]';
 import Home from '@/app/(app)/(tabs)/index';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSession } from '@/lib/session';
@@ -12,7 +13,7 @@ jest.mock('@/lib/session', () => ({ useSession: jest.fn() }));
 jest.mock('expo-router', () => ({
     Link: MockLink,
     useFocusEffect: MockUseFocusEffect,
-    useLocalSearchParams: () => ({ id: 'c1', name: 'Air Condition' }),
+    useLocalSearchParams: MockParams,
 }));
 
 function MockLink({ children }: { href: unknown; children: ReactNode }) {
@@ -21,6 +22,14 @@ function MockLink({ children }: { href: unknown; children: ReactNode }) {
 
 function MockUseFocusEffect(callback: () => void) {
     useEffect(callback, [callback]);
+}
+
+// Read at call time, so each test can say what the tapped row carried. A
+// hoisted function may close over this; the factory itself may not.
+let params: Record<string, string> = {};
+
+function MockParams() {
+    return params;
 }
 
 const user = {
@@ -60,6 +69,7 @@ function answering(data: unknown) {
 }
 
 it('holds the shape of the grid while the catalog is on its way', () => {
+    params = {};
     pending();
 
     render(<Home />);
@@ -68,6 +78,7 @@ it('holds the shape of the grid while the catalog is on its way', () => {
 });
 
 it('holds the shape of the list while the services are on their way', () => {
+    params = { id: 'c1', name: 'Air Condition' };
     pending();
 
     render(<CategoryServices />);
@@ -78,6 +89,7 @@ it('holds the shape of the list while the services are on their way', () => {
 // The tile that was tapped already knows the name, so the title must not
 // settle from a placeholder once the services land.
 it('opens with the name of the trade that was tapped', () => {
+    params = { id: 'c1', name: 'Air Condition' };
     pending();
 
     render(<CategoryServices />);
@@ -86,6 +98,7 @@ it('opens with the name of the trade that was tapped', () => {
 });
 
 it('drops the skeleton once the services arrive', async () => {
+    params = { id: 'c1', name: 'Air Condition' };
     answering([
         {
             id: 's1',
@@ -100,4 +113,17 @@ it('drops the skeleton once the services arrive', async () => {
 
     await waitFor(() => expect(screen.getByText('Cleaning')).toBeOnTheScreen());
     expect(screen.UNSAFE_queryAllByType(Skeleton)).toHaveLength(0);
+});
+
+// The provider list is one screen further down and had the same fault: it
+// opened saying "Service" and renamed itself once the offers landed.
+it('opens the provider list with the service that was tapped', () => {
+    params = { id: 's1', name: 'Cleaning', category: 'Air Condition' };
+    pending();
+
+    render(<ServiceOffers />);
+
+    expect(screen.getByText('Cleaning')).toBeOnTheScreen();
+    expect(screen.UNSAFE_getAllByType(Skeleton).length).toBeGreaterThan(0);
+    expect(screen.queryByText('Service')).toBeNull();
 });

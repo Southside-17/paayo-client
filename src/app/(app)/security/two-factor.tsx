@@ -1,3 +1,5 @@
+import { BackButton } from '@/components/back-button';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, View } from 'react-native';
@@ -89,14 +91,8 @@ export default function TwoFactorSetup() {
                     contentContainerClassName="gap-6 p-6"
                     keyboardShouldPersistTaps="handled"
                 >
-                    <View className="flex-row items-center justify-between">
-                        <Text className="text-2xl font-bold">
-                            {enabled ? 'Recovery codes' : 'Set up two factor'}
-                        </Text>
-                        <Button variant="ghost" onPress={() => router.back()}>
-                            Close
-                        </Button>
-                    </View>
+                    <BackButton label="Security" />
+                    <ScreenHeader title={enabled ? 'Recovery codes' : 'Set up two factor'} />
 
                     <FormMessage message={message} />
 

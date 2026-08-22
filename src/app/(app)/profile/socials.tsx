@@ -1,3 +1,5 @@
+import { BackButton } from '@/components/back-button';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, View } from 'react-native';
@@ -75,12 +77,8 @@ export default function LinkedAccounts() {
     return (
         <SafeAreaView className="bg-background flex-1">
             <ScrollView contentContainerClassName="gap-6 p-6">
-                <View className="flex-row items-center justify-between">
-                    <Text className="text-2xl font-bold">Linked accounts</Text>
-                    <Button variant="ghost" onPress={() => router.back()}>
-                        Done
-                    </Button>
-                </View>
+                <BackButton label="Account" />
+                <ScreenHeader title="Linked accounts" />
 
                 <FormMessage message={message} />
 

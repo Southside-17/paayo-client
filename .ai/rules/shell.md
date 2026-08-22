@@ -93,3 +93,36 @@ bytes to add blur -- and re-saves as JPEG whatever arrived, so the part carries 
 name and a type the server's `mimes` rule can match rather than whatever the
 picker reported. The identification upload wants the same treatment when it
 lands; give it its own longest-side rather than reusing `AVATAR_SIZE`.
+
+## Every pushed screen goes back, and says where to
+`src/components/back-button.tsx` sits top-left on every screen pushed over the
+tabs, labelled with the screen it returns to: **Home**, the trade, the service,
+**Bookings**, **Account**, **Addresses**, **Security**. Nothing carries a
+top-right *Done* or *Cancel* any more -- those were copied onto browse screens
+from the settings screens, and Done means finished, which browsing a category
+never is.
+
+The label is a prop and not inferred, because a screen reached from two places
+returns to two places: `profile/addresses` is opened from Account and from
+Home's address line, so the caller passes `from`.
+
+## Names travel with the link, they do not settle after it
+A row that is tapped already knows what it is called, so it passes the name
+along and the next screen's title is right on the first frame. Home sends a
+category's `name`; the category screen sends a service's `name` and its
+`category`; the bookings list sends the service and provider names.
+
+Without this a screen opens on a placeholder -- "Services", "Service",
+"Booking" -- and renames itself when the fetch lands, which reads as a glitch.
+The fetched value stays as the fallback for a screen reached by deep link.
+
+Where the back label already carries a name, do not repeat it in the eyebrow.
+The provider list is titled with the service and goes back to the trade; showing
+the trade in both places is the same word twice, stacked.
+
+## A list that is loading holds its own shape
+`src/components/ui/skeleton.tsx`, sized at the call site so content lands into
+space already held for it. Never a blank, never a line of text that is then
+replaced -- both resize the page under the reader. It stops pulsing when the
+system asks for reduced motion, and holds its animated value in lazy state
+rather than a ref, which the React Compiler refuses to read during render.

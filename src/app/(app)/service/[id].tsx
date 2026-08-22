@@ -19,7 +19,11 @@ import type { Service } from '@/lib/types';
  * One service, and the providers who could actually be sent to the address.
  */
 export default function ServiceOffers() {
-    const { id } = useLocalSearchParams<{ id: string }>();
+    const { id, name, category } = useLocalSearchParams<{
+        id: string;
+        name?: string;
+        category?: string;
+    }>();
     const session = useSession();
     const { address, ready } = useDefaultAddress();
     const addressId = address?.id;
@@ -49,13 +53,15 @@ export default function ServiceOffers() {
     return (
         <SafeAreaView className="bg-background flex-1">
             <ScrollView contentContainerClassName="gap-5 p-6">
-                <BackButton label={service?.category?.name ?? 'Back'} />
-                <ScreenHeader
-                    eyebrow={service?.category?.name}
-                    title={service?.name ?? 'Service'}
-                />
+                {/* Both names travel with the link. The row that was tapped
+                    already knew them, so nothing here settles from a
+                    placeholder once the providers arrive. */}
+                <BackButton label={category ?? service?.category?.name ?? 'Back'} />
+                <ScreenHeader title={name ?? service?.name ?? 'Service'} />
 
-                {service?.description ? (
+                {service === null ? (
+                    <Skeleton className="h-4 w-3/4" />
+                ) : service.description ? (
                     <Text className="text-muted-foreground text-sm">{service.description}</Text>
                 ) : null}
 
@@ -107,7 +113,14 @@ export default function ServiceOffers() {
                         </View>
 
                         <Link
-                            href={{ pathname: '/book', params: { listing: listing.id } }}
+                            href={{
+                                pathname: '/book',
+                                params: {
+                                    listing: listing.id,
+                                    service: name ?? service?.name,
+                                    provider: listing.provider.name,
+                                },
+                            }}
                             asChild
                         >
                             <Button variant="brand">Book this provider</Button>

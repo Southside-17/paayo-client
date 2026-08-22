@@ -79,7 +79,18 @@ export default function CategoryServices() {
                 ) : null}
 
                 {services?.map((service) => (
-                    <Link key={service.id} href={`/service/${service.id}`} asChild>
+                    <Link
+                        key={service.id}
+                        href={{
+                            pathname: '/service/[id]',
+                            params: {
+                                id: service.id,
+                                name: service.name,
+                                category: name ?? service.category?.name,
+                            },
+                        }}
+                        asChild
+                    >
                         <Pressable
                             accessibilityRole="button"
                             className="border-border bg-card gap-1 rounded-xl border p-4"

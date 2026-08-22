@@ -1,4 +1,6 @@
-import { router, useFocusEffect } from 'expo-router';
+import { BackButton } from '@/components/back-button';
+import { ScreenHeader } from '@/components/ui/screen-header';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,6 +17,9 @@ import { useSubmit } from '@/lib/use-submit';
  * The addresses on the account, default first.
  */
 export default function Addresses() {
+    // Reached from Account and from Home's address line, so the screen it
+    // returns to is carried rather than assumed.
+    const { from } = useLocalSearchParams<{ from?: string }>();
     const session = useSession();
     const { busy, message, submit } = useSubmit();
     const [addresses, setAddresses] = useState<Address[] | null>(null);
@@ -56,12 +61,8 @@ export default function Addresses() {
     return (
         <SafeAreaView className="bg-background flex-1">
             <ScrollView contentContainerClassName="gap-4 p-6">
-                <View className="flex-row items-center justify-between">
-                    <Text className="text-2xl font-bold">Addresses</Text>
-                    <Button variant="ghost" onPress={() => router.back()}>
-                        Done
-                    </Button>
-                </View>
+                <BackButton label={from ?? 'Account'} />
+                <ScreenHeader title="Addresses" />
 
                 <Text className="text-muted-foreground text-sm">
                     Where you want work done. This is separate from the address on a verified ID.

@@ -21,7 +21,11 @@ import { useSubmit } from '@/lib/use-submit';
  * One booking: what was asked for, where it goes, and what it costs.
  */
 export default function BookingDetail() {
-    const { id } = useLocalSearchParams<{ id: string }>();
+    const { id, name, provider } = useLocalSearchParams<{
+        id: string;
+        name?: string;
+        provider?: string;
+    }>();
     const session = useSession();
     const { busy, message, errorFor, submit } = useSubmit();
     const [booking, setBooking] = useState<Booking | null>(null);
@@ -60,8 +64,8 @@ export default function BookingDetail() {
             <ScrollView contentContainerClassName="gap-5 p-6">
                 <BackButton label="Bookings" />
                 <ScreenHeader
-                    eyebrow={booking?.provider.name}
-                    title={booking?.service.name ?? 'Booking'}
+                    eyebrow={provider ?? booking?.provider.name}
+                    title={name ?? booking?.service.name ?? 'Booking'}
                 />
 
                 <FormMessage message={message ?? errorFor('status') ?? null} />

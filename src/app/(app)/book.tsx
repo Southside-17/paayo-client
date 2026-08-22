@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BackButton } from '@/components/back-button';
 import { FormMessage } from '@/components/form-message';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -48,7 +49,11 @@ function label(hour: number): string {
  * Ask for a provider's work at a time and a place.
  */
 export default function Book() {
-    const { listing } = useLocalSearchParams<{ listing: string }>();
+    const { listing, service, provider } = useLocalSearchParams<{
+        listing: string;
+        service?: string;
+        provider?: string;
+    }>();
     const session = useSession();
     const { busy, message, errorFor, submit } = useSubmit();
     const [addresses, setAddresses] = useState<Address[] | null>(null);
@@ -92,7 +97,14 @@ export default function Book() {
                 },
             });
 
-            router.replace(`/booking/${data.id}`);
+            router.replace({
+                pathname: '/booking/[id]',
+                params: {
+                    id: data.id,
+                    name: data.service.name,
+                    provider: data.provider.name,
+                },
+            });
         });
 
     return (
@@ -102,11 +114,11 @@ export default function Book() {
                     contentContainerClassName="gap-5 p-6"
                     keyboardShouldPersistTaps="handled"
                 >
-                    <ScreenHeader title="Book">
-                        <Button variant="ghost" onPress={() => router.back()}>
-                            Cancel
-                        </Button>
-                    </ScreenHeader>
+                    {/* Back names the list this returns to; the eyebrow names
+                        who is being booked. Between them the screen says what
+                        was chosen to get here. */}
+                    <BackButton label={service ?? 'Back'} />
+                    <ScreenHeader eyebrow={provider} title="Book" />
 
                     <FormMessage message={message ?? errorFor('listing_id') ?? null} />
 

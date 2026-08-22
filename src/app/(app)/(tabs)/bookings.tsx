@@ -76,7 +76,18 @@ export default function Bookings() {
                 ) : null}
 
                 {bookings?.map((booking) => (
-                    <Link key={booking.id} href={`/booking/${booking.id}`} asChild>
+                    <Link
+                        key={booking.id}
+                        href={{
+                            pathname: '/booking/[id]',
+                            params: {
+                                id: booking.id,
+                                name: booking.service.name,
+                                provider: booking.provider.name,
+                            },
+                        }}
+                        asChild
+                    >
                         <Pressable
                             accessibilityRole="button"
                             className="border-border bg-card gap-2 rounded-xl border p-4"

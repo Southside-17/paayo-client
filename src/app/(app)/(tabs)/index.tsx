@@ -76,7 +76,10 @@ export default function Home() {
                     />
                 </ScreenHeader>
 
-                <Link href="/profile/addresses" asChild>
+                <Link
+                    href={{ pathname: '/profile/addresses', params: { from: 'Home' } }}
+                    asChild
+                >
                     <Pressable className="border-border bg-card flex-row items-center gap-2 rounded-xl border px-4 py-3">
                         <View className="flex-1 gap-0.5">
                             <Text className="text-muted-foreground text-xs">Work happens at</Text>

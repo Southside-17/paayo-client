@@ -1,4 +1,6 @@
-import { Link, router } from 'expo-router';
+import { BackButton } from '@/components/back-button';
+import { ScreenHeader } from '@/components/ui/screen-header';
+import { Link } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -64,12 +66,8 @@ export default function Security() {
                     contentContainerClassName="gap-6 p-6"
                     keyboardShouldPersistTaps="handled"
                 >
-                    <View className="flex-row items-center justify-between">
-                        <Text className="text-2xl font-bold">Security</Text>
-                        <Button variant="ghost" onPress={() => router.back()}>
-                            Done
-                        </Button>
-                    </View>
+                    <BackButton label="Account" />
+                    <ScreenHeader title="Security" />
 
                     <PasskeyCard />
 

@@ -1,3 +1,5 @@
+import { BackButton } from '@/components/back-button';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import * as Location from 'expo-location';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
@@ -150,14 +152,8 @@ export default function EditAddress() {
                 className="flex-1"
             >
                 <ScrollView contentContainerClassName="gap-6 p-6" keyboardShouldPersistTaps="handled">
-                    <View className="flex-row items-center justify-between">
-                        <Text className="text-2xl font-bold">
-                            {id === undefined ? 'Add address' : 'Edit address'}
-                        </Text>
-                        <Button variant="ghost" onPress={() => router.back()}>
-                            Cancel
-                        </Button>
-                    </View>
+                    <BackButton label="Addresses" />
+                    <ScreenHeader title={id === undefined ? 'Add address' : 'Edit address'} />
 
                     <Text className="text-muted-foreground text-sm">
                         Where work should happen. This is separate from the address on a verified ID.
