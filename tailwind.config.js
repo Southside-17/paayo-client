@@ -20,6 +20,12 @@ module.exports = {
                 sans: ['Urbanist'],
                 mono: ['JetBrains Mono'],
             },
+            // Mirrors the console's --tracking-display. Negative tracking is
+            // reserved for display sizes there, and a screen title is the
+            // first one the app has.
+            letterSpacing: {
+                display: '-0.016em',
+            },
             // Mirrors the console, where every step derives from --radius: 0.5rem.
             borderRadius: {
                 xs: '2px',
