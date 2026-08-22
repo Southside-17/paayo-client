@@ -17,6 +17,11 @@ platform settings in `app.config.ts`, or a config plugin when that is not enough
 before handing over. Both failures without it read like code faults rather than
 missing configuration.
 
+**Never call `npx expo run:android` directly.** It skips the wrapper, and Gradle
+then reports "SDK location not found" -- which reads like a broken machine and is
+only a missing variable this script would have supplied. `npm run ios` has no
+such wrapper and Xcode needs none.
+
 **JDK 17 or 21, not 25.** React Native's native modules go through AGP's CMake
 configure step, which still makes restricted JNI calls. JDK 25 made those fatal
 (JEP 472), so a build on 25 dies with `configureCMakeDebug ... restricted

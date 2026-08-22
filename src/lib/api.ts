@@ -66,43 +66,116 @@ type RequestOptions = {
     token?: string | null;
 };
 
+type Payload = { message?: string; errors?: ValidationErrors } | null;
+
+type Answer = { status: number; payload: Payload };
+
+/**
+ * Send a request the way the platform still supports for file uploads.
+ *
+ * Expo SDK 57 replaces `globalThis.fetch` with its own implementation
+ * (`install('fetch', ...)` in expo/src/winter/runtime.native.ts), and that one
+ * only understands a string, a Blob, or something carrying `bytes()`. React
+ * Native's own `{uri, name, type}` file part reaches its `else` and throws
+ * `Unsupported FormDataPart implementation` before a socket is ever opened --
+ * which useSubmit reports as a connection failure, because that is what an
+ * error with no status looks like from the outside.
+ *
+ * XMLHttpRequest is untouched by that swap. It hands a FormData to
+ * `convertRequestBody`, which turns it into the native part list the
+ * networking layer wants, and that is what fetch itself used to do.
+ */
+function sendMultipart(
+    url: string,
+    method: RequestMethod,
+    headers: Record<string, string>,
+    body: FormData,
+): Promise<Answer> {
+    return new Promise((resolve, reject) => {
+        const request = new XMLHttpRequest();
+
+        request.open(method, url);
+
+        // Never set Content-Type here: only the native layer knows the
+        // boundary it is about to generate.
+        for (const [name, value] of Object.entries(headers)) {
+            request.setRequestHeader(name, value);
+        }
+
+        request.onload = () =>
+            resolve({
+                status: request.status,
+                payload: request.status === 204 ? null : parse(request.responseText),
+            });
+        request.onerror = () => reject(new TypeError('Network request failed'));
+        request.ontimeout = () => reject(new TypeError('Network request timed out'));
+
+        request.send(body);
+    });
+}
+
+/** Everything that is not a file, through the ordinary client. */
+async function sendJson(
+    url: string,
+    method: RequestMethod,
+    headers: Record<string, string>,
+    body: unknown,
+): Promise<Answer> {
+    const response = await fetch(url, {
+        method,
+        headers,
+        body: body === undefined ? undefined : JSON.stringify(body),
+    });
+
+    // A 204 carries no body, which parsing would choke on.
+    return {
+        status: response.status,
+        payload: response.status === 204 ? null : await response.json().catch(() => null),
+    };
+}
+
 /**
  * Call the API and unwrap the response.
  *
- * A 204 carries no body, which JSON.parse would choke on, so it resolves to
- * undefined and callers that expect nothing type it as void.
- *
- * FormData is passed through untouched and deliberately carries no
- * Content-Type: only the runtime knows the multipart boundary it is about to
- * generate, and naming the type ourselves omits it and the request is rejected.
+ * A 204 carries no body, so it resolves to undefined and callers that expect
+ * nothing type it as void.
  */
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
     const { method = 'GET', body, token } = options;
     const multipart = body instanceof FormData;
 
-    const response = await fetch(`${API_URL}${PREFIX}${path}`, {
-        method,
-        headers: {
-            Accept: 'application/json',
-            ...(body && !multipart ? { 'Content-Type': 'application/json' } : {}),
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: multipart ? body : body ? JSON.stringify(body) : undefined,
-    });
+    const headers: Record<string, string> = {
+        Accept: 'application/json',
+        ...(body && !multipart ? { 'Content-Type': 'application/json' } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
 
-    if (response.status === 204) {
+    const url = `${API_URL}${PREFIX}${path}`;
+
+    const { status, payload } = multipart
+        ? await sendMultipart(url, method, headers, body)
+        : await sendJson(url, method, headers, body);
+
+    if (status === 204) {
         return undefined as T;
     }
 
-    const payload = await response.json().catch(() => null);
-
-    if (!response.ok) {
+    if (status < 200 || status >= 300) {
         throw new ApiError(
-            response.status,
-            payload?.message ?? `Request failed (${response.status}).`,
+            status,
+            payload?.message ?? `Request failed (${status}).`,
             payload?.errors ?? {},
         );
     }
 
     return payload as T;
+}
+
+/** A body that is not JSON tells us nothing, so it is read as nothing. */
+function parse(text: string): Payload {
+    try {
+        return JSON.parse(text);
+    } catch {
+        return null;
+    }
 }

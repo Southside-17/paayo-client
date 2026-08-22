@@ -34,6 +34,9 @@ export default function Home() {
     const [addresses, setAddresses] = useState<Address[] | null>(null);
     const [passkeys, setPasskeys] = useState<Passkey[] | null>(null);
     const [socials, setSocials] = useState<Social[] | null>(null);
+    // The picture is changed on another screen and the route it is served from
+    // never changes, so nothing else would tell the image cache to look again.
+    const [seen, setSeen] = useState(0);
 
     const authenticatedRequest =
         session.status === 'authenticated' ? session.authenticatedRequest : null;
@@ -46,6 +49,8 @@ export default function Home() {
             if (!authenticatedRequest) {
                 return;
             }
+
+            setSeen((count) => count + 1);
 
             void authenticatedRequest<{ data: Address[] }>('/addresses')
                 .then(({ data }) => setAddresses(data))
@@ -77,7 +82,7 @@ export default function Home() {
                         nickname={user.nickname}
                         avatar={user.avatar}
                         token={session.token}
-                        version={0}
+                        version={seen}
                         size={44}
                     />
                 </ScreenHeader>

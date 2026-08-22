@@ -98,3 +98,32 @@ platform needs hides the button rather than offering one that cannot work.
 
 Declining the sheet returns null and the screen says nothing: backing out is a
 decision, not a failure.
+
+## A file goes through XMLHttpRequest, never through fetch
+Expo SDK 57 replaces `globalThis.fetch` with its own implementation --
+`install('fetch', () => require('./fetch').fetch)` in
+`expo/src/winter/runtime.native.ts`. That one accepts a string, a `Blob`, or
+something carrying `bytes()`, and React Native's own `{uri, name, type}` file
+part reaches its `else` and throws:
+
+```
+Error: Unsupported FormDataPart implementation
+```
+
+It throws in `expo/src/winter/fetch/convertFormData.ts` **before a socket is
+opened**, so nothing reaches the server and no status comes back -- which
+`useSubmit` reports as "Could not reach Paayo", because an error with no status
+is indistinguishable from a dead network. Hours went into the server before the
+error itself was read; the `__DEV__` warning in `useSubmit` exists so the next
+one is read first.
+
+`XMLHttpRequest` is untouched by that swap. `convertRequestBody` turns a
+FormData into the native part list (`{formData: body.getParts()}`) and the
+networking layer streams the file off disk, which is what `fetch` itself used to
+do. So `request()` splits: multipart through `sendMultipart`, everything else
+through `sendJson`.
+
+Do not set `Content-Type` on the multipart branch -- only the native layer knows
+the boundary it is about to generate. And re-sending is safe: RN's `getParts()`
+is idempotent, so the 401-refresh retry can hand back the same FormData, which a
+consumed web `FormData` could not.
