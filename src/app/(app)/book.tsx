@@ -194,7 +194,7 @@ export default function Book() {
 
                     {ready && !address ? (
                         <Card className="gap-2">
-                            <Label>Where is the work?</Label>
+                            <Label>Where is the trouble?</Label>
                             <Text className="text-warning text-sm">
                                 No address on this account, so there is nowhere to send anyone.
                             </Text>
@@ -204,7 +204,7 @@ export default function Book() {
                     <FieldError message={errorFor('address_id')} />
 
                     <Card className="gap-3">
-                        <Label>When are they coming?</Label>
+                        <Label>When should they arrive?</Label>
                         <View className="flex-row flex-wrap gap-2">
                             {days().map((option) => {
                                 const chosen = option.toDateString() === day.toDateString();
@@ -284,7 +284,7 @@ export default function Book() {
                     </Card>
 
                     <Card className="gap-2">
-                        <Label>Why are they coming?</Label>
+                        <Label>Why do you need them?</Label>
                         <Input
                             value={description}
                             onChangeText={(value) => {

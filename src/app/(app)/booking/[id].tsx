@@ -171,7 +171,7 @@ export default function BookingDetail() {
                         </Card>
 
                         <Card className="gap-2">
-                            <Label>Why are they coming?</Label>
+                            <Label>Why do you need them?</Label>
                             <Text className="text-sm">{booking.description}</Text>
                         </Card>
 

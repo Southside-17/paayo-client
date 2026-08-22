@@ -47,7 +47,7 @@ export function WhereCard({ place, map = true }: { place: Place; map?: boolean }
 
     return (
         <Card className="gap-2">
-            <Label>Where is the work?</Label>
+            <Label>Where is the trouble?</Label>
             <Text className="text-lg font-semibold">{place.label ?? 'Your address'}</Text>
 
             {place.line ? (
@@ -105,7 +105,7 @@ export function WhenCard({ scheduled }: { scheduled: string }) {
 
     return (
         <Card className="gap-2">
-            <Label>When are they coming?</Label>
+            <Label>When are they arriving?</Label>
             <Text className="text-lg font-semibold">
                 {visit.toLocaleDateString('en-PH', {
                     weekday: 'long',
