@@ -14,9 +14,15 @@ const config: ExpoConfig = {
     version: '1.0.0',
     orientation: 'portrait',
     // Two schemes: 'paayo' for our own deep links, and the bundle identifier
-    // because expo-auth-session redirects Google back to
-    // `${Application.applicationId}:/oauthredirect`. Prebuild adds the second
-    // one to iOS by itself but not to the Android intent filter.
+    // because Google returns from sign in to `com.paayo.ph:/oauthredirect`.
+    // Both are load bearing -- dropping the second one leaves prebuild with no
+    // intent filter for it, and the browser then has nowhere to hand the
+    // redirect back to. Verified by removing it and reading the manifest.
+    //
+    // A dev build logs "multiple possible URI schemes ... Ignoring:
+    // com.paayo.ph, com.paayo.ph" because Expo's launcher appends the
+    // application id at runtime for its own `expo-development-client` link.
+    // That duplicate is not from here and does not appear in a release build.
     scheme: ['paayo', 'com.paayo.ph'],
     userInterfaceStyle: 'automatic',
     icon: './assets/images/icon.png',

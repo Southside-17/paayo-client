@@ -162,3 +162,16 @@ builds as before with the passkey buttons hidden.
 build has no entitlement to open. Both are read through Expo's env shim as the
 module graph is built, not per call, which is why the tests reload the module
 inside `jest.isolateModules` instead of setting `process.env` and calling again.
+
+## Both entries in `scheme` are load bearing
+`paayo` is ours; `com.paayo.ph` is where Google returns from sign in, because an
+Android OAuth client's redirect *must* be the package name -- Google will not
+accept another scheme for it. Remove the second and prebuild writes no intent
+filter for it, so the browser has nowhere to hand the redirect back and sign in
+dies at the last step. Checked by removing it and reading the generated
+`AndroidManifest.xml`, not assumed.
+
+A dev build logs `multiple possible URI schemes ... Ignoring: com.paayo.ph,
+com.paayo.ph`. The duplicate is Expo's dev launcher appending the application id
+at runtime for its own `expo-development-client` link -- the config holds it
+once, and a release build has no launcher to add it. It is noise, not a symptom.
