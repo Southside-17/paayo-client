@@ -94,6 +94,24 @@ no `className` prop is registered on them. Feed the `color` prop from
 `src/theme/palette.js` keyed by `useColorScheme()`, the same way
 `src/app/_layout.tsx` feeds the navigation theme.
 
+## Two icon sets, and they do different jobs
+**Lucide** draws the interface -- chevrons, the tab bar, the settings rows, the
+eye on a password field. **Tabler** draws service categories and nothing else.
+It is here because Lucide has no aircon glyph at all, which is the first
+category in the catalog; Tabler carries `IconAirConditioning`, `IconFridge`,
+`IconLadder`, `IconTools` and the rest of the trades. Both are 24px 2px-stroke,
+so they sit together.
+
+`src/lib/icons.ts` is **generated** by `scripts/sync-icons.mjs` from the
+console's `resources/data/service-icons.json`. Do not hand-edit it, and do not
+import a Tabler glyph anywhere else -- adding one means an entry in that JSON
+and rerunning the script in **both** repos. The barrel is worse here than
+Lucide's: 6184 icons against 1500.
+
+`types/tabler-icons.d.ts` exists because the package's own exports map is
+wrong -- it points `./*` types at `dist/icons/*.d.ts` and the declarations sit
+at `dist/icons/icons/*.d.ts`. Delete the file when upstream fixes it.
+
 ## The only name a person types is their nickname
 Labels say **Nickname**, never Name. `users.nickname` is the freeform display
 name; the legal-name columns are written solely by approving an identification
