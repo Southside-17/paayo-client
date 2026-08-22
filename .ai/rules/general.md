@@ -118,3 +118,24 @@ like a broken upload endpoint. The boolean exists to be checked.
 That is the one thing `fetch` cannot carry for us, and the only reason
 `useSession()` exposes the raw `token`. Do not reach for it for anything a
 request can do.
+
+## A 422 with field errors clears the form message
+`useSubmit` files a validation refusal under its fields and sets `message` to
+null, because a form that renders `FieldError` under each input would otherwise
+say the same thing twice. The trap is a submission whose field has no input to
+sit under -- the avatar is one: a button, a picker, and a `documents[0][files]`
+upload will be another.
+
+There the screen goes completely silent. The spinner stops, nothing appears,
+and the refusal -- too large, wrong dimensions -- is held in `errors` with
+nothing reading it. Pass the field through to the banner:
+
+```tsx
+<FormMessage message={message ?? errorFor('avatar') ?? null} />
+```
+
+`useSubmit` also `console.warn`s anything that is neither an `ApiError` nor a
+`DisplayableError` when `__DEV__`. Everything reaching that branch is a
+transport failure and the person is told so in one sentence, which reads
+identically whether the Wi-Fi dropped or the request was malformed. Without the
+warning those two cost an afternoon to tell apart.

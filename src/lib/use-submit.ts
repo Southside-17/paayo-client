@@ -36,6 +36,15 @@ export function useSubmit(): Submission {
             } else if (error instanceof DisplayableError) {
                 setMessage(error.message);
             } else {
+                // Everything that reaches here is a transport failure, and the
+                // person is told so in one sentence because there is nothing
+                // else they can act on. While developing, the cause has to be
+                // visible: a bug in the request reads exactly like dropped
+                // Wi-Fi, and swallowing it whole costs an afternoon.
+                if (__DEV__) {
+                    console.warn('[paayo] request failed', error);
+                }
+
                 setMessage('Could not reach Paayo. Check your connection and try again.');
             }
         } finally {

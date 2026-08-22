@@ -1,8 +1,10 @@
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import * as ImagePicker from 'expo-image-picker';
 import type { ReactNode } from 'react';
 import { View } from 'react-native';
 
 import Account from '@/app/(app)/(tabs)/account';
+import { ApiError } from '@/lib/api';
 import { useSession } from '@/lib/session';
 
 jest.mock('@/lib/session', () => ({ useSession: jest.fn() }));
@@ -28,12 +30,12 @@ const user = {
     created_at: '2026-01-01T00:00:00.000000Z',
 };
 
-function signedIn() {
+function signedIn(authenticatedRequest: jest.Mock = jest.fn()) {
     (useSession as jest.Mock).mockReturnValue({
         status: 'authenticated',
         user,
         token: 'a-token',
-        authenticatedRequest: jest.fn(),
+        authenticatedRequest,
         reload: jest.fn(),
         logout: jest.fn(),
     });
@@ -68,4 +70,32 @@ it('points each section at the screen that owns it', () => {
     expect(screen.getByLabelText('to /profile/addresses')).toBeOnTheScreen();
     expect(screen.getByLabelText('to /profile/socials')).toBeOnTheScreen();
     expect(screen.getByLabelText('to /security')).toBeOnTheScreen();
+});
+
+// The picture has no input of its own, so useSubmit files a 422 under the
+// field and clears the form message -- and the screen went silent. A refusal
+// the person cannot see is worse than one they can.
+it('shows why an upload was refused, though no input owns the field', async () => {
+    jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
+        canceled: false,
+        assets: [{ uri: 'file:///photo.jpg', fileName: 'photo.jpg', mimeType: 'image/jpeg' }],
+    } as never);
+
+    signedIn(
+        jest.fn().mockRejectedValue(
+            new ApiError(422, 'The avatar field has invalid image dimensions.', {
+                avatar: ['The avatar field has invalid image dimensions.'],
+            }),
+        ),
+    );
+
+    render(<Account />);
+
+    fireEvent.press(screen.getByText('Add a picture'));
+
+    await waitFor(() =>
+        expect(
+            screen.getByText('The avatar field has invalid image dimensions.'),
+        ).toBeOnTheScreen(),
+    );
 });
