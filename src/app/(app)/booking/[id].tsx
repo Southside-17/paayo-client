@@ -16,7 +16,6 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusPill } from '@/components/ui/status-pill';
 import { Text } from '@/components/ui/text';
-import { attachmentUrl } from '@/lib/api';
 import { peso, priceRange } from '@/lib/money';
 import { useSession } from '@/lib/session';
 import type { Booking } from '@/lib/types';
@@ -55,8 +54,6 @@ export default function BookingDetail() {
     if (session.status !== 'authenticated') {
         return null;
     }
-
-    const bearing = { Authorization: `Bearer ${session.token}` };
 
     const cancel = () =>
         submit(async () => {
@@ -143,7 +140,14 @@ export default function BookingDetail() {
                                 <View className="flex-row flex-wrap gap-2">
                                     {booking.attachments.map((attachment) => {
                                         const video = attachment.mime.startsWith('video/');
-                                        const uri = attachmentUrl(attachment.id);
+                                        // Signed by the server and good for an
+                                        // hour. Nothing is sent alongside it:
+                                        // the signature is the permission.
+                                        const uri = attachment.url;
+
+                                        if (!uri) {
+                                            return null;
+                                        }
 
                                         return (
                                             <Pressable
@@ -154,11 +158,7 @@ export default function BookingDetail() {
                                                 }
                                                 onPress={() => setViewing({ uri, video })}
                                             >
-                                                <MediaThumb
-                                                    uri={uri}
-                                                    video={video}
-                                                    headers={bearing}
-                                                />
+                                                <MediaThumb uri={uri} video={video} />
                                             </Pressable>
                                         );
                                     })}
@@ -200,11 +200,7 @@ export default function BookingDetail() {
                     onDismiss={() => setAsking(false)}
                 />
 
-                <MediaViewer
-                    item={viewing}
-                    headers={bearing}
-                    onClose={() => setViewing(null)}
-                />
+                <MediaViewer item={viewing} onClose={() => setViewing(null)} />
             </ScrollView>
         </SafeAreaView>
     );

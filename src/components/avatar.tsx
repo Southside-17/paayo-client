@@ -2,39 +2,32 @@ import { Image } from 'expo-image';
 import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
-import { API_URL } from '@/lib/api';
 
 type Props = {
     nickname: string;
-    avatar: boolean;
-    token: string | null;
-    version: number;
+    url?: string | null;
     size?: number;
 };
 
 /**
  * The picture on an account, or the initial standing in for one.
  *
- * The file is private, so it is fetched with the bearer token rather than from
- * a public URL. `version` is bumped after an upload: the URL never changes, so
- * nothing else would tell the image cache to look again.
+ * The address is signed by the server and fetched with no headers of its own.
+ * It also carries a fresh signature every time the account is loaded, so a
+ * replaced picture appears without anything having to tell the image cache to
+ * look again -- which is what the version counter here used to be for.
  */
-export function Avatar({ nickname, avatar, token, version, size = 72 }: Props) {
+export function Avatar({ nickname, url, size = 72 }: Props) {
     const initial = nickname.trim().charAt(0).toUpperCase() || '?';
 
-    // The route answers 404 for an account holding no picture, so `avatar` is
-    // read first rather than asking and letting the request fail.
-    if (!avatar || token === null) {
+    if (!url) {
         return <Initial initial={initial} size={size} />;
     }
 
     return (
         <Image
             testID="avatar-image"
-            source={{
-                uri: `${API_URL}/api/v1/profile/avatar?v=${version}`,
-                headers: { Authorization: `Bearer ${token}` },
-            }}
+            source={{ uri: url }}
             style={{ width: size, height: size, borderRadius: size / 2 }}
             contentFit="cover"
             placeholder={null}

@@ -7,14 +7,13 @@ export type Viewable = { uri: string; video: boolean };
 
 type Props = {
     item: Viewable | null;
-    headers?: Record<string, string>;
     onClose: () => void;
 };
 
 /**
  * One attachment at full size, played through if it is a clip.
  */
-export function MediaViewer({ item, headers, onClose }: Props) {
+export function MediaViewer({ item, onClose }: Props) {
     return (
         <Modal
             visible={item !== null}
@@ -24,14 +23,10 @@ export function MediaViewer({ item, headers, onClose }: Props) {
             onRequestClose={onClose}
         >
             <View className="flex-1 bg-black">
-                {item?.video ? <Clip uri={item.uri} headers={headers} /> : null}
+                {item?.video ? <Clip uri={item.uri} /> : null}
 
                 {item && !item.video ? (
-                    <Image
-                        source={{ uri: item.uri, headers }}
-                        style={{ flex: 1 }}
-                        contentFit="contain"
-                    />
+                    <Image source={{ uri: item.uri }} style={{ flex: 1 }} contentFit="contain" />
                 ) : null}
 
                 <Pressable
@@ -52,8 +47,8 @@ export function MediaViewer({ item, headers, onClose }: Props) {
  * clip is opened and released when it is closed, instead of living on every
  * screen that can show one.
  */
-function Clip({ uri, headers }: { uri: string; headers?: Record<string, string> }) {
-    const player = useVideoPlayer({ uri, headers }, (ready) => {
+function Clip({ uri }: { uri: string }) {
+    const player = useVideoPlayer({ uri }, (ready) => {
         ready.loop = false;
         ready.play();
     });

@@ -109,9 +109,16 @@ export function MediaPicker({ send, items, onChange, disabled = false, invalid =
                 // A camera photo is megabytes of resolution nobody will look at;
                 // a video is left alone, because re-encoding it here would cost
                 // more than sending it.
+                // Named in full either way. The uploader reads the mime off
+                // the file on disk when it has to, but a picked photo has just
+                // been re-saved as JPEG and there is no reason to make it look.
                 const prepared: Picked = video
                     ? { uri: asset.uri, mimeType: asset.mimeType, fileName: asset.fileName }
-                    : await preparePicture(asset, PHOTO_SIZE, 'photo.jpg');
+                    : {
+                          uri: (await preparePicture(asset, PHOTO_SIZE, 'photo.jpg')).uri,
+                          mimeType: 'image/jpeg',
+                          fileName: 'photo.jpg',
+                      };
 
                 chosen.push({
                     key: `${asset.assetId ?? asset.uri}-${chosen.length}`,

@@ -3,7 +3,6 @@ import Link2 from 'lucide-react-native/icons/link-2';
 import MapPin from 'lucide-react-native/icons/map-pin';
 import Pencil from 'lucide-react-native/icons/pencil';
 import ShieldCheck from 'lucide-react-native/icons/shield-check';
-import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -36,8 +35,6 @@ const ROWS: SettingsRow[] = [
 export default function Account() {
     const session = useSession();
     const { busy, message, errorFor, submit } = useSubmit();
-    const [version, setVersion] = useState(0);
-
     if (session.status !== 'authenticated') {
         return null;
     }
@@ -68,7 +65,6 @@ export default function Account() {
             });
 
             await session.reload();
-            setVersion((seen) => seen + 1);
         });
 
     const removePicture = () =>
@@ -76,7 +72,6 @@ export default function Account() {
             await session.authenticatedRequest<void>('/profile/avatar', { method: 'DELETE' });
 
             await session.reload();
-            setVersion((seen) => seen + 1);
         });
 
     return (
@@ -91,13 +86,7 @@ export default function Account() {
                 <FormMessage message={message ?? errorFor('avatar') ?? null} />
 
                 <View className="flex-row items-center gap-4">
-                    <Avatar
-                        nickname={user.nickname}
-                        avatar={user.avatar}
-                        token={session.token}
-                        version={version}
-                        size={64}
-                    />
+                    <Avatar nickname={user.nickname} url={user.avatar_url} size={64} />
 
                     <View className="flex-1 gap-1">
                         <Text className="text-lg font-semibold">{user.nickname}</Text>

@@ -393,8 +393,25 @@ it('plays an attached video, and opens a photo at full size', async () => {
                 data: {
                     ...booking,
                     attachments: [
-                        { id: 'att-1', name: 'a.jpg', mime: 'image/jpeg', size: 1, received: 1, is_complete: true },
-                        { id: 'att-2', name: 'b.mp4', mime: 'video/mp4', size: 2, received: 2, is_complete: true },
+                        // Signed by the server, and the only thing a tile has
+                        // to draw with: an attachment with no url is one whose
+                        // upload never finished, and it is not shown.
+                        {
+                            id: 'att-1',
+                            name: 'a.jpg',
+                            mime: 'image/jpeg',
+                            size: 1,
+                            is_complete: true,
+                            url: 'https://store.paayo.test/a.jpg?X-Amz-Signature=abc',
+                        },
+                        {
+                            id: 'att-2',
+                            name: 'b.mp4',
+                            mime: 'video/mp4',
+                            size: 2,
+                            is_complete: true,
+                            url: 'https://store.paayo.test/b.mp4?X-Amz-Signature=abc',
+                        },
                     ],
                 },
             }),
@@ -410,14 +427,13 @@ it('plays an attached video, and opens a photo at full size', async () => {
 
     await waitFor(() => expect(screen.getByLabelText('Close')).toBeOnTheScreen());
 
-    // The clip is private, so the player is handed the token rather than a URL
-    // anyone could fetch -- and it starts on its own, since opening it is the
-    // whole of the request.
+    // The clip is private, and what keeps it private is the signature on the
+    // address rather than a header alongside it: the store reads an
+    // Authorization header in preference to the signature and then fails to
+    // verify a bearer token it was never issued. It starts on its own, since
+    // opening it is the whole of the request.
     expect(useVideoPlayer).toHaveBeenCalledWith(
-        expect.objectContaining({
-            uri: expect.stringContaining('att-2'),
-            headers: { Authorization: 'Bearer a-token' },
-        }),
+        { uri: 'https://store.paayo.test/b.mp4?X-Amz-Signature=abc' },
         expect.any(Function),
     );
 

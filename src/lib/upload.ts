@@ -1,7 +1,25 @@
+import { Directory, File, FileMode, Paths, UploadType } from 'expo-file-system';
+
 import type { Attachment } from '@/lib/types';
 
-/** How much of a file one request carries. */
-const PART = 4 * 1024 * 1024;
+/**
+ * How many parts are in the air at once.
+ *
+ * Parts go straight to the store, so they do not queue behind each other the
+ * way they did when every one crossed the application first.
+ */
+const LANES = 3;
+
+/**
+ * How much of a part is moved between files at a time.
+ *
+ * A part is carved out of the source on disk rather than sliced out of the file
+ * in memory. React Native holds a Blob as one contiguous allocation -- iOS keeps
+ * them in an NSData dictionary, and every slice() is a subdataWithRange: copy on
+ * top -- so reading a video in to send it put the whole video in RAM and got the
+ * app killed part way up. Nothing here ever holds more than this much of it.
+ */
+const CARVE = 1024 * 1024;
 
 /** What the picker hands back for a photo or a video. */
 export type Picked = {
@@ -10,32 +28,26 @@ export type Picked = {
     fileName?: string | null;
 };
 
+/** Somewhere to put one part, and whether it is already there. */
+type Part = {
+    number: number;
+    offset: number;
+    size: number;
+    uploaded: boolean;
+    url: string;
+};
+
+type Grant = { part_size: number; parts: Part[] };
+
+type Opened = { data: Attachment; upload: Grant };
+
 type Send = <T>(
     path: string,
     options?: {
         method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
         body?: unknown;
-        onProgress?: (sent: number, total: number) => void;
     },
 ) => Promise<T>;
-
-/**
- * Read a local file as a blob.
- *
- * XHR rather than fetch: Expo's fetch does not read a file:// URI, and a blob
- * read this way can be sliced without copying anything.
- */
-function readFile(uri: string): Promise<Blob> {
-    return new Promise((resolve, reject) => {
-        const request = new XMLHttpRequest();
-
-        request.open('GET', uri);
-        request.responseType = 'blob';
-        request.onload = () => resolve(request.response as Blob);
-        request.onerror = () => reject(new Error('That file could not be read.'));
-        request.send();
-    });
-}
 
 /** A name to file it under, from whatever the picker chose to tell us. */
 function nameFor(asset: Picked, mime: string): string {
@@ -47,48 +59,183 @@ function nameFor(asset: Picked, mime: string): string {
 }
 
 /**
- * Send one file to the server a part at a time.
+ * Copy one part of the source onto disk of its own.
  *
- * Chunked because a whole request is buffered before any of it reaches the
- * application: one part is 4MB whatever the video weighs, and a connection that
- * drops resumes from the last part rather than starting the file again.
+ * Read and written a piece at a time, so a part being 8MB does not mean 8MB of
+ * it exists at once.
+ */
+function carve(source: File, part: Part, into: Directory): File {
+    const slice = new File(into, `part-${part.number}`);
+
+    if (slice.exists) {
+        slice.delete();
+    }
+
+    slice.create();
+
+    const reader = source.open(FileMode.ReadOnly);
+    const writer = slice.open(FileMode.WriteOnly);
+
+    try {
+        reader.offset = part.offset;
+
+        for (let done = 0; done < part.size; ) {
+            const piece = reader.readBytes(Math.min(CARVE, part.size - done));
+
+            if (piece.length === 0) {
+                break;
+            }
+
+            writer.writeBytes(piece);
+            done += piece.length;
+        }
+    } finally {
+        reader.close();
+        writer.close();
+    }
+
+    return slice;
+}
+
+/**
+ * Put one part where the server said to put it.
  *
- * `onProgress` is called with a fraction of the whole file, counting parts
- * already landed plus movement inside the one in flight.
+ * The bytes go from disk to the socket natively and never through JavaScript.
+ * No headers of our own either: the address is signed, and a store reads an
+ * Authorization header in preference to the signature in the query string and
+ * then fails to verify a token it was never issued.
+ */
+async function putPart(part: Part, body: File, onMoved: (bytes: number) => void): Promise<boolean> {
+    const task = body.createUploadTask(part.url, {
+        httpMethod: 'PUT',
+        uploadType: UploadType.BINARY_CONTENT,
+        onProgress: ({ bytesSent }) => onMoved(Math.min(bytesSent, part.size)),
+    });
+
+    try {
+        const landed = await task.uploadAsync();
+
+        // A refusal is not a throw: a part that did not land is one to send
+        // again under a fresh signature, which the caller does in a batch.
+        onMoved(landed.status >= 200 && landed.status < 300 ? part.size : 0);
+
+        return landed.status >= 200 && landed.status < 300;
+    } catch {
+        onMoved(0);
+
+        return false;
+    }
+}
+
+/** Work through the queue with a fixed number of parts in the air. */
+async function inLanes(parts: Part[], work: (part: Part) => Promise<void>): Promise<void> {
+    const queue = [...parts];
+
+    await Promise.all(
+        Array.from({ length: Math.min(LANES, queue.length) }, async () => {
+            for (let next = queue.shift(); next !== undefined; next = queue.shift()) {
+                await work(next);
+            }
+        }),
+    );
+}
+
+/**
+ * Send one file to the store, a part at a time and several parts at once.
+ *
+ * The bytes never touch the application, and never all touch the phone's memory
+ * either: the server says where each part goes, the parts are cut out of the
+ * file on disk, and the store is asked afterwards what turned up. A part that
+ * fails is retried once under a freshly signed address, which is also what
+ * covers a signature that expired during a long upload.
+ *
+ * `onProgress` is called with a fraction of the whole file.
  */
 export async function uploadAttachment(
     send: Send,
     asset: Picked,
     onProgress?: (fraction: number) => void,
 ): Promise<Attachment> {
-    const blob = await readFile(asset.uri);
-    const mime = asset.mimeType ?? blob.type ?? 'application/octet-stream';
+    const source = new File(asset.uri);
+    const size = source.size;
+    const mime = asset.mimeType || source.type || 'application/octet-stream';
 
-    const { data: opened } = await send<{ data: Attachment }>('/attachments', {
+    const opened = await send<Opened>('/attachments', {
         method: 'POST',
-        body: { name: nameFor(asset, mime), mime, size: blob.size },
+        body: { name: nameFor(asset, mime), mime, size },
     });
 
-    let sent = 0;
+    const id = opened.data.id;
+    const scratch = new Directory(Paths.cache, 'uploads', id);
+    const moved = new Map<number, number>();
 
-    while (sent < blob.size) {
-        const end = Math.min(sent + PART, blob.size);
-        const landed = sent;
+    const report = () => {
+        let sent = 0;
 
-        await send<{ data: Attachment }>(`/attachments/${opened.id}?offset=${landed}`, {
-            method: 'PATCH',
-            body: blob.slice(landed, end),
-            onProgress: (moved) => onProgress?.((landed + moved) / blob.size),
+        for (const bytes of moved.values()) {
+            sent += bytes;
+        }
+
+        onProgress?.(size === 0 ? 1 : sent / size);
+    };
+
+    const push = async (parts: Part[]): Promise<Part[]> => {
+        const failed: Part[] = [];
+        const pending = parts.filter((part) => !part.uploaded);
+
+        // A file that fits in one part is sent as it lies. Every photo does,
+        // and carving one would be copying it to send it.
+        const whole = pending.length === 1 && pending[0].size === size;
+
+        if (!whole && pending.length > 0) {
+            scratch.create({ intermediates: true, overwrite: true });
+        }
+
+        await inLanes(pending, async (part) => {
+            const body = whole ? source : carve(source, part, scratch);
+
+            try {
+                if (!(await putPart(part, body, (bytes) => {
+                    moved.set(part.number, bytes);
+                    report();
+                }))) {
+                    failed.push(part);
+                }
+            } finally {
+                if (!whole) {
+                    body.delete();
+                }
+            }
         });
 
-        sent = end;
-        onProgress?.(sent / blob.size);
+        return failed;
+    };
+
+    for (const part of opened.upload.parts) {
+        if (part.uploaded) {
+            moved.set(part.number, part.size);
+        }
     }
 
-    const { data } = await send<{ data: Attachment }>(
-        `/attachments/${opened.id}/completion`,
-        { method: 'POST' },
-    );
+    report();
+
+    try {
+        if ((await push(opened.upload.parts)).length > 0) {
+            const again = await send<Opened>(`/attachments/${id}/parts`);
+
+            if ((await push(again.upload.parts)).length > 0) {
+                throw new Error('Some of that file did not go up. Try again.');
+            }
+        }
+    } finally {
+        if (scratch.exists) {
+            scratch.delete();
+        }
+    }
+
+    const { data } = await send<{ data: Attachment }>(`/attachments/${id}/completion`, {
+        method: 'POST',
+    });
 
     return data;
 }

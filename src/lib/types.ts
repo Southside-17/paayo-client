@@ -14,6 +14,8 @@ export type User = {
     phone: string | null;
     /** Whether a picture exists; it is fetched from one fixed route. */
     avatar: boolean;
+    /** A signed address for the picture, present only when there is one. */
+    avatar_url?: string;
     email: string;
     email_verified: boolean;
     identification_verified: boolean;
@@ -162,8 +164,16 @@ export type Attachment = {
     name: string;
     mime: string;
     size: number;
-    received: number;
     is_complete: boolean;
+    /**
+     * A signed address for the bytes, present once the upload is complete.
+     *
+     * Fetched with no headers at all: the signature is in the query string, and
+     * the store reads an Authorization header in preference to it and then
+     * fails to verify a bearer token it was never issued. It expires, so it is
+     * read from the booking each time rather than kept.
+     */
+    url?: string;
 };
 
 export type BookingStatus = {

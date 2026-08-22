@@ -128,9 +128,28 @@ the boundary it is about to generate. And re-sending is safe: RN's `getParts()`
 is idempotent, so the 401-refresh retry can hand back the same FormData, which a
 consumed web `FormData` could not.
 
-## Files go up in parts, as raw bodies, never as a Blob in a FormData
-React Native's `FormData.getParts()` has no Blob branch: it spreads the value, and a `blob.slice()` has no own enumerable properties, so the part arrives as garbage. `xhr.send(blob)` **is** supported — `convertRequestBody` returns `{blob: body.data}` — so a chunk goes as the raw request body with the offset on the query string.
+## Stored files are fetched from a signed URL, with no headers at all
+The server no longer serves bytes. An attachment carries `url` and a user carries `avatar_url`: a link the object store signed, good for an hour, present only once there is something to fetch. Draw it directly.
 
-`src/lib/upload.ts` owns the loop: read the file as a Blob through XHR (`responseType: 'blob'`, because Expo's fetch will not read a `file://` URI), open the upload, send 4MB slices in order, then seal it. Slicing a Blob does not copy anything.
+Send nothing alongside it. The signature is in the query string, and a store reads an `Authorization` header in preference to it and then fails to verify a bearer token it was never issued. `MediaThumb`, `MediaViewer` and `Avatar` all take a plain URL and none of them accepts headers -- do not add them back, and do not build an attachment address out of `API_URL` either.
 
-`xhr.upload.onprogress` is the only real upload progress there is — `fetch` cannot report it at all, which is the other half of why `sendBytes` exists alongside `sendJson`. `onProgress` is reported as a fraction of the **whole file**, parts already landed plus movement inside the one in flight, never of the part alone.
+A fresh signature arrives with every load of the resource, which is also what replaced the avatar cache-busting counter: a new picture appears because the URL changed, not because anything told the image cache to look again.
+
+## Files go up straight to the store, in parts, several at once
+`POST /attachments` answers with `upload.parts` -- a signed address per part, each good for putting exactly that part of exactly that file. `src/lib/upload.ts` `PUT`s the parts at those addresses itself.
+
+Nothing crosses the API but the open, the seal, and a re-grant if one is needed. This replaced a relay where every part was posted to the server and forwarded on, which cost two hops per part and allowed only one part at a time.
+
+**A part never passes through JavaScript.** It is carved out of the source file on disk with `expo-file-system`'s `FileHandle` -- `readBytes` at an offset into a scratch file, `CARVE` bytes at a time -- and then handed to `File.createUploadTask(url, {uploadType: UploadType.BINARY_CONTENT})`, which streams it from disk to the socket natively. A file small enough to be one whole part skips the carving and is sent where it lies.
+
+This is not a preference. React Native holds a Blob as one contiguous `NSData` in `RCTBlobManager`'s dictionary, and `slice()` is a `subdataWithRange:` **copy** on top -- so reading a video in to send it put the whole video in memory twice and the app was killed part way up a 125MB clip. Do not reintroduce `responseType: 'blob'`, `xhr.send(blob)` or any path that names the bytes in JS.
+
+**Send no headers on a part.** The address is signed and the signature is in the query string; a store reads an `Authorization` header in preference to it and then fails to verify a token it was never issued. `putPart` therefore goes nowhere near `request()`, which attaches the bearer token and the 401-refresh.
+
+`LANES` parts are in the air at once. A part that comes back non-2xx is collected rather than thrown: one `GET /attachments/{id}/parts` re-signs everything and reports what the store already holds, so only the genuinely missing parts go again. That single retry is also what covers a signature expiring during a long upload.
+
+Part size is the server's to decide and arrives as `upload.part_size`; the slices come from each part's own `offset` and `size`, so nothing here has to agree with the server about arithmetic. It is fixed rather than a ceiling -- a store will not assemble a part under 5MB into anything but the end of a file.
+
+Progress is `createUploadTask`'s `onProgress`, summed across parts as a fraction of the **whole file**, never of the part alone, and parts finishing out of order is normal now. `request()` reports no progress of its own and takes no callback: nothing that goes through the API is big enough to need one.
+
+There is no `received` on an attachment. The server never sees the bytes, so it does not count them; `uploaded` per part in the grant is the only truth about what landed, and it comes from the store.

@@ -15,17 +15,6 @@ const PREFIX = '/api/v1';
 /** The name this device is given to the tokens it is issued. */
 export const DEVICE_NAME = `${Constants.deviceName ?? 'Unknown device'} (${Platform.OS})`;
 
-/**
- * Where a stored attachment can be read from.
- *
- * Composed here rather than sent by the server. Every other resource returns
- * ids and lets the client build the address, and an absolute URL generated
- * during a request comes back with the wrong scheme under Octane.
- */
-export function attachmentUrl(id: string): string {
-    return `${API_URL}${PREFIX}/attachments/${id}`;
-}
-
 type ValidationErrors = Record<string, string[]>;
 
 /**
@@ -75,8 +64,6 @@ type RequestOptions = {
     method?: RequestMethod;
     body?: unknown;
     token?: string | null;
-    /** Bytes acknowledged by the socket, for an upload with a progress bar. */
-    onProgress?: (sent: number, total: number) => void;
 };
 
 type Payload = { message?: string; errors?: ValidationErrors } | null;
@@ -98,12 +85,11 @@ type Answer = { status: number; payload: Payload };
  * `convertRequestBody`, which turns it into the native part list the
  * networking layer wants, and that is what fetch itself used to do.
  */
-function sendBytes(
+function sendMultipart(
     url: string,
     method: RequestMethod,
     headers: Record<string, string>,
-    body: FormData | Blob,
-    onProgress?: (sent: number, total: number) => void,
+    body: FormData,
 ): Promise<Answer> {
     return new Promise((resolve, reject) => {
         const request = new XMLHttpRequest();
@@ -114,13 +100,6 @@ function sendBytes(
         // the boundary it is about to generate.
         for (const [name, value] of Object.entries(headers)) {
             request.setRequestHeader(name, value);
-        }
-
-        if (onProgress) {
-            // The only real measure of an upload there is. fetch cannot report
-            // this at all, which is half of why this function exists.
-            request.upload.onprogress = (event) =>
-                onProgress(event.loaded, event.total || (body instanceof Blob ? body.size : 0));
         }
 
         request.onload = () =>
@@ -162,23 +141,20 @@ async function sendJson(
  * nothing type it as void.
  */
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-    const { method = 'GET', body, token, onProgress } = options;
+    const { method = 'GET', body, token } = options;
 
-    // A FormData carries files and a Blob carries one part of one; both go
-    // through XHR, and everything else is ordinary JSON.
-    const raw = body instanceof FormData || body instanceof Blob;
+    const file = body instanceof FormData;
 
     const headers: Record<string, string> = {
         Accept: 'application/json',
-        ...(body && !raw ? { 'Content-Type': 'application/json' } : {}),
-        ...(body instanceof Blob ? { 'Content-Type': 'application/octet-stream' } : {}),
+        ...(body && !file ? { 'Content-Type': 'application/json' } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
 
     const url = `${API_URL}${PREFIX}${path}`;
 
-    const { status, payload } = raw
-        ? await sendBytes(url, method, headers, body, onProgress)
+    const { status, payload } = file
+        ? await sendMultipart(url, method, headers, body)
         : await sendJson(url, method, headers, body);
 
     if (status === 204) {

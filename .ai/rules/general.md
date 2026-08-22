@@ -85,10 +85,16 @@ here, and NativeWind does not reach `react-native-svg`, so it is fed from
 
 ## Video attachments cost a download to draw, and a rebuild to play
 `expo-video-thumbnails` has no way to read one frame off a remote file without
-fetching it, so a still of a clip served from `v1/attachments/{id}` pulls the
-whole clip. `media-thumb.tsx` therefore caches by URI at module scope and
-dedupes pulls in flight -- two squares showing the same clip must not fetch it
-twice, and a screen that re-focuses must not fetch it again.
+fetching it, so a still of a clip pulls the whole clip. `media-thumb.tsx`
+therefore caches by URI at module scope and dedupes pulls in flight -- two
+squares showing the same clip must not fetch it twice, and a screen that
+re-focuses must not fetch it again.
+
+It caches by the **path in front of the query**, not by the whole URI. A stored
+clip is reached through a signed link that carries a fresh signature every time
+the booking is loaded, so keying on the whole URI would miss on every re-focus
+and pull an entire video down again to draw one square. The still it caches is a
+local file, so it stays good after the link that produced it has expired.
 
 Both packages are native. Adding them means `expo prebuild` and a fresh dev
 build; a Metro reload alone leaves the app calling a module the binary does not

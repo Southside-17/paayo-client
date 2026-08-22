@@ -33,7 +33,6 @@ export default function Home() {
     const colours = palette[colorScheme ?? 'light'];
     const [categories, setCategories] = useState<Category[] | null>(null);
     const [addresses, setAddresses] = useState<Address[] | null>(null);
-    const [seen, setSeen] = useState(0);
 
     const authenticatedRequest =
         session.status === 'authenticated' ? session.authenticatedRequest : null;
@@ -43,8 +42,6 @@ export default function Home() {
             if (!authenticatedRequest) {
                 return;
             }
-
-            setSeen((count) => count + 1);
 
             void authenticatedRequest<{ data: Category[] }>('/categories')
                 .then(({ data }) => setCategories(data))
@@ -67,13 +64,7 @@ export default function Home() {
         <SafeAreaView className="bg-background flex-1" edges={['top']}>
             <ScrollView contentContainerClassName="gap-5 p-6">
                 <ScreenHeader eyebrow={greeting(new Date().getHours())} title={user.nickname}>
-                    <Avatar
-                        nickname={user.nickname}
-                        avatar={user.avatar}
-                        token={session.token}
-                        version={seen}
-                        size={44}
-                    />
+                    <Avatar nickname={user.nickname} url={user.avatar_url} size={44} />
                 </ScreenHeader>
 
                 <Link
