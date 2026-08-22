@@ -1,9 +1,9 @@
 import * as ImagePicker from 'expo-image-picker';
-import { Image } from 'expo-image';
 import { ImagePlusIcon, XIcon } from 'lucide-react-native';
 import { useState, type Dispatch, type SetStateAction } from 'react';
 import { Pressable, View } from 'react-native';
 
+import { MediaThumb } from '@/components/media-thumb';
 import { Text } from '@/components/ui/text';
 import { preparePicture } from '@/lib/picture';
 import { discardAttachment, uploadAttachment, type Picked } from '@/lib/upload';
@@ -138,11 +138,7 @@ export function MediaPicker({ send, items, onChange, disabled = false }: Props) 
             <View className="flex-row flex-wrap gap-2">
                 {items.map((item) => (
                     <View key={item.key} className="relative">
-                        <Image
-                            source={{ uri: item.uri }}
-                            style={{ width: 88, height: 88, borderRadius: 12 }}
-                            contentFit="cover"
-                        />
+                        <MediaThumb uri={item.uri} video={item.video} />
 
                         {item.progress !== null ? (
                             <View className="absolute inset-x-1 bottom-1 h-1.5 overflow-hidden rounded-full bg-black/40">

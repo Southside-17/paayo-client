@@ -1,12 +1,13 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { when } from '@/app/(app)/(tabs)/bookings';
 import { BackButton } from '@/components/back-button';
+import { WhereCard, WhoCard } from '@/components/booking-facts';
 import { FormMessage } from '@/components/form-message';
 import { MediaPicker, readyIds, stillSending, type MediaItem } from '@/components/media-picker';
-import { PinMap } from '@/components/pin-map';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -15,10 +16,11 @@ import { Input } from '@/components/ui/input';
 import { KeyboardAvoiding } from '@/components/ui/keyboard-avoiding';
 import { Label } from '@/components/ui/label';
 import { ScreenHeader } from '@/components/ui/screen-header';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Text } from '@/components/ui/text';
-import { when } from '@/app/(app)/(tabs)/bookings';
 import { useSession } from '@/lib/session';
-import type { Address, Booking } from '@/lib/types';
+import type { Booking } from '@/lib/types';
+import { useDefaultAddress } from '@/lib/use-default-address';
 import { useSubmit } from '@/lib/use-submit';
 import { cn } from '@/lib/utils';
 
@@ -50,7 +52,11 @@ function label(hour: number): string {
 }
 
 /**
- * Ask for a provider's work at a time and a place.
+ * Ask for the work at a time.
+ *
+ * Who and where are settled before this screen and are shown, not chosen. The
+ * address decided which services were offered and which provider covers them,
+ * so letting it change here would quietly invalidate both.
  */
 export default function Book() {
     const { listing, service, category, provider, covered } = useLocalSearchParams<{
@@ -62,40 +68,18 @@ export default function Book() {
         covered?: string;
     }>();
     const session = useSession();
+    const { address, ready } = useDefaultAddress();
     const { busy, message, errorFor, submit } = useSubmit();
-    const [addresses, setAddresses] = useState<Address[] | null>(null);
-    const [addressId, setAddressId] = useState('');
     const [day, setDay] = useState(() => days()[1]);
     const [hour, setHour] = useState(HOURS[1]);
     const [description, setDescription] = useState('');
     const [media, setMedia] = useState<MediaItem[]>([]);
+    const [missing, setMissing] = useState<string | null>(null);
     const [asking, setAsking] = useState(false);
-
-    const authenticatedRequest =
-        session.status === 'authenticated' ? session.authenticatedRequest : null;
-
-    useEffect(() => {
-        if (!authenticatedRequest) {
-            return;
-        }
-
-        void authenticatedRequest<{ data: Address[] }>('/addresses')
-            .then(({ data }) => {
-                setAddresses(data);
-                setAddressId((data.find((address) => address.is_default) ?? data[0])?.id ?? '');
-            })
-            .catch(() => setAddresses([]));
-    }, [authenticatedRequest]);
 
     if (session.status !== 'authenticated') {
         return null;
     }
-
-    const chosen = addresses?.find((address) => address.id === addressId) ?? null;
-    const pin =
-        chosen && chosen.latitude !== null && chosen.longitude !== null
-            ? { latitude: chosen.latitude, longitude: chosen.longitude }
-            : null;
 
     const scheduledAt = () => {
         const scheduled = new Date(day);
@@ -110,16 +94,16 @@ export default function Book() {
                 method: 'POST',
                 body: {
                     listing_id: listing,
-                    address_id: addressId,
+                    address_id: address?.id,
                     scheduled_at: scheduledAt().toISOString(),
                     description,
                     attachments: readyIds(media),
                 },
             });
 
-            // The provider list and the trade above it are still underneath, so
-            // going back from the booking would walk into booking it again.
-            // Clear them, land on Bookings, then show the one just placed.
+            // Whatever is underneath -- the trade, and the picker when there was
+            // one -- would lead back into booking the same work again. Clear it,
+            // land on Bookings, then show the one just placed.
             if (router.canDismiss()) {
                 router.dismissAll();
             }
@@ -135,6 +119,22 @@ export default function Book() {
             });
         });
 
+    /** Everything the server would refuse, said before it is asked. */
+    const ask = () => {
+        if (readyIds(media).length === 0) {
+            setMissing(
+                stillSending(media)
+                    ? 'Wait for the upload to finish.'
+                    : 'Add a photo or a video of the work.',
+            );
+
+            return;
+        }
+
+        setMissing(null);
+        setAsking(true);
+    };
+
     const asked = [provider, 'will be asked to come on', when(scheduledAt().toISOString())]
         .filter(Boolean)
         .join(' ')
@@ -148,74 +148,43 @@ export default function Book() {
                     keyboardShouldPersistTaps="handled"
                 >
                     {/* Back names the trade this came from; the eyebrow names
-                        who is coming. Between them the screen says what was
-                        chosen to get here. */}
+                        the work. Between them the screen says what was chosen
+                        to get here. */}
                     <BackButton label={category || service || 'Back'} />
                     <ScreenHeader eyebrow={service} title="Book" />
 
                     <FormMessage message={message ?? errorFor('listing_id') ?? null} />
 
                     {provider ? (
-                        <Card className="gap-1">
-                            <Label>Who is coming</Label>
-                            <Text className="text-lg font-semibold">{provider}</Text>
-                            <Text className="text-muted-foreground text-sm">
-                                {covered === '1'
+                        <WhoCard
+                            provider={provider}
+                            note={
+                                covered === '1'
                                     ? 'They cover your area for this service.'
-                                    : 'They work elsewhere in your area and may add a travel charge when they accept.'}
+                                    : 'They work elsewhere in your area and may add a travel charge when they accept.'
+                            }
+                        />
+                    ) : null}
+
+                    {!ready ? (
+                        <Card className="gap-2">
+                            <Skeleton className="h-5 w-24" />
+                            <Skeleton className="h-4 w-3/4" />
+                        </Card>
+                    ) : null}
+
+                    {ready && address ? <WhereCard place={address} /> : null}
+
+                    {ready && !address ? (
+                        <Card className="gap-2">
+                            <Label>Where</Label>
+                            <Text className="text-warning text-sm">
+                                No address on this account, so there is nowhere to send anyone.
                             </Text>
                         </Card>
                     ) : null}
 
-                    <Card className="gap-3">
-                        <Label>Where</Label>
-                        <View className="flex-row flex-wrap gap-2">
-                            {addresses?.map((address) => (
-                                <Pressable
-                                    key={address.id}
-                                    accessibilityRole="button"
-                                    onPress={() => setAddressId(address.id)}
-                                    className={cn(
-                                        'rounded-full border px-3 py-2',
-                                        address.id === addressId
-                                            ? 'border-brand bg-brand-subtle'
-                                            : 'border-border bg-card',
-                                    )}
-                                >
-                                    <Text
-                                        className={cn(
-                                            'text-sm font-medium',
-                                            address.id === addressId && 'text-brand',
-                                        )}
-                                    >
-                                        {address.label}
-                                    </Text>
-                                </Pressable>
-                            ))}
-                        </View>
-                        {addresses?.length === 0 ? (
-                            <Text className="text-muted-foreground text-sm">
-                                Add an address before booking.
-                            </Text>
-                        ) : null}
-
-                        {chosen ? (
-                            <>
-                                <Text className="text-muted-foreground text-sm">
-                                    {chosen.line}
-                                </Text>
-                                {pin ? (
-                                    <PinMap pin={pin} focus={pin} className="h-40" />
-                                ) : (
-                                    <Text className="text-warning text-sm">
-                                        Drop a pin on this address before booking from it.
-                                    </Text>
-                                )}
-                            </>
-                        ) : null}
-
-                        <FieldError message={errorFor('address_id')} />
-                    </Card>
+                    <FieldError message={errorFor('address_id')} />
 
                     <Card className="gap-3">
                         <Label>When</Label>
@@ -291,6 +260,13 @@ export default function Book() {
                             invalid={Boolean(errorFor('description'))}
                         />
                         <FieldError message={errorFor('description')} />
+                    </Card>
+
+                    <Card className="gap-2">
+                        <View className="flex-row items-center gap-2">
+                            <Label>Show the work</Label>
+                            <Text className="text-destructive text-sm">Required</Text>
+                        </View>
 
                         <MediaPicker
                             send={session.authenticatedRequest}
@@ -298,16 +274,11 @@ export default function Book() {
                             onChange={setMedia}
                             disabled={busy}
                         />
-                        <FieldError message={errorFor('attachments')} />
+                        <FieldError message={missing ?? errorFor('attachments')} />
                     </Card>
 
-                    <Button
-                        variant="brand"
-                        onPress={() => setAsking(true)}
-                        busy={busy}
-                        disabled={readyIds(media).length === 0 || stillSending(media)}
-                    >
-                        {stillSending(media) ? 'Sending photos…' : 'Place booking'}
+                    <Button variant="brand" onPress={ask} busy={busy}>
+                        Place booking
                     </Button>
 
                     <ConfirmDialog

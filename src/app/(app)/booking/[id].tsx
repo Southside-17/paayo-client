@@ -5,6 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FormMessage } from '@/components/form-message';
 import { BackButton } from '@/components/back-button';
+import { WhereCard, WhoCard } from '@/components/booking-facts';
+import { MediaThumb } from '@/components/media-thumb';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -13,7 +15,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { StatusPill } from '@/components/ui/status-pill';
 import { Text } from '@/components/ui/text';
 import { when } from '@/app/(app)/(tabs)/bookings';
-import { priceRange } from '@/lib/money';
+import { attachmentUrl } from '@/lib/api';
+import { peso, priceRange } from '@/lib/money';
 import { useSession } from '@/lib/session';
 import type { Booking } from '@/lib/types';
 import { useSubmit } from '@/lib/use-submit';
@@ -91,12 +94,23 @@ export default function BookingDetail() {
                     <>
                         <StatusPill tone={booking.status.tone}>{booking.status.wording}</StatusPill>
 
+                        <WhoCard provider={booking.provider.name} />
+
+                        {/* The snapshot, not the live address: this is where the
+                            work was actually asked for, whatever has been edited
+                            since. */}
+                        <WhereCard
+                            place={{
+                                label: booking.address.label,
+                                line: booking.address.line,
+                                landmark: booking.address.landmark,
+                                latitude: booking.latitude,
+                                longitude: booking.longitude,
+                            }}
+                        />
+
                         <Card className="gap-3">
                             <Detail label="When" value={when(booking.scheduled_at)} />
-                            <Detail
-                                label="Where"
-                                value={String(booking.address.line ?? booking.address.label ?? '')}
-                            />
                             <Detail
                                 label="Price"
                                 value={priceRange(
@@ -105,6 +119,12 @@ export default function BookingDetail() {
                                     booking.service.pricing_unit,
                                 )}
                             />
+                            {booking.surcharge ? (
+                                <Detail
+                                    label="Trip charge"
+                                    value={peso(booking.surcharge)}
+                                />
+                            ) : null}
                         </Card>
 
                         <Card className="gap-2">
@@ -112,6 +132,19 @@ export default function BookingDetail() {
                             <Text className="text-muted-foreground text-sm">
                                 {booking.description}
                             </Text>
+
+                            {booking.attachments?.length ? (
+                                <View className="mt-1 flex-row flex-wrap gap-2">
+                                    {booking.attachments.map((attachment) => (
+                                        <MediaThumb
+                                            key={attachment.id}
+                                            uri={attachmentUrl(attachment.id)}
+                                            video={attachment.mime.startsWith('video/')}
+                                            headers={{ Authorization: `Bearer ${session.token}` }}
+                                        />
+                                    ))}
+                                </View>
+                            ) : null}
                         </Card>
 
                         {booking.status.is_open ? (

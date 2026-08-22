@@ -136,19 +136,6 @@ it('waits for the address, then asks again with it', async () => {
     await waitFor(() => expect(request).toHaveBeenCalledWith('/services/s1?address=a1'));
 });
 
-it('asks the client for an address rather than blaming the catalog', async () => {
-    (useSession as jest.Mock).mockReturnValue({
-        status: 'authenticated',
-        authenticatedRequest: jest.fn(async () => ({ data: service })),
-        reload: jest.fn(),
-    });
-    (useDefaultAddress as jest.Mock).mockReturnValue({ address: null, ready: true });
-
-    render(<ServiceOffers />);
-
-    await waitFor(() => expect(screen.getByText('Where should they go?')).toBeOnTheScreen());
-});
-
 it('says an address has no pin instead of saying nobody serves it', async () => {
     (useSession as jest.Mock).mockReturnValue({
         status: 'authenticated',

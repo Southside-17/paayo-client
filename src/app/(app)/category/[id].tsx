@@ -1,4 +1,4 @@
-import { Link, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,6 +11,35 @@ import { Text } from '@/components/ui/text';
 import { useDefaultAddress } from '@/lib/use-default-address';
 import { useSession } from '@/lib/session';
 import type { Service } from '@/lib/types';
+
+/**
+ * Go straight where the answer already is.
+ *
+ * The list carries the provider covering the address, so a tap knows whether it
+ * is booking or choosing. Resolving it on the next screen instead is what put a
+ * provider picker on screen for an instant before replacing itself.
+ */
+function open(service: Service, category: string) {
+    if (service.covering) {
+        router.push({
+            pathname: '/book',
+            params: {
+                listing: service.covering.id,
+                service: service.name,
+                category,
+                provider: service.covering.provider.name,
+                covered: '1',
+            },
+        });
+
+        return;
+    }
+
+    router.push({
+        pathname: '/service/[id]',
+        params: { id: service.id, name: service.name, category },
+    });
+}
 
 /**
  * The work offered under one trade, near the address that will be worked at.
@@ -79,33 +108,22 @@ export default function CategoryServices() {
                 ) : null}
 
                 {services?.map((service) => (
-                    <Link
+                    <Pressable
                         key={service.id}
-                        href={{
-                            pathname: '/service/[id]',
-                            params: {
-                                id: service.id,
-                                name: service.name,
-                                category: name ?? service.category?.name,
-                            },
-                        }}
-                        asChild
+                        accessibilityRole="button"
+                        onPress={() => open(service, name ?? service.category?.name ?? 'Back')}
+                        className="border-border bg-card gap-1 rounded-xl border p-4"
                     >
-                        <Pressable
-                            accessibilityRole="button"
-                            className="border-border bg-card gap-1 rounded-xl border p-4"
-                        >
-                            <Text className="font-semibold">{service.name}</Text>
-                            {service.description ? (
-                                <Text className="text-muted-foreground text-sm">
-                                    {service.description}
-                                </Text>
-                            ) : null}
-                            <Text className="text-brand text-xs font-medium">
-                                {service.pricing_unit.label}
+                        <Text className="font-semibold">{service.name}</Text>
+                        {service.description ? (
+                            <Text className="text-muted-foreground text-sm">
+                                {service.description}
                             </Text>
-                        </Pressable>
-                    </Link>
+                        ) : null}
+                        <Text className="text-brand text-xs font-medium">
+                            {service.pricing_unit.label}
+                        </Text>
+                    </Pressable>
                 ))}
             </ScrollView>
         </SafeAreaView>

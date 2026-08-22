@@ -181,6 +181,49 @@ it('shows a provider who does not work there, rather than going quiet', async ()
     );
 });
 
+// The button used to sit disabled with nothing saying why, and the only visible
+// hint was on a field that was already filled in.
+it('says a photo is missing rather than refusing quietly', async () => {
+    const request = jest.fn((path: string) =>
+        path === '/addresses'
+            ? Promise.resolve({ data: [address] })
+            : Promise.resolve({ data: booking }),
+    );
+
+    signedIn(request);
+
+    render(<Book />);
+
+    await waitFor(() => expect(screen.getByText('Home')).toBeOnTheScreen());
+
+    fireEvent.press(screen.getByText('Place booking'));
+
+    expect(screen.getByText('Add a photo or a video of the work.')).toBeOnTheScreen();
+    expect(screen.queryByText('Place this booking?')).toBeNull();
+    expect(request).not.toHaveBeenCalledWith('/bookings', expect.anything());
+});
+
+// Who and where are settled before this screen. Letting either change here would
+// invalidate the coverage that chose the provider in the first place.
+it('shows who and where without offering a way to change them', async () => {
+    const request = jest.fn((path: string) =>
+        path === '/addresses'
+            ? Promise.resolve({ data: [address, { ...address, id: 'a2', label: 'Work', is_default: false }] })
+            : Promise.resolve({ data: booking }),
+    );
+
+    signedIn(request);
+
+    render(<Book />);
+
+    await waitFor(() => expect(screen.getByText('Home')).toBeOnTheScreen());
+
+    // The second address exists on the account and must not be offered here.
+    expect(screen.queryByText('Work')).toBeNull();
+    expect(screen.getByText('Who is coming')).toBeOnTheScreen();
+    expect(screen.getByText('FixRight Manila')).toBeOnTheScreen();
+});
+
 it('lists a booking with the tone the server gave it', async () => {
     signedIn(jest.fn(() => Promise.resolve({ data: [booking] })));
 

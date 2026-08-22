@@ -126,6 +126,13 @@ export type Service = {
     description: string | null;
     pricing_unit: PricingUnit;
     category?: Category;
+    /**
+     * The provider covering the address the list was asked for, if any.
+     *
+     * Absent when no address was named, null when nobody covers it. Present so a
+     * tap knows where it is going without a screen in between.
+     */
+    covering?: Listing | null;
 };
 
 /** What `GET /services/{id}?address=` answers alongside the service. */
@@ -175,7 +182,11 @@ export type Booking = {
     cancelled_at: string | null;
     price_min: number | null;
     price_max: number | null;
-    address: { label?: string; line?: string } & Record<string, unknown>;
+    address: {
+        label?: string | null;
+        line?: string | null;
+        landmark?: string | null;
+    } & Record<string, unknown>;
     latitude: number | null;
     longitude: number | null;
     surcharge: number | null;

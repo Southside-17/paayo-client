@@ -6,7 +6,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BackButton } from '@/components/back-button';
 import { FormMessage } from '@/components/form-message';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -129,30 +128,6 @@ export default function ServiceOffers() {
                     </Card>
                 ) : null}
 
-                {/* Three different situations used to share one sentence, so
-                    neither the client nor anyone debugging could tell which had
-                    happened. They are separate now. */}
-                {offer && alternatives.length === 0 && !address ? (
-                    <Card className="gap-3">
-                        <Text className="font-semibold">Where should they go?</Text>
-                        <Text className="text-muted-foreground text-sm">
-                            Add an address and drop a pin on it. Who can come depends on
-                            exactly where the work is.
-                        </Text>
-                        <Button
-                            variant="brand"
-                            onPress={() =>
-                                router.push({
-                                    pathname: '/profile/addresses',
-                                    params: { from: name ?? 'Back' },
-                                })
-                            }
-                        >
-                            Add an address
-                        </Button>
-                    </Card>
-                ) : null}
-
                 {offer && alternatives.length === 0 && address && !address.latitude ? (
                     <Card className="gap-2">
                         <Text className="font-semibold">{address.label} has no pin</Text>
@@ -163,7 +138,7 @@ export default function ServiceOffers() {
                     </Card>
                 ) : null}
 
-                {offer && alternatives.length === 0 && address && address.latitude ? (
+                {offer && alternatives.length === 0 && (!address || address.latitude) ? (
                     <Card className="gap-2">
                         <Text className="font-semibold">Nobody offers this yet</Text>
                         <Text className="text-muted-foreground text-sm">
