@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Platform, View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
+import { cn } from '@/lib/utils';
 
 export type Pin = { latitude: number; longitude: number };
 
@@ -10,7 +11,9 @@ type Props = {
     pin: Pin | null;
     /** Where to aim the camera. A new object moves it; dropping a pin does not. */
     focus: Pin | null;
-    onMove: (pin: Pin) => void;
+    /** Omitted for a preview: the map then shows the pin and takes no input. */
+    onMove?: (pin: Pin) => void;
+    className?: string;
 };
 
 /** Roughly the middle of the Philippines, for a map with nothing to centre on. */
@@ -26,7 +29,7 @@ const COUNTRY_ZOOM = 5;
  * Android -- and neither renders on the other platform, so the choice is made
  * here and every screen above stays platform blind.
  */
-export function PinMap({ pin, focus, onMove }: Props) {
+export function PinMap({ pin, focus, onMove, className = 'h-56' }: Props) {
     const map = useRef<AppleMaps.MapView & GoogleMaps.MapView>(null);
 
     // cameraPosition is the camera the view opens with, not one it keeps in step
@@ -47,7 +50,7 @@ export function PinMap({ pin, focus, onMove }: Props) {
 
     if (Platform.OS !== 'ios' && Platform.OS !== 'android') {
         return (
-            <View className="bg-muted h-56 items-center justify-center rounded-lg">
+            <View className={cn('bg-muted items-center justify-center rounded-lg', className)}>
                 <Text className="text-muted-foreground text-sm">
                     Maps are only drawn on a phone.
                 </Text>
@@ -57,8 +60,17 @@ export function PinMap({ pin, focus, onMove }: Props) {
 
     const MapView = Platform.OS === 'ios' ? AppleMaps.View : GoogleMaps.View;
 
+    // A preview takes no input at all. pointerEvents rather than uiSettings:
+    // AppleMapsUISettings has no gesture toggles, so the Google-shaped object
+    // that would lock the map on Android does nothing on iOS. This holds on
+    // both, and it keeps a scroll that begins on the map scrolling the screen.
+    const interactive = onMove !== undefined;
+
     return (
-        <View className="h-56 overflow-hidden rounded-lg">
+        <View
+            className={cn('overflow-hidden rounded-lg', className)}
+            pointerEvents={interactive ? 'auto' : 'none'}
+        >
             <MapView
                 ref={map}
                 style={{ flex: 1 }}
@@ -68,7 +80,7 @@ export function PinMap({ pin, focus, onMove }: Props) {
                     const { latitude, longitude } = coordinates ?? {};
 
                     if (typeof latitude === 'number' && typeof longitude === 'number') {
-                        onMove({ latitude, longitude });
+                        onMove?.({ latitude, longitude });
                     }
                 }}
             />

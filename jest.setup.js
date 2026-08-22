@@ -28,3 +28,26 @@ jest.mock('react-native-passkeys', () => ({
 // the unconfigured cases reload the module with these cleared.
 process.env.EXPO_PUBLIC_PASSKEY_RP_ID = 'www.paayo.test';
 process.env.EXPO_PUBLIC_PASSKEY_IOS = '1';
+
+// expo-maps is a native view with no JS fallback, so requiring it under jest
+// throws before a screen that draws a map can render at all. The stand-in keeps
+// the platform split in pin-map.tsx honest -- both halves still exist -- while
+// rendering nothing.
+jest.mock('expo-maps', () => {
+    const React = require('react');
+
+    // Renders nothing and imports nothing from react-native: NativeWind's babel
+    // plugin rewrites any View in here into an interop call, and a mock factory
+    // may not reference an out-of-scope variable. The imperative handle is the
+    // part that matters -- pin-map aims the camera through the ref, and a bare
+    // View would throw on a method it does not have.
+    const MapView = React.forwardRef((props, ref) => {
+        React.useImperativeHandle(ref, () => ({ setCameraPosition: () => {} }));
+
+        return null;
+    });
+
+    MapView.displayName = 'MockMapView';
+
+    return { AppleMaps: { View: MapView }, GoogleMaps: { View: MapView } };
+});

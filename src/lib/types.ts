@@ -126,7 +126,16 @@ export type Service = {
     description: string | null;
     pricing_unit: PricingUnit;
     category?: Category;
-    listings?: Listing[];
+};
+
+/** What `GET /services/{id}?address=` answers alongside the service. */
+export type ServiceOffer = {
+    data: Service;
+    market?: { id: string; name: string } | null;
+    /** The one provider auto-selected for this address, or null. */
+    covering?: Listing | null;
+    /** Everyone in the market who offers it. Only sent when nobody covers. */
+    alternatives?: Listing[];
 };
 
 /** One provider's offer of one service. Prices are centavos. */
@@ -138,6 +147,17 @@ export type Listing = {
     provider: { id: string; name: string; slug: string };
     /** Only present when the query named an address. */
     surcharge?: number | null;
+};
+
+/** One photo or video, uploaded before the booking it belongs to exists. */
+export type Attachment = {
+    id: string;
+    name: string;
+    mime: string;
+    size: number;
+    received: number;
+    is_complete: boolean;
+    url: string;
 };
 
 export type BookingStatus = {
@@ -159,8 +179,10 @@ export type Booking = {
     address: { label?: string; line?: string } & Record<string, unknown>;
     latitude: number | null;
     longitude: number | null;
+    surcharge: number | null;
     service: { id: string; name: string; pricing_unit: PricingUnit };
     provider: { id: string; name: string };
+    attachments?: Attachment[];
     created_at: string;
 };
 
