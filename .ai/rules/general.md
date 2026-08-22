@@ -45,13 +45,23 @@ React Native's own is deprecated, and it insets on iOS only. The context
 package is already a dependency, expo-router mounts its provider, and NativeWind
 registers its `SafeAreaView`, so `className` keeps working across the swap.
 
-## A blank white bar at the foot of the screen is a warning
-It is React Native's LogBox notification, not our UI. LogBox paints the bar
+## The LogBox notification is off, because it could not be read
+`src/app/_layout.tsx` calls `LogBox.ignoreAllLogs()`. LogBox paints the bar
 white and its message white, relying on a dark `Pressable` in between -- and
-that background never lands, because NativeWind replaces every `Pressable`,
-React Native's own included. So a warning shows up as an empty white bar with
-an amber `!` and a dismiss cross, and looks like a rendering fault. The text is
-there; read it in the Metro terminal instead.
+that background never lands: `LogBoxButton` passes `style` as a function of the
+pressed state, and NativeWind registers its interop on React Native's own
+`Pressable`, LogBox's included. What showed up was a blank white bar with an
+amber `!` and a dismiss cross, covering the tab bar and carrying no readable
+text at all.
+
+Nothing was lost by turning it off. Warnings still reach the Metro terminal and
+`adb logcat` -- `adb logcat | grep ReactNativeJS` is how the Expo `fetch`
+FormData failure was found -- and React Native documents this call as disabling
+notifications only, so an uncaught error still opens the full screen LogBox,
+which renders correctly.
+
+Do not reach for `ignoreLogs([...])` to silence one message instead. That leaves
+every other warning as the same unreadable bar, which is the actual problem.
 
 ## There is no Prettier config, so do not run Prettier
 The repo is 4-space and single-quoted; `npx prettier` defaults to 2-space and

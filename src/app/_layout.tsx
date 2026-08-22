@@ -1,12 +1,29 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'nativewind';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, LogBox, View } from 'react-native';
 
 import { SessionProvider, useSession } from '@/lib/session';
 import palette from '@/theme/palette';
 
 import '../global.css';
+
+/**
+ * LogBox's notification bar cannot be read in this app, so it is turned off.
+ *
+ * `LogBoxButton` passes its `style` as a function of the pressed state, and
+ * that function is where the dark background lives. NativeWind registers its
+ * own interop on React Native's `Pressable` -- LogBox's included -- and the
+ * background never lands, so the white container behind it shows through and
+ * the white message sits on white. What is left is a blank bar with an amber
+ * `!` and a dismiss cross, covering the tab bar and saying nothing.
+ *
+ * Nothing is lost. Every warning still reaches the Metro terminal and
+ * `adb logcat`, which is where they are legible, and React Native's own note on
+ * this call is explicit that uncaught errors still open the full screen
+ * LogBox -- that one renders correctly and is the one worth interrupting for.
+ */
+LogBox.ignoreAllLogs();
 
 /**
  * React Navigation paints the ground beneath every screen and during every
