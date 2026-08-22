@@ -64,7 +64,7 @@ export default function ForgotPassword() {
                     </>
                 )}
 
-                <Link href="/login" className="self-center">
+                <Link href="/login" dismissTo className="self-center">
                     <Text className="text-brand text-sm font-medium">Back to log in</Text>
                 </Link>
             </View>

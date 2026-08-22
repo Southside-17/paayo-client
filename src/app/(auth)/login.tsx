@@ -136,7 +136,7 @@ export default function Login() {
                     <FieldError message={errorFor('password')} />
                 </View>
 
-                <Link href="/forgot-password" className="self-end">
+                <Link href="/forgot-password" push className="self-end">
                     <Text className="text-brand text-sm font-medium">Forgot password?</Text>
                 </Link>
 
@@ -146,7 +146,7 @@ export default function Login() {
 
                 <View className="flex-row justify-center gap-1">
                     <Text className="text-muted-foreground text-sm">Don&apos;t have an account?</Text>
-                    <Link href="/register">
+                    <Link href="/register" push>
                         <Text className="text-brand text-sm font-medium">Sign up</Text>
                     </Link>
                 </View>
