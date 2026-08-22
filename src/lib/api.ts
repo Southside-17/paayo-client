@@ -15,6 +15,17 @@ const PREFIX = '/api/v1';
 /** The name this device is given to the tokens it is issued. */
 export const DEVICE_NAME = `${Constants.deviceName ?? 'Unknown device'} (${Platform.OS})`;
 
+/**
+ * Where a stored attachment can be read from.
+ *
+ * Composed here rather than sent by the server. Every other resource returns
+ * ids and lets the client build the address, and an absolute URL generated
+ * during a request comes back with the wrong scheme under Octane.
+ */
+export function attachmentUrl(id: string): string {
+    return `${API_URL}${PREFIX}/attachments/${id}`;
+}
+
 type ValidationErrors = Record<string, string[]>;
 
 /**

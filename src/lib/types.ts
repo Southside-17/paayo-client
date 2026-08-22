@@ -157,7 +157,6 @@ export type Attachment = {
     size: number;
     received: number;
     is_complete: boolean;
-    url: string;
 };
 
 export type BookingStatus = {
