@@ -163,10 +163,14 @@ function Detail({
         muted: 'text-muted-foreground',
     }[tone];
 
+    // The value takes the remaining width and wraps into it. Neither side could
+    // flex before, so a value wider than the space left was simply cut -- and
+    // width is not character count: joowdx@gmail.com draws wider than
+    // admin@example.com despite being a character shorter.
     return (
-        <View className="flex-row items-center justify-between">
-            <Text className="text-muted-foreground text-sm">{label}</Text>
-            <Text className={`text-sm font-medium ${colour}`}>{value}</Text>
+        <View className="flex-row items-start justify-between gap-3">
+            <Text className="text-muted-foreground shrink-0 text-sm">{label}</Text>
+            <Text className={`flex-1 text-right text-sm font-medium ${colour}`}>{value}</Text>
         </View>
     );
 }
