@@ -83,6 +83,17 @@ const config: ExpoConfig = {
             },
         ],
         [
+            // Both off deliberately. Background playback claims the `audio`
+            // UIBackgroundMode and picture in picture claims its own
+            // entitlement; a clip attached to a booking is looked at once, on
+            // screen, and needs neither.
+            'expo-video',
+            {
+                supportsBackgroundPlayback: false,
+                supportsPictureInPicture: false,
+            },
+        ],
+        [
             // Embedded rather than loaded with useFonts, so type is right at
             // first paint with no async gate. The two halves are not symmetric:
             // Android maps files to weights under one family, iOS lists paths

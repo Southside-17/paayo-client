@@ -12,6 +12,8 @@ import { ApiError } from '@/lib/api';
 import { router } from 'expo-router';
 
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useVideoPlayer } from 'expo-video';
+
 import { useSession } from '@/lib/session';
 
 jest.mock('@/lib/session', () => ({ useSession: jest.fn() }));
@@ -61,6 +63,11 @@ async function attachPhoto() {
     // saying "Sending" once the bytes have landed and the id is known.
     await waitFor(() => expect(screen.getByLabelText('Remove')).toBeOnTheScreen());
     await waitFor(() => expect(screen.queryByText('Sending photos…')).toBeNull());
+}
+
+/** Say what needs doing, which every booking also needs. */
+function describeTheWork() {
+    fireEvent.changeText(screen.getByPlaceholderText(/drips/), 'The unit drips.');
 }
 
 /** Press the confirming button inside the dialog. */
@@ -135,7 +142,7 @@ it('posts the listing, the address and a chosen time', async () => {
     await waitFor(() => expect(screen.getByText('Home')).toBeOnTheScreen());
     await attachPhoto();
 
-    fireEvent.changeText(screen.getByPlaceholderText(/drips/), 'The unit drips.');
+    describeTheWork();
     fireEvent.press(screen.getByText('Place booking'));
     confirmThrough('Place booking');
 
@@ -172,6 +179,7 @@ it('shows a provider who does not work there, rather than going quiet', async ()
 
     await waitFor(() => expect(screen.getByText('Home')).toBeOnTheScreen());
     await attachPhoto();
+    describeTheWork();
 
     fireEvent.press(screen.getByText('Place booking'));
     confirmThrough('Place booking');
@@ -201,6 +209,35 @@ it('says a photo is missing rather than refusing quietly', async () => {
     expect(screen.getByText('Add a photo or a video of the work.')).toBeOnTheScreen();
     expect(screen.queryByText('Place this booking?')).toBeNull();
     expect(request).not.toHaveBeenCalledWith('/bookings', expect.anything());
+});
+
+// The description is required by the server too, and a booking that reaches it
+// empty comes back refused after the person has already confirmed.
+it('refuses an empty description under the field rather than at the server', async () => {
+    const request = jest.fn((path: string) =>
+        path === '/addresses'
+            ? Promise.resolve({ data: [address] })
+            : Promise.resolve({ data: booking }),
+    );
+
+    signedIn(request);
+
+    render(<Book />);
+
+    await waitFor(() => expect(screen.getByText('Home')).toBeOnTheScreen());
+    await attachPhoto();
+
+    fireEvent.press(screen.getByText('Place booking'));
+
+    expect(screen.getByText('Say what needs doing.')).toBeOnTheScreen();
+    expect(screen.queryByText('Place this booking?')).toBeNull();
+    expect(request).not.toHaveBeenCalledWith('/bookings', expect.anything());
+
+    // And it goes as soon as it is answered, the way every other field here
+    // clears rather than waiting for another press.
+    describeTheWork();
+
+    expect(screen.queryByText('Say what needs doing.')).toBeNull();
 });
 
 // Who and where are settled before this screen. Letting either change here would
@@ -257,6 +294,7 @@ it('asks before placing, and posts nothing until the answer is yes', async () =>
 
     await waitFor(() => expect(screen.getByText('Home')).toBeOnTheScreen());
     await attachPhoto();
+    describeTheWork();
 
     fireEvent.press(screen.getByText('Place booking'));
 
@@ -277,6 +315,7 @@ it('clears the provider list behind it once a booking is placed', async () => {
 
     await waitFor(() => expect(screen.getByText('Home')).toBeOnTheScreen());
     await attachPhoto();
+    describeTheWork();
 
     fireEvent.press(screen.getByText('Place booking'));
     confirmThrough('Place booking');
@@ -332,4 +371,58 @@ it('draws the confirmation in the app, not in the operating system', async () =>
     fireEvent.press(screen.getByText('Cancel this booking'));
 
     expect(screen.UNSAFE_getByType(ConfirmDialog)).toBeTruthy();
+});
+
+// The price is the first thing anyone opening a booking looks for, so it sits
+// beside the service rather than inside a row of details further down.
+it('shows the price beside the service, with the trip charge under it', async () => {
+    signedIn(jest.fn(() => Promise.resolve({ data: { ...booking, surcharge: 25_000 } })));
+
+    render(<BookingDetail />);
+
+    await waitFor(() => expect(screen.getByText('from ₱1,500')).toBeOnTheScreen());
+    expect(screen.getByText('plus ₱250 trip charge')).toBeOnTheScreen();
+});
+
+// A clip attached to a booking is the evidence of the fault. A square that
+// cannot be opened is no better than not sending it.
+it('plays an attached video, and opens a photo at full size', async () => {
+    signedIn(
+        jest.fn(() =>
+            Promise.resolve({
+                data: {
+                    ...booking,
+                    attachments: [
+                        { id: 'att-1', name: 'a.jpg', mime: 'image/jpeg', size: 1, received: 1, is_complete: true },
+                        { id: 'att-2', name: 'b.mp4', mime: 'video/mp4', size: 2, received: 2, is_complete: true },
+                    ],
+                },
+            }),
+        ),
+    );
+
+    render(<BookingDetail />);
+
+    await waitFor(() => expect(screen.getByLabelText('Play video')).toBeOnTheScreen());
+    expect(screen.getByLabelText('View photo')).toBeOnTheScreen();
+
+    fireEvent.press(screen.getByLabelText('Play video'));
+
+    await waitFor(() => expect(screen.getByLabelText('Close')).toBeOnTheScreen());
+
+    // The clip is private, so the player is handed the token rather than a URL
+    // anyone could fetch -- and it starts on its own, since opening it is the
+    // whole of the request.
+    expect(useVideoPlayer).toHaveBeenCalledWith(
+        expect.objectContaining({
+            uri: expect.stringContaining('att-2'),
+            headers: { Authorization: 'Bearer a-token' },
+        }),
+        expect.any(Function),
+    );
+
+    const player = (useVideoPlayer as jest.Mock).mock.results.at(-1)?.value;
+
+    expect(player.play).toHaveBeenCalled();
+    expect(player.loop).toBe(false);
 });

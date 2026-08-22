@@ -1,5 +1,7 @@
 import * as ImagePicker from 'expo-image-picker';
-import { ImagePlusIcon, XIcon } from 'lucide-react-native';
+import ImagePlus from 'lucide-react-native/icons/image-plus';
+import X from 'lucide-react-native/icons/x';
+import { useColorScheme } from 'nativewind';
 import { useState, type Dispatch, type SetStateAction } from 'react';
 import { Pressable, View } from 'react-native';
 
@@ -8,6 +10,7 @@ import { Text } from '@/components/ui/text';
 import { preparePicture } from '@/lib/picture';
 import { discardAttachment, uploadAttachment, type Picked } from '@/lib/upload';
 import { cn } from '@/lib/utils';
+import palette from '@/theme/palette';
 
 /** The longest side a photo of the work is stored at. */
 const PHOTO_SIZE = 1600;
@@ -42,6 +45,8 @@ type Props = {
      */
     onChange: Dispatch<SetStateAction<MediaItem[]>>;
     disabled?: boolean;
+    /** Outlines the add tile the way an unfilled input is outlined. */
+    invalid?: boolean;
 };
 
 /**
@@ -52,7 +57,9 @@ type Props = {
  * shows up next to the thumbnail that caused it instead of after the person
  * thought they were finished.
  */
-export function MediaPicker({ send, items, onChange, disabled = false }: Props) {
+export function MediaPicker({ send, items, onChange, disabled = false, invalid = false }: Props) {
+    const { colorScheme } = useColorScheme();
+    const colours = palette[colorScheme ?? 'light'];
     const [busy, setBusy] = useState(false);
 
     const patch = (key: string, change: Partial<MediaItem>) =>
@@ -134,65 +141,58 @@ export function MediaPicker({ send, items, onChange, disabled = false }: Props) 
     };
 
     return (
-        <View className="gap-3">
-            <View className="flex-row flex-wrap gap-2">
-                {items.map((item) => (
-                    <View key={item.key} className="relative">
-                        <MediaThumb uri={item.uri} video={item.video} />
+        <View className="flex-row flex-wrap gap-2">
+            {items.map((item) => (
+                <View key={item.key} className="relative">
+                    <MediaThumb uri={item.uri} video={item.video} />
 
-                        {item.progress !== null ? (
-                            <View className="absolute inset-x-1 bottom-1 h-1.5 overflow-hidden rounded-full bg-black/40">
-                                <View
-                                    className="bg-brand h-full"
-                                    style={{ width: `${Math.round(item.progress * 100)}%` }}
-                                />
-                            </View>
-                        ) : null}
+                    {item.progress !== null ? (
+                        <View className="absolute inset-x-1 bottom-1 h-1.5 overflow-hidden rounded-full bg-black/40">
+                            <View
+                                className="bg-brand h-full"
+                                style={{ width: `${Math.round(item.progress * 100)}%` }}
+                            />
+                        </View>
+                    ) : null}
 
-                        {item.failed ? (
-                            <Pressable
-                                accessibilityRole="button"
-                                onPress={() => void upload(item)}
-                                className="bg-destructive/90 absolute inset-0 items-center justify-center rounded-xl"
-                            >
-                                <Text className="text-destructive-foreground text-xs font-semibold">
-                                    Retry
-                                </Text>
-                            </Pressable>
-                        ) : null}
-
+                    {item.failed ? (
                         <Pressable
                             accessibilityRole="button"
-                            accessibilityLabel="Remove"
-                            onPress={() => void remove(item)}
-                            className="bg-background border-border absolute -right-1 -top-1 h-6 w-6 items-center justify-center rounded-full border"
+                            onPress={() => void upload(item)}
+                            className="bg-destructive/90 absolute inset-0 items-center justify-center rounded-xl"
                         >
-                            <XIcon size={14} className="text-foreground" />
+                            <Text className="text-destructive-foreground text-xs font-semibold">
+                                Retry
+                            </Text>
                         </Pressable>
-                    </View>
-                ))}
+                    ) : null}
 
-                {items.length < MAX_MEDIA ? (
                     <Pressable
                         accessibilityRole="button"
-                        accessibilityLabel="Add a photo or video"
-                        onPress={() => void pick()}
-                        disabled={disabled || busy}
-                        className={cn(
-                            'border-border bg-card h-22 w-22 items-center justify-center rounded-xl border border-dashed',
-                            (disabled || busy) && 'opacity-50',
-                        )}
-                        style={{ width: 88, height: 88 }}
+                        accessibilityLabel="Remove"
+                        onPress={() => void remove(item)}
+                        className="bg-background border-border absolute -right-1 -top-1 h-6 w-6 items-center justify-center rounded-full border"
                     >
-                        <ImagePlusIcon size={22} className="text-muted-foreground" />
+                        <X color={colours.foreground} size={14} />
                     </Pressable>
-                ) : null}
-            </View>
+                </View>
+            ))}
 
-            {items.length === 0 ? (
-                <Text className="text-muted-foreground text-sm">
-                    A photo or a short video helps the provider bring the right parts.
-                </Text>
+            {items.length < MAX_MEDIA ? (
+                <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Add a photo or video"
+                    onPress={() => void pick()}
+                    disabled={disabled || busy}
+                    className={cn(
+                        'bg-card items-center justify-center rounded-xl border border-dashed',
+                        invalid ? 'border-destructive' : 'border-border',
+                        (disabled || busy) && 'opacity-50',
+                    )}
+                    style={{ width: 88, height: 88 }}
+                >
+                    <ImagePlus color={colours['muted-foreground']} size={22} />
+                </Pressable>
             ) : null}
         </View>
     );

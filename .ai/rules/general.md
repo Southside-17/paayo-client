@@ -83,6 +83,23 @@ here, and NativeWind does not reach `react-native-svg`, so it is fed from
 `src/theme/palette.js` like every other icon. Passkey is a Lucide glyph
 (`key-round`), not a brand mark -- the console does the same.
 
+## Video attachments cost a download to draw, and a rebuild to play
+`expo-video-thumbnails` has no way to read one frame off a remote file without
+fetching it, so a still of a clip served from `v1/attachments/{id}` pulls the
+whole clip. `media-thumb.tsx` therefore caches by URI at module scope and
+dedupes pulls in flight -- two squares showing the same clip must not fetch it
+twice, and a screen that re-focuses must not fetch it again.
+
+Both packages are native. Adding them means `expo prebuild` and a fresh dev
+build; a Metro reload alone leaves the app calling a module the binary does not
+carry, which surfaces as a bare "Cannot find native module" rather than as
+anything about video.
+
+`expo-video`'s plugin options are both off in `app.config.ts` on purpose.
+`supportsBackgroundPlayback` claims the `audio` UIBackgroundMode and
+`supportsPictureInPicture` claims its own entitlement; a clip attached to a
+booking is looked at once, on screen.
+
 ## Import each lucide icon by its own path
 `lucide-react-native`'s barrel carries every one of its ~1500 icons, and Jest
 transforms all of them: one test file that reached it took 25s, and 1s once the

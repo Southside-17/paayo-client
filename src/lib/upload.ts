@@ -61,19 +61,8 @@ export async function uploadAttachment(
     asset: Picked,
     onProgress?: (fraction: number) => void,
 ): Promise<Attachment> {
-    // Reading the file is the one step that holds the whole thing at once, and
-    // a phone video is tens of megabytes. If an upload dies without a JS error,
-    // this is the line that says how far it got.
-    if (__DEV__) {
-        console.log('[upload] reading', asset.uri, asset.mimeType);
-    }
-
     const blob = await readFile(asset.uri);
     const mime = asset.mimeType ?? blob.type ?? 'application/octet-stream';
-
-    if (__DEV__) {
-        console.log('[upload] read', blob.size, 'bytes as', mime);
-    }
 
     const { data: opened } = await send<{ data: Attachment }>('/attachments', {
         method: 'POST',
@@ -94,10 +83,6 @@ export async function uploadAttachment(
 
         sent = end;
         onProgress?.(sent / blob.size);
-
-        if (__DEV__) {
-            console.log('[upload] part', sent, 'of', blob.size);
-        }
     }
 
     const { data } = await send<{ data: Attachment }>(

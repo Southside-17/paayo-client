@@ -4,6 +4,7 @@ import { PinMap } from '@/components/pin-map';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Text } from '@/components/ui/text';
+import { cn } from '@/lib/utils';
 
 /** The parts of an address worth reading back before someone is sent to it. */
 export type Place = {
@@ -67,6 +68,93 @@ export function WhereCard({ place, map = true }: { place: Place; map?: boolean }
                     This address has no pin, so nobody can be matched to it.
                 </Text>
             ) : null}
+        </Card>
+    );
+}
+
+/** The week reads Monday first, the way a wall calendar does here. */
+const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+
+/** The hour of a visit, short enough to sit inside a date square. */
+function clock(at: Date): string {
+    const minutes = at.getMinutes();
+    const hour = at.getHours() % 12 || 12;
+    const suffix = at.getHours() < 12 ? 'AM' : 'PM';
+
+    return minutes === 0
+        ? `${hour}${suffix}`
+        : `${hour}:${String(minutes).padStart(2, '0')}${suffix}`;
+}
+
+/**
+ * When someone is coming, drawn as the week the visit falls in.
+ */
+export function WhenCard({ scheduled }: { scheduled: string }) {
+    const visit = new Date(scheduled);
+    const monday = new Date(visit);
+
+    monday.setHours(0, 0, 0, 0);
+    monday.setDate(visit.getDate() - ((visit.getDay() + 6) % 7));
+
+    const week = Array.from({ length: 7 }, (_, step) => {
+        const day = new Date(monday);
+        day.setDate(monday.getDate() + step);
+
+        return day;
+    });
+
+    return (
+        <Card className="gap-2">
+            <Label>When</Label>
+            <Text className="text-lg font-semibold">
+                {visit.toLocaleDateString('en-PH', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                })}
+            </Text>
+
+            <View className="mt-1 flex-row gap-1">
+                {WEEKDAYS.map((letter, step) => (
+                    <Text
+                        key={step}
+                        className="text-muted-foreground flex-1 text-center text-[11px] font-medium"
+                    >
+                        {letter}
+                    </Text>
+                ))}
+            </View>
+
+            <View className="flex-row gap-1">
+                {week.map((day) => {
+                    const chosen = day.toDateString() === visit.toDateString();
+
+                    return (
+                        <View
+                            key={day.toISOString()}
+                            className={cn(
+                                'h-14 flex-1 items-center justify-center gap-0.5 rounded-lg border',
+                                chosen ? 'border-brand bg-brand-subtle' : 'border-transparent',
+                            )}
+                        >
+                            <Text
+                                className={cn(
+                                    'text-sm font-semibold',
+                                    chosen ? 'text-brand' : 'text-muted-foreground',
+                                )}
+                            >
+                                {day.getDate()}
+                            </Text>
+
+                            {chosen ? (
+                                <Text className="text-brand text-[10px] font-medium">
+                                    {clock(visit)}
+                                </Text>
+                            ) : null}
+                        </View>
+                    );
+                })}
+            </View>
         </Card>
     );
 }

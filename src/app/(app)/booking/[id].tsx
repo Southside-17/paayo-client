@@ -1,20 +1,21 @@
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { FormMessage } from '@/components/form-message';
 import { BackButton } from '@/components/back-button';
-import { WhereCard, WhoCard } from '@/components/booking-facts';
+import { WhenCard, WhereCard, WhoCard } from '@/components/booking-facts';
+import { FormMessage } from '@/components/form-message';
 import { MediaThumb } from '@/components/media-thumb';
+import { MediaViewer, type Viewable } from '@/components/media-viewer';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Label } from '@/components/ui/label';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusPill } from '@/components/ui/status-pill';
 import { Text } from '@/components/ui/text';
-import { when } from '@/app/(app)/(tabs)/bookings';
 import { attachmentUrl } from '@/lib/api';
 import { peso, priceRange } from '@/lib/money';
 import { useSession } from '@/lib/session';
@@ -22,7 +23,7 @@ import type { Booking } from '@/lib/types';
 import { useSubmit } from '@/lib/use-submit';
 
 /**
- * One booking: what was asked for, where it goes, and what it costs.
+ * One booking: what it costs, who is coming, where, when, and what was sent.
  */
 export default function BookingDetail() {
     const { id, name, provider } = useLocalSearchParams<{
@@ -34,6 +35,7 @@ export default function BookingDetail() {
     const { busy, message, errorFor, submit } = useSubmit();
     const [booking, setBooking] = useState<Booking | null>(null);
     const [asking, setAsking] = useState(false);
+    const [viewing, setViewing] = useState<Viewable | null>(null);
 
     const authenticatedRequest =
         session.status === 'authenticated' ? session.authenticatedRequest : null;
@@ -54,6 +56,8 @@ export default function BookingDetail() {
         return null;
     }
 
+    const bearing = { Authorization: `Bearer ${session.token}` };
+
     const cancel = () =>
         submit(async () => {
             const { data } = await session.authenticatedRequest<{ data: Booking }>(
@@ -68,10 +72,31 @@ export default function BookingDetail() {
         <SafeAreaView className="bg-background flex-1">
             <ScrollView contentContainerClassName="gap-5 p-6">
                 <BackButton label="Bookings" />
+
+                {/* The price sits beside the service rather than buried in a
+                    row of details: it is the first thing anyone opening a
+                    booking looks for. */}
                 <ScreenHeader
                     eyebrow={provider ?? booking?.provider.name}
                     title={name ?? booking?.service.name ?? 'Booking'}
-                />
+                >
+                    {booking ? (
+                        <View className="max-w-[45%] items-end">
+                            <Text className="text-brand text-right text-lg font-bold">
+                                {priceRange(
+                                    booking.price_min,
+                                    booking.price_max,
+                                    booking.service.pricing_unit,
+                                )}
+                            </Text>
+                            {booking.surcharge ? (
+                                <Text className="text-muted-foreground text-right text-[11px]">
+                                    plus {peso(booking.surcharge)} trip charge
+                                </Text>
+                            ) : null}
+                        </View>
+                    ) : null}
+                </ScreenHeader>
 
                 <FormMessage message={message ?? errorFor('status') ?? null} />
 
@@ -109,50 +134,49 @@ export default function BookingDetail() {
                             }}
                         />
 
-                        <Card className="gap-3">
-                            <Detail label="When" value={when(booking.scheduled_at)} />
-                            <Detail
-                                label="Price"
-                                value={priceRange(
-                                    booking.price_min,
-                                    booking.price_max,
-                                    booking.service.pricing_unit,
-                                )}
-                            />
-                            {booking.surcharge ? (
-                                <Detail
-                                    label="Trip charge"
-                                    value={peso(booking.surcharge)}
-                                />
-                            ) : null}
+                        <WhenCard scheduled={booking.scheduled_at} />
+
+                        <Card className="gap-2">
+                            <Label>What</Label>
+
+                            {booking.attachments?.length ? (
+                                <View className="flex-row flex-wrap gap-2">
+                                    {booking.attachments.map((attachment) => {
+                                        const video = attachment.mime.startsWith('video/');
+                                        const uri = attachmentUrl(attachment.id);
+
+                                        return (
+                                            <Pressable
+                                                key={attachment.id}
+                                                accessibilityRole="button"
+                                                accessibilityLabel={
+                                                    video ? 'Play video' : 'View photo'
+                                                }
+                                                onPress={() => setViewing({ uri, video })}
+                                            >
+                                                <MediaThumb
+                                                    uri={uri}
+                                                    video={video}
+                                                    headers={bearing}
+                                                />
+                                            </Pressable>
+                                        );
+                                    })}
+                                </View>
+                            ) : (
+                                <Text className="text-muted-foreground text-sm">
+                                    Nothing was attached to this booking.
+                                </Text>
+                            )}
                         </Card>
 
                         <Card className="gap-2">
-                            <Text className="font-semibold">What you asked for</Text>
-                            <Text className="text-muted-foreground text-sm">
-                                {booking.description}
-                            </Text>
-
-                            {booking.attachments?.length ? (
-                                <View className="mt-1 flex-row flex-wrap gap-2">
-                                    {booking.attachments.map((attachment) => (
-                                        <MediaThumb
-                                            key={attachment.id}
-                                            uri={attachmentUrl(attachment.id)}
-                                            video={attachment.mime.startsWith('video/')}
-                                            headers={{ Authorization: `Bearer ${session.token}` }}
-                                        />
-                                    ))}
-                                </View>
-                            ) : null}
+                            <Label>Why</Label>
+                            <Text className="text-sm">{booking.description}</Text>
                         </Card>
 
                         {booking.status.is_open ? (
-                            <Button
-                                variant="outline"
-                                onPress={() => setAsking(true)}
-                                busy={busy}
-                            >
+                            <Button variant="outline" onPress={() => setAsking(true)} busy={busy}>
                                 Cancel this booking
                             </Button>
                         ) : null}
@@ -175,16 +199,13 @@ export default function BookingDetail() {
                     }}
                     onDismiss={() => setAsking(false)}
                 />
+
+                <MediaViewer
+                    item={viewing}
+                    headers={bearing}
+                    onClose={() => setViewing(null)}
+                />
             </ScrollView>
         </SafeAreaView>
-    );
-}
-
-function Detail({ label, value }: { label: string; value: string }) {
-    return (
-        <View className="flex-row items-start justify-between gap-3">
-            <Text className="text-muted-foreground shrink-0 text-sm">{label}</Text>
-            <Text className="flex-1 text-right text-sm font-medium">{value}</Text>
-        </View>
     );
 }

@@ -51,3 +51,36 @@ jest.mock('expo-maps', () => {
 
     return { AppleMaps: { View: MapView }, GoogleMaps: { View: MapView } };
 });
+
+// expo-video-thumbnails reaches a native decoder. The stand-in answers with a
+// file that exists nowhere, which is all MediaThumb does with it.
+jest.mock('expo-video-thumbnails', () => ({
+    getThumbnailAsync: jest.fn(async () => ({
+        uri: 'file:///still.jpg',
+        width: 320,
+        height: 180,
+    })),
+}));
+
+// expo-video is a native view and a native player object. Both are stood in
+// for: the view renders nothing, and the player carries only what the viewer
+// touches, so a test can assert what was handed to it and that it was started.
+jest.mock('expo-video', () => {
+    const play = jest.fn();
+
+    function MockVideoView() {
+        return null;
+    }
+
+    return {
+        useVideoPlayer: jest.fn((source, setup) => {
+            const player = { loop: true, play };
+
+            setup?.(player);
+
+            return player;
+        }),
+        VideoView: MockVideoView,
+        __play: play,
+    };
+});

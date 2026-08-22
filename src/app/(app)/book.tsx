@@ -51,6 +51,9 @@ function label(hour: number): string {
     return `${shown}:00 ${suffix}`;
 }
 
+/** The fields this screen refuses on its own, before the server is asked. */
+type Missing = { description?: string; attachments?: string };
+
 /**
  * Ask for the work at a time.
  *
@@ -74,7 +77,7 @@ export default function Book() {
     const [hour, setHour] = useState(HOURS[1]);
     const [description, setDescription] = useState('');
     const [media, setMedia] = useState<MediaItem[]>([]);
-    const [missing, setMissing] = useState<string | null>(null);
+    const [missing, setMissing] = useState<Missing>({});
     const [asking, setAsking] = useState(false);
 
     if (session.status !== 'authenticated') {
@@ -121,19 +124,33 @@ export default function Book() {
 
     /** Everything the server would refuse, said before it is asked. */
     const ask = () => {
-        if (readyIds(media).length === 0) {
-            setMissing(
-                stillSending(media)
-                    ? 'Wait for the upload to finish.'
-                    : 'Add a photo or a video of the work.',
-            );
+        const found: Missing = {};
 
+        if (readyIds(media).length === 0) {
+            found.attachments = stillSending(media)
+                ? 'Wait for the upload to finish.'
+                : 'Add a photo or a video of the work.';
+        }
+
+        if (description.trim() === '') {
+            found.description = 'Say what needs doing.';
+        }
+
+        setMissing(found);
+
+        if (Object.keys(found).length > 0) {
             return;
         }
 
-        setMissing(null);
         setAsking(true);
     };
+
+    /** What is wrong with a field: ours until the server has its own say. */
+    const wrong = (field: keyof Missing) => missing[field] ?? errorFor(field);
+
+    /** Clear a field's complaint the moment it is answered. */
+    const answered = (field: keyof Missing) =>
+        setMissing((held) => ({ ...held, [field]: undefined }));
 
     const asked = [provider, 'will be asked to come on', when(scheduledAt().toISOString())]
         .filter(Boolean)
@@ -249,32 +266,42 @@ export default function Book() {
                     </Card>
 
                     <Card className="gap-2">
-                        <Label>What needs doing</Label>
+                        <Label>What</Label>
+                        <MediaPicker
+                            send={session.authenticatedRequest}
+                            items={media}
+                            onChange={(update) => {
+                                setMedia(update);
+                                answered('attachments');
+                            }}
+                            disabled={busy}
+                            invalid={Boolean(wrong('attachments'))}
+                        />
+                        <Text className="text-muted-foreground text-sm">
+                            A photo or a short video of the work, so the provider brings the
+                            right parts.
+                        </Text>
+                        <FieldError message={wrong('attachments')} />
+                    </Card>
+
+                    <Card className="gap-2">
+                        <Label>Why</Label>
                         <Input
                             value={description}
-                            onChangeText={setDescription}
+                            onChangeText={(value) => {
+                                setDescription(value);
+                                answered('description');
+                            }}
                             placeholder="The unit drips and smells damp."
                             multiline
                             numberOfLines={4}
                             className="h-24"
-                            invalid={Boolean(errorFor('description'))}
+                            invalid={Boolean(wrong('description'))}
                         />
-                        <FieldError message={errorFor('description')} />
-                    </Card>
-
-                    <Card className="gap-2">
-                        <View className="flex-row items-center gap-2">
-                            <Label>Show the work</Label>
-                            <Text className="text-destructive text-sm">Required</Text>
-                        </View>
-
-                        <MediaPicker
-                            send={session.authenticatedRequest}
-                            items={media}
-                            onChange={setMedia}
-                            disabled={busy}
-                        />
-                        <FieldError message={missing ?? errorFor('attachments')} />
+                        <Text className="text-muted-foreground text-sm">
+                            What is wrong, and anything they should know before they arrive.
+                        </Text>
+                        <FieldError message={wrong('description')} />
                     </Card>
 
                     <Button variant="brand" onPress={ask} busy={busy}>
