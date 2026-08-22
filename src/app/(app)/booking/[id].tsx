@@ -7,6 +7,7 @@ import { FormMessage } from '@/components/form-message';
 import { BackButton } from '@/components/back-button';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusPill } from '@/components/ui/status-pill';
@@ -29,6 +30,7 @@ export default function BookingDetail() {
     const session = useSession();
     const { busy, message, errorFor, submit } = useSubmit();
     const [booking, setBooking] = useState<Booking | null>(null);
+    const [asking, setAsking] = useState(false);
 
     const authenticatedRequest =
         session.status === 'authenticated' ? session.authenticatedRequest : null;
@@ -113,12 +115,33 @@ export default function BookingDetail() {
                         </Card>
 
                         {booking.status.is_open ? (
-                            <Button variant="outline" onPress={cancel} busy={busy}>
+                            <Button
+                                variant="outline"
+                                onPress={() => setAsking(true)}
+                                busy={busy}
+                            >
                                 Cancel this booking
                             </Button>
                         ) : null}
                     </>
                 ) : null}
+
+                {/* "Keep it" rather than "Cancel": on a dialog about
+                    cancelling, a button reading Cancel means both things. */}
+                <ConfirmDialog
+                    open={asking}
+                    title="Cancel this booking?"
+                    body="Nobody will be sent. You can book the same work again afterwards."
+                    confirm="Cancel booking"
+                    dismiss="Keep it"
+                    destructive
+                    busy={busy}
+                    onConfirm={() => {
+                        setAsking(false);
+                        void cancel();
+                    }}
+                    onDismiss={() => setAsking(false)}
+                />
             </ScrollView>
         </SafeAreaView>
     );

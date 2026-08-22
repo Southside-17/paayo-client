@@ -126,3 +126,21 @@ space already held for it. Never a blank, never a line of text that is then
 replaced -- both resize the page under the reader. It stops pulsing when the
 system asks for reduced motion, and holds its animated value in lazy state
 rather than a ref, which the React Compiler refuses to read during render.
+
+## Confirmations are ours, not the platform's
+`src/components/ui/confirm-dialog.tsx`. Do not reach for React Native's
+`Alert`: it draws in the operating system's own colours and typeface -- a grey
+sheet with teal system buttons and Roboto -- which against this app's amber,
+Urbanist and dark card reads as a dialog from a different application. It was
+tried and rejected on exactly that ground.
+
+Two actions ask before they happen, and both are the kind that should: placing
+a booking commits someone to a visit, and cancelling one cannot be undone.
+
+The confirming button says what happens -- **Place booking**, **Cancel
+booking** -- never OK. The way out is never the word the confirming button
+uses: a dialog headed "Cancel this booking?" offers **Keep it**, because a
+button reading Cancel there means both things at once. Destructive actions take
+`destructive`, which is the one place `Button`'s destructive variant is used.
+
+The backdrop dismisses, matching every other dialog on the platform.

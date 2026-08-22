@@ -7,12 +7,14 @@ import { BackButton } from '@/components/back-button';
 import { FormMessage } from '@/components/form-message';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { FieldError } from '@/components/ui/field-error';
 import { Input } from '@/components/ui/input';
 import { KeyboardAvoiding } from '@/components/ui/keyboard-avoiding';
 import { Label } from '@/components/ui/label';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { Text } from '@/components/ui/text';
+import { when } from '@/app/(app)/(tabs)/bookings';
 import { useSession } from '@/lib/session';
 import type { Address, Booking } from '@/lib/types';
 import { useSubmit } from '@/lib/use-submit';
@@ -61,6 +63,7 @@ export default function Book() {
     const [day, setDay] = useState(() => days()[1]);
     const [hour, setHour] = useState(HOURS[1]);
     const [description, setDescription] = useState('');
+    const [asking, setAsking] = useState(false);
 
     const authenticatedRequest =
         session.status === 'authenticated' ? session.authenticatedRequest : null;
@@ -82,22 +85,34 @@ export default function Book() {
         return null;
     }
 
+    const scheduledAt = () => {
+        const scheduled = new Date(day);
+        scheduled.setHours(hour, 0, 0, 0);
+
+        return scheduled;
+    };
+
     const place = () =>
         submit(async () => {
-            const scheduled = new Date(day);
-            scheduled.setHours(hour, 0, 0, 0);
-
             const { data } = await session.authenticatedRequest<{ data: Booking }>('/bookings', {
                 method: 'POST',
                 body: {
                     listing_id: listing,
                     address_id: addressId,
-                    scheduled_at: scheduled.toISOString(),
+                    scheduled_at: scheduledAt().toISOString(),
                     description,
                 },
             });
 
-            router.replace({
+            // The provider list and the trade above it are still underneath, so
+            // going back from the booking would walk into booking it again.
+            // Clear them, land on Bookings, then show the one just placed.
+            if (router.canDismiss()) {
+                router.dismissAll();
+            }
+
+            router.replace('/bookings');
+            router.push({
                 pathname: '/booking/[id]',
                 params: {
                     id: data.id,
@@ -106,6 +121,11 @@ export default function Book() {
                 },
             });
         });
+
+    const asked = [provider, 'will be asked to come on', when(scheduledAt().toISOString())]
+        .filter(Boolean)
+        .join(' ')
+        .concat('.');
 
     return (
         <SafeAreaView className="bg-background flex-1">
@@ -232,9 +252,23 @@ export default function Book() {
                         <FieldError message={errorFor('description')} />
                     </Card>
 
-                    <Button variant="brand" onPress={place} busy={busy}>
+                    <Button variant="brand" onPress={() => setAsking(true)} busy={busy}>
                         Place booking
                     </Button>
+
+                    <ConfirmDialog
+                        open={asking}
+                        title="Place this booking?"
+                        body={asked}
+                        confirm="Place booking"
+                        dismiss="Not yet"
+                        busy={busy}
+                        onConfirm={() => {
+                            setAsking(false);
+                            void place();
+                        }}
+                        onDismiss={() => setAsking(false)}
+                    />
                 </ScrollView>
             </KeyboardAvoiding>
         </SafeAreaView>

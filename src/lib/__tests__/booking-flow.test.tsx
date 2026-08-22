@@ -4,17 +4,38 @@ import type { ReactNode } from 'react';
 import { View } from 'react-native';
 
 import Book from '@/app/(app)/book';
+import BookingDetail from '@/app/(app)/booking/[id]';
 import Bookings from '@/app/(app)/(tabs)/bookings';
 import { ApiError } from '@/lib/api';
+import { router } from 'expo-router';
+
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useSession } from '@/lib/session';
 
 jest.mock('@/lib/session', () => ({ useSession: jest.fn() }));
 jest.mock('expo-router', () => ({
     Link: MockLink,
     useFocusEffect: MockUseFocusEffect,
-    useLocalSearchParams: () => ({ listing: 'l1' }),
-    router: { back: jest.fn(), replace: jest.fn() },
+    useLocalSearchParams: () => ({
+        listing: 'l1',
+        id: 'b1',
+        name: 'Cleaning',
+        service: 'Cleaning',
+        provider: 'FixRight Manila',
+    }),
+    router: {
+        back: jest.fn(),
+        push: jest.fn(),
+        replace: jest.fn(),
+        dismissAll: jest.fn(),
+        canDismiss: () => true,
+    },
 }));
+
+/** Press the confirming button inside the dialog. */
+function confirmThrough(label: string) {
+    fireEvent.press(screen.getAllByText(label).at(-1)!);
+}
 
 function MockLink({ children }: { href: unknown; children: ReactNode }) {
     return <View>{children}</View>;
@@ -84,6 +105,7 @@ it('posts the listing, the address and a chosen time', async () => {
 
     fireEvent.changeText(screen.getByPlaceholderText(/drips/), 'The unit drips.');
     fireEvent.press(screen.getByText('Place booking'));
+    confirmThrough('Place booking');
 
     await waitFor(() => expect(request).toHaveBeenCalledWith('/bookings', expect.anything()));
 
@@ -118,6 +140,7 @@ it('shows a provider who does not work there, rather than going quiet', async ()
     await waitFor(() => expect(screen.getByText('Home')).toBeOnTheScreen());
 
     fireEvent.press(screen.getByText('Place booking'));
+    confirmThrough('Place booking');
 
     await waitFor(() =>
         expect(screen.getByText('This provider does not work at that address.')).toBeOnTheScreen(),
@@ -140,4 +163,94 @@ it('says nothing is booked rather than showing an empty list', async () => {
     render(<Bookings />);
 
     await waitFor(() => expect(screen.getByText('Nothing booked yet')).toBeOnTheScreen());
+});
+
+// Booking commits someone to a visit and cancelling cannot be undone. Neither
+// may happen on a single tap.
+it('asks before placing, and posts nothing until the answer is yes', async () => {
+    const request = jest.fn((path: string) =>
+        path === '/addresses'
+            ? Promise.resolve({ data: [address] })
+            : Promise.resolve({ data: booking }),
+    );
+
+    signedIn(request);
+
+    render(<Book />);
+
+    await waitFor(() => expect(screen.getByText('Home')).toBeOnTheScreen());
+
+    fireEvent.press(screen.getByText('Place booking'));
+
+    expect(screen.getByText('Place this booking?')).toBeOnTheScreen();
+    expect(request).not.toHaveBeenCalledWith('/bookings', expect.anything());
+});
+
+it('clears the provider list behind it once a booking is placed', async () => {
+    const request = jest.fn((path: string) =>
+        path === '/addresses'
+            ? Promise.resolve({ data: [address] })
+            : Promise.resolve({ data: booking }),
+    );
+
+    signedIn(request);
+
+    render(<Book />);
+
+    await waitFor(() => expect(screen.getByText('Home')).toBeOnTheScreen());
+
+    fireEvent.press(screen.getByText('Place booking'));
+    confirmThrough('Place booking');
+
+    await waitFor(() => expect(router.dismissAll).toHaveBeenCalled());
+    expect(router.replace).toHaveBeenCalledWith('/bookings');
+});
+
+it('asks before cancelling, and cancels nothing until the answer is yes', async () => {
+    const request = jest.fn(() => Promise.resolve({ data: booking }));
+
+    signedIn(request);
+
+    render(<BookingDetail />);
+
+    await waitFor(() => expect(screen.getByText('Cancel this booking')).toBeOnTheScreen());
+
+    fireEvent.press(screen.getByText('Cancel this booking'));
+
+    expect(screen.getByText('Cancel this booking?')).toBeOnTheScreen();
+    expect(request).not.toHaveBeenCalledWith('/bookings/b1/cancellation', expect.anything());
+
+    confirmThrough('Cancel booking');
+
+    await waitFor(() =>
+        expect(request).toHaveBeenCalledWith('/bookings/b1/cancellation', { method: 'POST' }),
+    );
+});
+
+// On a dialog about cancelling, a button reading Cancel means both things.
+it('offers to keep the booking rather than to cancel the cancelling', async () => {
+    signedIn(jest.fn(() => Promise.resolve({ data: booking })));
+
+    render(<BookingDetail />);
+
+    await waitFor(() => expect(screen.getByText('Cancel this booking')).toBeOnTheScreen());
+
+    fireEvent.press(screen.getByText('Cancel this booking'));
+
+    expect(screen.getByText('Keep it')).toBeOnTheScreen();
+    expect(screen.queryByText('Cancel')).toBeNull();
+});
+
+// The dialog is ours, not the platform's: React Native's Alert draws in the
+// operating system's colours and typeface and reads as another application.
+it('draws the confirmation in the app, not in the operating system', async () => {
+    signedIn(jest.fn(() => Promise.resolve({ data: booking })));
+
+    render(<BookingDetail />);
+
+    await waitFor(() => expect(screen.getByText('Cancel this booking')).toBeOnTheScreen());
+
+    fireEvent.press(screen.getByText('Cancel this booking'));
+
+    expect(screen.UNSAFE_getByType(ConfirmDialog)).toBeTruthy();
 });
