@@ -20,6 +20,7 @@ export default function VerifyEmail() {
     const session = useSession();
     const { busy, message, submit } = useSubmit();
     const [sent, setSent] = useState<string | null>(null);
+    const [stillWaiting, setStillWaiting] = useState(false);
 
     if (session.status !== 'authenticated') {
         return null;
@@ -32,15 +33,33 @@ export default function VerifyEmail() {
                 { method: 'POST' },
             );
 
+            setStillWaiting(false);
             setSent(response.message);
         });
 
-    const check = () => submit(async () => session.reload());
+    // The reload's answer is used rather than the state it sets: state is a
+    // render away, and the whole point of the tap is to report what came back.
+    const check = () =>
+        submit(async () => {
+            setSent(null);
+
+            const user = await session.reload();
+
+            setStillWaiting(user !== null && !user.email_verified);
+        });
 
     return (
         <AuthScreen title="Confirm your email" subtitle={`We sent a link to ${session.user.email}`}>
             <View className="gap-4">
                 <FormMessage message={sent} tone="success" />
+                <FormMessage
+                    message={
+                        stillWaiting
+                            ? 'This address is still unconfirmed. Open the link in the email, then try again.'
+                            : null
+                    }
+                    tone="warning"
+                />
                 <FormMessage message={message} />
 
                 <Text className="text-muted-foreground text-center text-sm">

@@ -19,7 +19,7 @@ type SessionValue = SessionState & {
     completeTwoFactor: (challengeToken: string, code: string, recoveryCode?: string) => Promise<void>;
     register: (fields: RegisterFields) => Promise<void>;
     logout: () => Promise<void>;
-    reload: () => Promise<void>;
+    reload: () => Promise<User | null>;
     authenticatedRequest: <T>(path: string, options?: AuthenticatedOptions) => Promise<T>;
 };
 
@@ -259,14 +259,18 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         }
     }, [forget, token]);
 
-    const reload = useCallback(async () => {
+    // Returns what the server said, because a caller that re-reads the account
+    // usually wants to know the answer -- state alone is a render away.
+    const reload = useCallback(async (): Promise<User | null> => {
         if (!token) {
-            return;
+            return null;
         }
 
         const { data } = await authenticatedRequest<{ data: User }>('/auth/user');
 
         setState({ status: 'authenticated', user: data });
+
+        return data;
     }, [authenticatedRequest, token]);
 
     const value = useMemo<SessionValue>(
