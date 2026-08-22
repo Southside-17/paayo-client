@@ -1,7 +1,9 @@
 import { Link, router } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { KeyboardAvoiding } from '@/components/ui/keyboard-avoiding';
 
 import { FormMessage } from '@/components/form-message';
 import { PasskeyCard } from '@/components/passkey-card';
@@ -55,9 +57,8 @@ export default function Security() {
 
     return (
         <SafeAreaView className="bg-background flex-1">
-            <KeyboardAvoidingView
+            <KeyboardAvoiding
                 className="flex-1"
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             >
                 <ScrollView
                     contentContainerClassName="gap-6 p-6"
@@ -143,7 +144,7 @@ export default function Security() {
                         </Button>
                     </Card>
                 </ScrollView>
-            </KeyboardAvoidingView>
+            </KeyboardAvoiding>
         </SafeAreaView>
     );
 }

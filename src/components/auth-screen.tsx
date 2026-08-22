@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
+import { KeyboardAvoiding } from '@/components/ui/keyboard-avoiding';
 import { Text } from '@/components/ui/text';
 
 type Props = { title: string; subtitle?: string; children: ReactNode };
@@ -8,9 +9,8 @@ type Props = { title: string; subtitle?: string; children: ReactNode };
 /** The shared shell for every signed-out screen: brand mark, heading, form. */
 export function AuthScreen({ title, subtitle, children }: Props) {
     return (
-        <KeyboardAvoidingView
+        <KeyboardAvoiding
             className="bg-background flex-1"
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
             <ScrollView
                 contentContainerClassName="grow justify-center px-6 py-16"
@@ -34,6 +34,6 @@ export function AuthScreen({ title, subtitle, children }: Props) {
                     {children}
                 </View>
             </ScrollView>
-        </KeyboardAvoidingView>
+        </KeyboardAvoiding>
     );
 }

@@ -1,7 +1,9 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { KeyboardAvoiding } from '@/components/ui/keyboard-avoiding';
 
 import { FormMessage } from '@/components/form-message';
 import { Button } from '@/components/ui/button';
@@ -47,9 +49,8 @@ export default function EditProfile() {
 
     return (
         <SafeAreaView className="bg-background flex-1">
-            <KeyboardAvoidingView
+            <KeyboardAvoiding
                 className="flex-1"
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             >
                 <ScrollView contentContainerClassName="gap-6 p-6" keyboardShouldPersistTaps="handled">
                     <View className="flex-row items-center justify-between">
@@ -119,7 +120,7 @@ export default function EditProfile() {
                         </Button>
                     </Card>
                 </ScrollView>
-            </KeyboardAvoidingView>
+            </KeyboardAvoiding>
         </SafeAreaView>
     );
 }
