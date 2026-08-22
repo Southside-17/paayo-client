@@ -1,3 +1,5 @@
+import type { Tone } from '@/components/ui/tone';
+
 /**
  * Wire contracts. Mirrors App\Http\Resources\UserResource and the responses in
  * app/Http/Controllers/Api/V1/Auth on the server.
@@ -99,6 +101,67 @@ export type QrCode = {
     url: string;
     /** The base32 secret, for typing into an authenticator by hand. */
     secret_key: string;
+};
+
+/** How a service's price reads. The server owns the wording, not the client. */
+export type PricingUnit = {
+    value: string;
+    label: string;
+    suffix: string;
+    is_quoted: boolean;
+};
+
+/** A trade. `icon` is a curated Tabler name and may be null. */
+export type Category = {
+    id: string;
+    name: string;
+    slug: string;
+    icon: string | null;
+    services?: Service[];
+};
+
+export type Service = {
+    id: string;
+    name: string;
+    description: string | null;
+    pricing_unit: PricingUnit;
+    category?: Category;
+    listings?: Listing[];
+};
+
+/** One provider's offer of one service. Prices are centavos. */
+export type Listing = {
+    id: string;
+    description: string | null;
+    price_min: number | null;
+    price_max: number | null;
+    provider: { id: string; name: string; slug: string };
+    /** Only present when the query named an address. */
+    surcharge?: number | null;
+};
+
+export type BookingStatus = {
+    value: string;
+    label: string;
+    wording: string;
+    tone: Tone;
+    is_open: boolean;
+};
+
+export type Booking = {
+    id: string;
+    status: BookingStatus;
+    description: string;
+    scheduled_at: string;
+    cancelled_at: string | null;
+    price_min: number | null;
+    price_max: number | null;
+    address: { label?: string; line?: string } & Record<string, unknown>;
+    latitude: number | null;
+    longitude: number | null;
+    service: { id: string; name: string; pricing_unit: PricingUnit };
+    provider: { id: string; name: string };
+    created_at: string;
 };
 
 export function isTwoFactorChallenge(result: LoginResult): result is TwoFactorChallenge {

@@ -10,10 +10,8 @@ import { useSession } from '@/lib/session';
 // function declarations the factories hand back. See .ai/rules/general.md.
 jest.mock('@/lib/session', () => ({ useSession: jest.fn() }));
 jest.mock('expo-router', () => ({ Link: MockLink, useFocusEffect: MockUseFocusEffect }));
-jest.mock('@/lib/google', () => ({ googleIsConfigured: () => true, useGoogleSignIn: jest.fn() }));
-jest.mock('@/lib/passkey', () => ({ passkeysAreSupported: () => true }));
 
-function MockLink({ children }: { href: string; children: ReactNode }) {
+function MockLink({ children }: { href: unknown; children: ReactNode }) {
     return <View>{children}</View>;
 }
 
@@ -53,21 +51,16 @@ const address = {
     line: '12 Kalayaan, Poblacion, Makati',
 };
 
-/**
- * @param payloads What each of the screen's three reads should answer with.
- */
-function signedIn(payloads: { addresses?: unknown[]; passkeys?: unknown[]; socials?: unknown[] }) {
-    const authenticatedRequest = jest.fn((path: string) => {
-        if (path === '/addresses') {
-            return Promise.resolve({ data: payloads.addresses ?? [] });
-        }
+const category = { id: 'c1', name: 'Air Condition', slug: 'air-condition', icon: 'air-conditioning' };
 
-        if (path === '/auth/passkeys') {
-            return Promise.resolve({ data: payloads.passkeys ?? [] });
-        }
-
-        return Promise.resolve({ data: payloads.socials ?? [] });
-    });
+function signedIn(payloads: { categories?: unknown[]; addresses?: unknown[] }) {
+    const authenticatedRequest = jest.fn((path: string) =>
+        Promise.resolve({
+            data: path.startsWith('/categories')
+                ? (payloads.categories ?? [])
+                : (payloads.addresses ?? []),
+        }),
+    );
 
     (useSession as jest.Mock).mockReturnValue({
         status: 'authenticated',
@@ -78,57 +71,55 @@ function signedIn(payloads: { addresses?: unknown[]; passkeys?: unknown[]; socia
     });
 }
 
-it('says where each plane of the account stands', async () => {
+it('opens with a greeting and the nickname', async () => {
     signedIn({});
 
     render(<Home />);
 
-    await waitFor(() => expect(screen.getByText('confirmed')).toBeOnTheScreen());
-    expect(screen.getByText('not verified')).toBeOnTheScreen();
-    expect(screen.getByText('off')).toBeOnTheScreen();
+    await waitFor(() => expect(screen.getByText('Mara')).toBeOnTheScreen());
+    expect(screen.getByText(/^Good (morning|afternoon|evening)$/)).toBeOnTheScreen();
 });
 
-it('counts the passkeys the account holds', async () => {
-    signedIn({ passkeys: [{ id: 'p1' }, { id: 'p2' }] });
+it('draws a tile for every trade on offer', async () => {
+    signedIn({ categories: [category, { ...category, id: 'c2', name: 'Plumbing', icon: 'droplet' }] });
 
     render(<Home />);
 
-    await waitFor(() => expect(screen.getByText('2 saved')).toBeOnTheScreen());
+    await waitFor(() => expect(screen.getByText('Air Condition')).toBeOnTheScreen());
+    expect(screen.getByText('Plumbing')).toBeOnTheScreen();
 });
 
-it('offers a card for every provider this build can reach', async () => {
-    signedIn({});
-
-    render(<Home />);
-
-    await waitFor(() => expect(screen.getByText('Google')).toBeOnTheScreen());
-    expect(screen.getByText('not linked')).toBeOnTheScreen();
-});
-
-it('names the address behind a linked provider once it is linked', async () => {
-    signedIn({ socials: [{ provider: 'google', label: 'Google', email: 'mara@gmail.com' }] });
-
-    render(<Home />);
-
-    await waitFor(() => expect(screen.getByText('linked')).toBeOnTheScreen());
-    expect(screen.getByText('mara@gmail.com')).toBeOnTheScreen();
-});
-
-it('shows the default address and how it is marked', async () => {
+it('names the address work would be sent to', async () => {
     signedIn({ addresses: [address] });
 
     render(<Home />);
 
     await waitFor(() => expect(screen.getByText('Home')).toBeOnTheScreen());
-    expect(screen.getByText('Default')).toBeOnTheScreen();
-    expect(screen.getByText('Pinned')).toBeOnTheScreen();
-    expect(screen.getByText('12 Kalayaan, Poblacion, Makati')).toBeOnTheScreen();
+    expect(screen.getByText('Work happens at')).toBeOnTheScreen();
 });
 
-it('says an address is missing rather than leaving the card blank', async () => {
+// Coverage is decided by the pin, so an address without one can be chosen and
+// then refused at the last step. Say so before that.
+it('marks an address that carries no pin', async () => {
+    signedIn({ addresses: [{ ...address, latitude: null, longitude: null }] });
+
+    render(<Home />);
+
+    await waitFor(() => expect(screen.getByText('No pin')).toBeOnTheScreen());
+});
+
+it('asks for an address when none is saved', async () => {
     signedIn({});
 
     render(<Home />);
 
-    await waitFor(() => expect(screen.getByText(/No address saved yet/)).toBeOnTheScreen());
+    await waitFor(() => expect(screen.getByText('Add an address')).toBeOnTheScreen());
+});
+
+it('says the catalog is empty rather than showing a blank grid', async () => {
+    signedIn({});
+
+    render(<Home />);
+
+    await waitFor(() => expect(screen.getByText('Nothing on offer yet')).toBeOnTheScreen());
 });

@@ -1,21 +1,18 @@
 import { Link, useFocusEffect } from 'expo-router';
-import type { ReactNode } from 'react';
+import { useColorScheme } from 'nativewind';
 import { useCallback, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/avatar';
-import { SocialCard } from '@/components/social-card';
+import { CategoryIcon } from '@/components/category-icon';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ScreenHeader } from '@/components/ui/screen-header';
-import { StatusPill } from '@/components/ui/status-pill';
 import { Text } from '@/components/ui/text';
-import { passkeysAreSupported } from '@/lib/passkey';
-import { enabledSocialProviders } from '@/lib/providers';
 import { useSession } from '@/lib/session';
-import type { Address, Passkey, Social } from '@/lib/types';
+import type { Address, Category } from '@/lib/types';
+import palette from '@/theme/palette';
 
 /** The greeting the header opens with, by the reader's own clock. */
 function greeting(hour: number): string {
@@ -27,23 +24,19 @@ function greeting(hour: number): string {
 }
 
 /**
- * Where the account stands, and where its work would happen.
+ * What can be booked, and where it would happen.
  */
 export default function Home() {
     const session = useSession();
+    const { colorScheme } = useColorScheme();
+    const colours = palette[colorScheme ?? 'light'];
+    const [categories, setCategories] = useState<Category[] | null>(null);
     const [addresses, setAddresses] = useState<Address[] | null>(null);
-    const [passkeys, setPasskeys] = useState<Passkey[] | null>(null);
-    const [socials, setSocials] = useState<Social[] | null>(null);
-    // The picture is changed on another screen and the route it is served from
-    // never changes, so nothing else would tell the image cache to look again.
     const [seen, setSeen] = useState(0);
 
     const authenticatedRequest =
         session.status === 'authenticated' ? session.authenticatedRequest : null;
 
-    // All three are edited on other screens, so focus is the only signal that
-    // any of them has moved. A failure leaves its own row empty rather than
-    // taking the screen down with it.
     useFocusEffect(
         useCallback(() => {
             if (!authenticatedRequest) {
@@ -52,17 +45,13 @@ export default function Home() {
 
             setSeen((count) => count + 1);
 
+            void authenticatedRequest<{ data: Category[] }>('/categories')
+                .then(({ data }) => setCategories(data))
+                .catch(() => setCategories([]));
+
             void authenticatedRequest<{ data: Address[] }>('/addresses')
                 .then(({ data }) => setAddresses(data))
                 .catch(() => setAddresses([]));
-
-            void authenticatedRequest<{ data: Passkey[] }>('/auth/passkeys')
-                .then(({ data }) => setPasskeys(data))
-                .catch(() => setPasskeys([]));
-
-            void authenticatedRequest<{ data: Social[] }>('/auth/socials')
-                .then(({ data }) => setSocials(data))
-                .catch(() => setSocials([]));
         }, [authenticatedRequest]),
     );
 
@@ -72,7 +61,6 @@ export default function Home() {
 
     const { user } = session;
     const primary = addresses?.find((address) => address.is_default) ?? addresses?.[0] ?? null;
-    const providers = enabledSocialProviders();
 
     return (
         <SafeAreaView className="bg-background flex-1" edges={['top']}>
@@ -87,99 +75,67 @@ export default function Home() {
                     />
                 </ScreenHeader>
 
-                <Card className="gap-3">
-                    <Text className="font-semibold">Your account</Text>
+                <Link href="/profile/addresses" asChild>
+                    <Pressable className="border-border bg-card flex-row items-center gap-2 rounded-xl border px-4 py-3">
+                        <View className="flex-1 gap-0.5">
+                            <Text className="text-muted-foreground text-xs">Work happens at</Text>
+                            {primary ? (
+                                <View className="flex-row items-center gap-2">
+                                    <Text className="font-medium">{primary.label}</Text>
+                                    {primary.latitude === null ? (
+                                        <Badge tone="warning">No pin</Badge>
+                                    ) : null}
+                                </View>
+                            ) : (
+                                <Text className="font-medium">Add an address</Text>
+                            )}
+                        </View>
+                        <Text className="text-brand text-sm font-semibold">Change</Text>
+                    </Pressable>
+                </Link>
 
-                    <Standing label="Email">
-                        <StatusPill tone={user.email_verified ? 'success' : 'warning'}>
-                            {user.email_verified ? 'confirmed' : 'unconfirmed'}
-                        </StatusPill>
-                    </Standing>
+                <View className="gap-3">
+                    <Text className="font-semibold">What do you need done?</Text>
 
-                    <Standing label="Identification">
-                        <StatusPill tone={user.identification_verified ? 'success' : 'neutral'}>
-                            {user.identification_verified ? 'verified' : 'not verified'}
-                        </StatusPill>
-                    </Standing>
-
-                    <Standing label="Two-factor">
-                        <StatusPill tone={user.two_factor_enabled ? 'success' : 'neutral'}>
-                            {user.two_factor_enabled ? 'on' : 'off'}
-                        </StatusPill>
-                    </Standing>
-
-                    {/* A device with no authenticator can hold none, so the row
-                        would report a lack the person cannot act on. */}
-                    {passkeysAreSupported() ? (
-                        <Standing label="Passkeys">
-                            <StatusPill tone={passkeys?.length ? 'success' : 'neutral'}>
-                                {passkeys?.length ? `${passkeys.length} saved` : 'none saved'}
-                            </StatusPill>
-                        </Standing>
+                    {categories === null ? (
+                        <Card>
+                            <Text className="text-muted-foreground text-sm">Loading the catalog…</Text>
+                        </Card>
                     ) : null}
 
-                    <Link href="/security" asChild>
-                        <Button variant="outline">Security</Button>
-                    </Link>
-                </Card>
+                    {categories?.length === 0 ? (
+                        <Card className="gap-2">
+                            <Text className="font-semibold">Nothing on offer yet</Text>
+                            <Text className="text-muted-foreground text-sm">
+                                No trades have been opened for your area. This fills in as providers
+                                are listed.
+                            </Text>
+                        </Card>
+                    ) : null}
 
-                {providers.length > 0 ? (
-                    <View className="gap-3">
-                        <Text className="font-semibold">Ways in</Text>
-
-                        {providers.map((provider) => (
-                            <SocialCard
-                                key={provider.key}
-                                provider={provider}
-                                social={
-                                    socials?.find((social) => social.provider === provider.key) ??
-                                    null
-                                }
-                            />
+                    <View className="flex-row flex-wrap gap-3">
+                        {categories?.map((category) => (
+                            <Link key={category.id} href={`/category/${category.id}`} asChild>
+                                <Pressable
+                                    accessibilityRole="button"
+                                    className="border-border bg-card grow basis-[30%] items-center gap-2 rounded-xl border px-2 py-4"
+                                >
+                                    <View className="bg-brand-subtle size-11 items-center justify-center rounded-xl">
+                                        <CategoryIcon
+                                            icon={category.icon}
+                                            color={colours.brand}
+                                            size={21}
+                                        />
+                                    </View>
+                                    <Text className="text-center text-xs font-semibold">
+                                        {category.name}
+                                    </Text>
+                                </Pressable>
+                            </Link>
                         ))}
-
-                        <Link href="/profile/socials" asChild>
-                            <Button variant="outline">Manage linked accounts</Button>
-                        </Link>
                     </View>
-                ) : null}
-
-                <Card className="gap-3">
-                    <Text className="font-semibold">Where work happens</Text>
-
-                    {primary ? (
-                        <View className="gap-1">
-                            <View className="flex-row items-center gap-2">
-                                <Text className="font-medium">{primary.label}</Text>
-                                {primary.is_default ? <Badge tone="brand">Default</Badge> : null}
-                                {primary.latitude !== null ? (
-                                    <Badge tone="success">Pinned</Badge>
-                                ) : null}
-                            </View>
-                            <Text className="text-muted-foreground text-sm">{primary.line}</Text>
-                        </View>
-                    ) : (
-                        <Text className="text-muted-foreground text-sm">
-                            No address saved yet. A technician has nowhere to be sent until one is.
-                        </Text>
-                    )}
-
-                    <Link href="/profile/addresses" asChild>
-                        <Button variant="outline">
-                            {primary ? 'Manage addresses' : 'Add an address'}
-                        </Button>
-                    </Link>
-                </Card>
+                </View>
             </ScrollView>
         </SafeAreaView>
-    );
-}
-
-function Standing({ label, children }: { label: string; children: ReactNode }) {
-    return (
-        <View className="flex-row items-center justify-between gap-3">
-            <Text className="text-muted-foreground text-sm">{label}</Text>
-            {children}
-        </View>
     );
 }
