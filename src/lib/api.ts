@@ -64,6 +64,8 @@ type RequestOptions = {
     method?: RequestMethod;
     body?: unknown;
     token?: string | null;
+    /** Bytes acknowledged by the socket, for an upload with a progress bar. */
+    onProgress?: (sent: number, total: number) => void;
 };
 
 type Payload = { message?: string; errors?: ValidationErrors } | null;
@@ -85,21 +87,29 @@ type Answer = { status: number; payload: Payload };
  * `convertRequestBody`, which turns it into the native part list the
  * networking layer wants, and that is what fetch itself used to do.
  */
-function sendMultipart(
+function sendBytes(
     url: string,
     method: RequestMethod,
     headers: Record<string, string>,
-    body: FormData,
+    body: FormData | Blob,
+    onProgress?: (sent: number, total: number) => void,
 ): Promise<Answer> {
     return new Promise((resolve, reject) => {
         const request = new XMLHttpRequest();
 
         request.open(method, url);
 
-        // Never set Content-Type here: only the native layer knows the
-        // boundary it is about to generate.
+        // Never set Content-Type for a FormData: only the native layer knows
+        // the boundary it is about to generate.
         for (const [name, value] of Object.entries(headers)) {
             request.setRequestHeader(name, value);
+        }
+
+        if (onProgress) {
+            // The only real measure of an upload there is. fetch cannot report
+            // this at all, which is half of why this function exists.
+            request.upload.onprogress = (event) =>
+                onProgress(event.loaded, event.total || (body instanceof Blob ? body.size : 0));
         }
 
         request.onload = () =>
@@ -141,19 +151,23 @@ async function sendJson(
  * nothing type it as void.
  */
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-    const { method = 'GET', body, token } = options;
-    const multipart = body instanceof FormData;
+    const { method = 'GET', body, token, onProgress } = options;
+
+    // A FormData carries files and a Blob carries one part of one; both go
+    // through XHR, and everything else is ordinary JSON.
+    const raw = body instanceof FormData || body instanceof Blob;
 
     const headers: Record<string, string> = {
         Accept: 'application/json',
-        ...(body && !multipart ? { 'Content-Type': 'application/json' } : {}),
+        ...(body && !raw ? { 'Content-Type': 'application/json' } : {}),
+        ...(body instanceof Blob ? { 'Content-Type': 'application/octet-stream' } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
 
     const url = `${API_URL}${PREFIX}${path}`;
 
-    const { status, payload } = multipart
-        ? await sendMultipart(url, method, headers, body)
+    const { status, payload } = raw
+        ? await sendBytes(url, method, headers, body, onProgress)
         : await sendJson(url, method, headers, body);
 
     if (status === 204) {

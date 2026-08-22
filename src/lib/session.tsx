@@ -33,6 +33,7 @@ type RegisterFields = {
 type AuthenticatedOptions = {
     method?: RequestMethod;
     body?: unknown;
+    onProgress?: (sent: number, total: number) => void;
 };
 
 const SessionContext = createContext<SessionValue | null>(null);

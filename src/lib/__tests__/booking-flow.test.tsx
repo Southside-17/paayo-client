@@ -6,6 +6,8 @@ import { View } from 'react-native';
 import Book from '@/app/(app)/book';
 import BookingDetail from '@/app/(app)/booking/[id]';
 import Bookings from '@/app/(app)/(tabs)/bookings';
+import * as ImagePicker from 'expo-image-picker';
+
 import { ApiError } from '@/lib/api';
 import { router } from 'expo-router';
 
@@ -13,6 +15,18 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useSession } from '@/lib/session';
 
 jest.mock('@/lib/session', () => ({ useSession: jest.fn() }));
+jest.mock('expo-image-picker', () => ({ launchImageLibraryAsync: jest.fn() }));
+jest.mock('@/lib/picture', () => ({
+    preparePicture: jest.fn(async (asset: { uri: string }) => ({
+        uri: asset.uri,
+        name: 'photo.jpg',
+        type: 'image/jpeg',
+    })),
+}));
+jest.mock('@/lib/upload', () => ({
+    uploadAttachment: jest.fn(async () => ({ id: 'att-1' })),
+    discardAttachment: jest.fn(async () => undefined),
+}));
 jest.mock('expo-router', () => ({
     Link: MockLink,
     useFocusEffect: MockUseFocusEffect,
@@ -31,6 +45,23 @@ jest.mock('expo-router', () => ({
         canDismiss: () => true,
     },
 }));
+
+/**
+ * Attach a photo, which every booking needs before it can be placed.
+ */
+async function attachPhoto() {
+    (ImagePicker.launchImageLibraryAsync as jest.Mock).mockResolvedValue({
+        canceled: false,
+        assets: [{ uri: 'file:///aircon.jpg', mimeType: 'image/jpeg', fileName: 'aircon.jpg' }],
+    });
+
+    fireEvent.press(screen.getByLabelText('Add a photo or video'));
+
+    // The thumbnail appears as soon as the file is chosen; the button stops
+    // saying "Sending" once the bytes have landed and the id is known.
+    await waitFor(() => expect(screen.getByLabelText('Remove')).toBeOnTheScreen());
+    await waitFor(() => expect(screen.queryByText('Sending photos…')).toBeNull());
+}
 
 /** Press the confirming button inside the dialog. */
 function confirmThrough(label: string) {
@@ -102,6 +133,7 @@ it('posts the listing, the address and a chosen time', async () => {
     render(<Book />);
 
     await waitFor(() => expect(screen.getByText('Home')).toBeOnTheScreen());
+    await attachPhoto();
 
     fireEvent.changeText(screen.getByPlaceholderText(/drips/), 'The unit drips.');
     fireEvent.press(screen.getByText('Place booking'));
@@ -115,6 +147,7 @@ it('posts the listing, the address and a chosen time', async () => {
     expect(body.listing_id).toBe('l1');
     expect(body.address_id).toBe('a1');
     expect(body.description).toBe('The unit drips.');
+    expect(body.attachments).toEqual(['att-1']);
     expect(new Date(body.scheduled_at).getTime()).toBeGreaterThan(Date.now());
 });
 
@@ -138,6 +171,7 @@ it('shows a provider who does not work there, rather than going quiet', async ()
     render(<Book />);
 
     await waitFor(() => expect(screen.getByText('Home')).toBeOnTheScreen());
+    await attachPhoto();
 
     fireEvent.press(screen.getByText('Place booking'));
     confirmThrough('Place booking');
@@ -179,6 +213,7 @@ it('asks before placing, and posts nothing until the answer is yes', async () =>
     render(<Book />);
 
     await waitFor(() => expect(screen.getByText('Home')).toBeOnTheScreen());
+    await attachPhoto();
 
     fireEvent.press(screen.getByText('Place booking'));
 
@@ -198,6 +233,7 @@ it('clears the provider list behind it once a booking is placed', async () => {
     render(<Book />);
 
     await waitFor(() => expect(screen.getByText('Home')).toBeOnTheScreen());
+    await attachPhoto();
 
     fireEvent.press(screen.getByText('Place booking'));
     confirmThrough('Place booking');

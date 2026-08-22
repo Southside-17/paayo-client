@@ -5,6 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BackButton } from '@/components/back-button';
 import { FormMessage } from '@/components/form-message';
+import { MediaPicker, readyIds, stillSending, type MediaItem } from '@/components/media-picker';
+import { PinMap } from '@/components/pin-map';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -51,10 +53,13 @@ function label(hour: number): string {
  * Ask for a provider's work at a time and a place.
  */
 export default function Book() {
-    const { listing, service, provider } = useLocalSearchParams<{
+    const { listing, service, category, provider, covered } = useLocalSearchParams<{
         listing: string;
         service?: string;
+        category?: string;
         provider?: string;
+        /** '1' when coverage chose them, absent when the client did. */
+        covered?: string;
     }>();
     const session = useSession();
     const { busy, message, errorFor, submit } = useSubmit();
@@ -63,6 +68,7 @@ export default function Book() {
     const [day, setDay] = useState(() => days()[1]);
     const [hour, setHour] = useState(HOURS[1]);
     const [description, setDescription] = useState('');
+    const [media, setMedia] = useState<MediaItem[]>([]);
     const [asking, setAsking] = useState(false);
 
     const authenticatedRequest =
@@ -85,6 +91,12 @@ export default function Book() {
         return null;
     }
 
+    const chosen = addresses?.find((address) => address.id === addressId) ?? null;
+    const pin =
+        chosen && chosen.latitude !== null && chosen.longitude !== null
+            ? { latitude: chosen.latitude, longitude: chosen.longitude }
+            : null;
+
     const scheduledAt = () => {
         const scheduled = new Date(day);
         scheduled.setHours(hour, 0, 0, 0);
@@ -101,6 +113,7 @@ export default function Book() {
                     address_id: addressId,
                     scheduled_at: scheduledAt().toISOString(),
                     description,
+                    attachments: readyIds(media),
                 },
             });
 
@@ -134,13 +147,25 @@ export default function Book() {
                     contentContainerClassName="gap-5 p-6"
                     keyboardShouldPersistTaps="handled"
                 >
-                    {/* Back names the list this returns to; the eyebrow names
-                        who is being booked. Between them the screen says what
-                        was chosen to get here. */}
-                    <BackButton label={service ?? 'Back'} />
-                    <ScreenHeader eyebrow={provider} title="Book" />
+                    {/* Back names the trade this came from; the eyebrow names
+                        who is coming. Between them the screen says what was
+                        chosen to get here. */}
+                    <BackButton label={category || service || 'Back'} />
+                    <ScreenHeader eyebrow={service} title="Book" />
 
                     <FormMessage message={message ?? errorFor('listing_id') ?? null} />
+
+                    {provider ? (
+                        <Card className="gap-1">
+                            <Label>Who is coming</Label>
+                            <Text className="text-lg font-semibold">{provider}</Text>
+                            <Text className="text-muted-foreground text-sm">
+                                {covered === '1'
+                                    ? 'They cover your area for this service.'
+                                    : 'They work elsewhere in your area and may add a travel charge when they accept.'}
+                            </Text>
+                        </Card>
+                    ) : null}
 
                     <Card className="gap-3">
                         <Label>Where</Label>
@@ -173,6 +198,22 @@ export default function Book() {
                                 Add an address before booking.
                             </Text>
                         ) : null}
+
+                        {chosen ? (
+                            <>
+                                <Text className="text-muted-foreground text-sm">
+                                    {chosen.line}
+                                </Text>
+                                {pin ? (
+                                    <PinMap pin={pin} focus={pin} className="h-40" />
+                                ) : (
+                                    <Text className="text-warning text-sm">
+                                        Drop a pin on this address before booking from it.
+                                    </Text>
+                                )}
+                            </>
+                        ) : null}
+
                         <FieldError message={errorFor('address_id')} />
                     </Card>
 
@@ -250,10 +291,23 @@ export default function Book() {
                             invalid={Boolean(errorFor('description'))}
                         />
                         <FieldError message={errorFor('description')} />
+
+                        <MediaPicker
+                            send={session.authenticatedRequest}
+                            items={media}
+                            onChange={setMedia}
+                            disabled={busy}
+                        />
+                        <FieldError message={errorFor('attachments')} />
                     </Card>
 
-                    <Button variant="brand" onPress={() => setAsking(true)} busy={busy}>
-                        Place booking
+                    <Button
+                        variant="brand"
+                        onPress={() => setAsking(true)}
+                        busy={busy}
+                        disabled={readyIds(media).length === 0 || stillSending(media)}
+                    >
+                        {stillSending(media) ? 'Sending photos…' : 'Place booking'}
                     </Button>
 
                     <ConfirmDialog
