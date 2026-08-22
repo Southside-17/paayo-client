@@ -25,7 +25,7 @@ export type Place = {
 export function WhoCard({ provider, note }: { provider: string; note?: string }) {
     return (
         <Card className="gap-1">
-            <Label>Who is coming</Label>
+            <Label>Who is coming?</Label>
             <Text className="text-lg font-semibold">{provider}</Text>
             {note ? <Text className="text-muted-foreground text-sm">{note}</Text> : null}
         </Card>
@@ -47,7 +47,7 @@ export function WhereCard({ place, map = true }: { place: Place; map?: boolean }
 
     return (
         <Card className="gap-2">
-            <Label>Where</Label>
+            <Label>Where is the work?</Label>
             <Text className="text-lg font-semibold">{place.label ?? 'Your address'}</Text>
 
             {place.line ? (
@@ -105,7 +105,7 @@ export function WhenCard({ scheduled }: { scheduled: string }) {
 
     return (
         <Card className="gap-2">
-            <Label>When</Label>
+            <Label>When are they coming?</Label>
             <Text className="text-lg font-semibold">
                 {visit.toLocaleDateString('en-PH', {
                     weekday: 'long',

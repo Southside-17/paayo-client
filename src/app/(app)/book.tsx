@@ -129,7 +129,7 @@ export default function Book() {
         if (readyIds(media).length === 0) {
             found.attachments = stillSending(media)
                 ? 'Wait for the upload to finish.'
-                : 'Add a photo or a video of the work.';
+                : 'Add a photo or a video of the issue.';
         }
 
         if (description.trim() === '') {
@@ -194,7 +194,7 @@ export default function Book() {
 
                     {ready && !address ? (
                         <Card className="gap-2">
-                            <Label>Where</Label>
+                            <Label>Where is the work?</Label>
                             <Text className="text-warning text-sm">
                                 No address on this account, so there is nowhere to send anyone.
                             </Text>
@@ -204,7 +204,7 @@ export default function Book() {
                     <FieldError message={errorFor('address_id')} />
 
                     <Card className="gap-3">
-                        <Label>When</Label>
+                        <Label>When are they coming?</Label>
                         <View className="flex-row flex-wrap gap-2">
                             {days().map((option) => {
                                 const chosen = option.toDateString() === day.toDateString();
@@ -266,7 +266,7 @@ export default function Book() {
                     </Card>
 
                     <Card className="gap-2">
-                        <Label>What</Label>
+                        <Label>What does it look like?</Label>
                         <MediaPicker
                             send={session.authenticatedRequest}
                             items={media}
@@ -278,14 +278,13 @@ export default function Book() {
                             invalid={Boolean(wrong('attachments'))}
                         />
                         <Text className="text-muted-foreground text-sm">
-                            A photo or a short video of the work, so the provider brings the
-                            right parts.
+                            A photo or a short video of the issue.
                         </Text>
                         <FieldError message={wrong('attachments')} />
                     </Card>
 
                     <Card className="gap-2">
-                        <Label>Why</Label>
+                        <Label>Why are they coming?</Label>
                         <Input
                             value={description}
                             onChangeText={(value) => {

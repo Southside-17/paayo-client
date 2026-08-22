@@ -206,7 +206,7 @@ it('says a photo is missing rather than refusing quietly', async () => {
 
     fireEvent.press(screen.getByText('Place booking'));
 
-    expect(screen.getByText('Add a photo or a video of the work.')).toBeOnTheScreen();
+    expect(screen.getByText('Add a photo or a video of the issue.')).toBeOnTheScreen();
     expect(screen.queryByText('Place this booking?')).toBeNull();
     expect(request).not.toHaveBeenCalledWith('/bookings', expect.anything());
 });
@@ -257,7 +257,7 @@ it('shows who and where without offering a way to change them', async () => {
 
     // The second address exists on the account and must not be offered here.
     expect(screen.queryByText('Work')).toBeNull();
-    expect(screen.getByText('Who is coming')).toBeOnTheScreen();
+    expect(screen.getByText('Who is coming?')).toBeOnTheScreen();
     expect(screen.getByText('FixRight Manila')).toBeOnTheScreen();
 });
 

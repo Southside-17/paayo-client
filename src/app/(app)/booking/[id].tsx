@@ -137,7 +137,7 @@ export default function BookingDetail() {
                         <WhenCard scheduled={booking.scheduled_at} />
 
                         <Card className="gap-2">
-                            <Label>What</Label>
+                            <Label>What does it look like?</Label>
 
                             {booking.attachments?.length ? (
                                 <View className="flex-row flex-wrap gap-2">
@@ -171,7 +171,7 @@ export default function BookingDetail() {
                         </Card>
 
                         <Card className="gap-2">
-                            <Label>Why</Label>
+                            <Label>Why are they coming?</Label>
                             <Text className="text-sm">{booking.description}</Text>
                         </Card>
 
