@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Card } from '@/components/ui/card';
 import { ScreenHeader } from '@/components/ui/screen-header';
+import { Skeleton } from '@/components/ui/skeleton';
 import { StatusPill } from '@/components/ui/status-pill';
 import { Text } from '@/components/ui/text';
 import { useSession } from '@/lib/session';
@@ -47,6 +48,22 @@ export default function Bookings() {
         <SafeAreaView className="bg-background flex-1" edges={['top']}>
             <ScrollView contentContainerClassName="gap-4 p-6">
                 <ScreenHeader title="Bookings" />
+
+                {bookings === null
+                    ? [0, 1].map((at) => (
+                          <View
+                              key={at}
+                              className="border-border bg-card gap-2 rounded-xl border p-4"
+                          >
+                              <View className="flex-row items-center justify-between gap-3">
+                                  <Skeleton className="h-5 w-32" />
+                                  <Skeleton className="h-6 w-28 rounded-full" />
+                              </View>
+                              <Skeleton className="h-4 w-40" />
+                              <Skeleton className="h-3 w-36" />
+                          </View>
+                      ))
+                    : null}
 
                 {bookings?.length === 0 ? (
                     <Card className="gap-2">

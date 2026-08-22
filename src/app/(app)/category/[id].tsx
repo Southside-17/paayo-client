@@ -1,11 +1,12 @@
 import { Link, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BackButton } from '@/components/back-button';
 import { Card } from '@/components/ui/card';
 import { ScreenHeader } from '@/components/ui/screen-header';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Text } from '@/components/ui/text';
 import { useDefaultAddress } from '@/lib/use-default-address';
 import { useSession } from '@/lib/session';
@@ -15,7 +16,7 @@ import type { Service } from '@/lib/types';
  * The work offered under one trade, near the address that will be worked at.
  */
 export default function CategoryServices() {
-    const { id } = useLocalSearchParams<{ id: string }>();
+    const { id, name } = useLocalSearchParams<{ id: string; name?: string }>();
     const session = useSession();
     const { address, ready } = useDefaultAddress();
     const addressId = address?.id;
@@ -44,13 +45,27 @@ export default function CategoryServices() {
         }, [authenticatedRequest, addressId, ready, id]),
     );
 
-    const name = services?.[0]?.category?.name ?? 'Services';
-
     return (
         <SafeAreaView className="bg-background flex-1">
             <ScrollView contentContainerClassName="gap-5 p-6">
                 <BackButton label="Home" />
-                <ScreenHeader title={name} />
+                {/* The name is carried from the tile that was tapped, so the
+                    title is right on the first frame rather than settling from
+                    a placeholder once the services arrive. */}
+                <ScreenHeader title={name ?? services?.[0]?.category?.name ?? 'Services'} />
+
+                {services === null
+                    ? [0, 1, 2].map((at) => (
+                          <View
+                              key={at}
+                              className="border-border bg-card gap-2 rounded-xl border p-4"
+                          >
+                              <Skeleton className="h-5 w-40" />
+                              <Skeleton className="h-4 w-full" />
+                              <Skeleton className="h-3 w-20" />
+                          </View>
+                      ))
+                    : null}
 
                 {services?.length === 0 ? (
                     <Card className="gap-2">

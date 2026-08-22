@@ -8,6 +8,7 @@ import { BackButton } from '@/components/back-button';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ScreenHeader } from '@/components/ui/screen-header';
+import { Skeleton } from '@/components/ui/skeleton';
 import { StatusPill } from '@/components/ui/status-pill';
 import { Text } from '@/components/ui/text';
 import { when } from '@/app/(app)/(tabs)/bookings';
@@ -64,6 +65,21 @@ export default function BookingDetail() {
                 />
 
                 <FormMessage message={message ?? errorFor('status') ?? null} />
+
+                {booking === null ? (
+                    <>
+                        <Skeleton className="h-7 w-40 rounded-full" />
+                        <Card className="gap-3">
+                            <Skeleton className="h-4 w-full" />
+                            <Skeleton className="h-4 w-full" />
+                            <Skeleton className="h-4 w-3/4" />
+                        </Card>
+                        <Card className="gap-2">
+                            <Skeleton className="h-5 w-36" />
+                            <Skeleton className="h-4 w-full" />
+                        </Card>
+                    </>
+                ) : null}
 
                 {booking ? (
                     <>

@@ -9,6 +9,7 @@ import { CategoryIcon } from '@/components/category-icon';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { ScreenHeader } from '@/components/ui/screen-header';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Text } from '@/components/ui/text';
 import { useSession } from '@/lib/session';
 import type { Address, Category } from '@/lib/types';
@@ -83,7 +84,7 @@ export default function Home() {
                                 first and correcting it a moment later reads as a
                                 glitch, and it is one. */}
                             {addresses === null ? (
-                                <Text className="font-medium"> </Text>
+                                <Skeleton className="h-5 w-28" />
                             ) : primary ? (
                                 <View className="flex-row items-center gap-2">
                                     <Text className="font-medium">{primary.label}</Text>
@@ -107,10 +108,10 @@ export default function Home() {
                             {[0, 1, 2].map((at) => (
                                 <View
                                     key={at}
-                                    className="border-border bg-card grow basis-[30%] items-center gap-2 rounded-xl border px-2 py-4 opacity-40"
+                                    className="border-border bg-card grow basis-[30%] items-center gap-2 rounded-xl border px-2 py-4"
                                 >
-                                    <View className="bg-muted size-11 rounded-xl" />
-                                    <View className="bg-muted h-3 w-16 rounded-full" />
+                                    <Skeleton className="size-11 rounded-xl" />
+                                    <Skeleton className="h-3 w-16 rounded-full" />
                                 </View>
                             ))}
                         </View>
@@ -128,7 +129,14 @@ export default function Home() {
 
                     <View className="flex-row flex-wrap gap-3">
                         {categories?.map((category) => (
-                            <Link key={category.id} href={`/category/${category.id}`} asChild>
+                            <Link
+                                key={category.id}
+                                href={{
+                                    pathname: '/category/[id]',
+                                    params: { id: category.id, name: category.name },
+                                }}
+                                asChild
+                            >
                                 <Pressable
                                     accessibilityRole="button"
                                     className="border-border bg-card grow basis-[30%] items-center gap-2 rounded-xl border px-2 py-4"

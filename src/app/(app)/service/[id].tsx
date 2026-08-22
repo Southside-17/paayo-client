@@ -8,6 +8,7 @@ import { BackButton } from '@/components/back-button';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ScreenHeader } from '@/components/ui/screen-header';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Text } from '@/components/ui/text';
 import { peso, priceRange } from '@/lib/money';
 import { useDefaultAddress } from '@/lib/use-default-address';
@@ -57,6 +58,16 @@ export default function ServiceOffers() {
                 {service?.description ? (
                     <Text className="text-muted-foreground text-sm">{service.description}</Text>
                 ) : null}
+
+                {service === null
+                    ? [0, 1].map((at) => (
+                          <Card key={at} className="gap-3">
+                              <Skeleton className="h-5 w-44" />
+                              <Skeleton className="h-6 w-32" />
+                              <Skeleton className="h-12 w-full rounded-lg" />
+                          </Card>
+                      ))
+                    : null}
 
                 {service && listings.length === 0 ? (
                     <Card className="gap-2">
