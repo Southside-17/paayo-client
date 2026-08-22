@@ -4,6 +4,7 @@ import { View } from 'react-native';
 import { FormMessage } from '@/components/form-message';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { FieldError } from '@/components/ui/field-error';
 import { Text } from '@/components/ui/text';
 import { DEVICE_NAME } from '@/lib/api';
 import { passkeyAttestation, passkeysAreSupported } from '@/lib/passkey';
@@ -20,7 +21,7 @@ import { useSubmit } from '@/lib/use-submit';
  */
 export function PasskeyCard() {
     const session = useSession();
-    const { busy, message, submit } = useSubmit();
+    const { busy, message, errorFor, submit } = useSubmit();
     const [passkeys, setPasskeys] = useState<Passkey[] | null>(null);
 
     const authenticatedRequest =
@@ -78,6 +79,7 @@ export function PasskeyCard() {
             </Text>
 
             <FormMessage message={message} />
+            <FieldError message={errorFor('credential')} />
 
             {passkeys?.length === 0 ? (
                 <Text className="text-muted-foreground text-sm">No passkeys on this account.</Text>

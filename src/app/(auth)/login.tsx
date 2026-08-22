@@ -80,6 +80,10 @@ export default function Login() {
                     </Button>
                 ) : null}
 
+                {/* The server keys a refused passkey on `credential`, which no
+                    input on this screen owns, so it is rendered here or nowhere. */}
+                <FieldError message={errorFor('credential')} />
+
                 {google.ready ? (
                     <>
                         <Button

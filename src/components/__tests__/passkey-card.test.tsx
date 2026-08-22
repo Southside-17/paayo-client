@@ -96,3 +96,29 @@ it('keeps quiet when the sheet is dismissed', async () => {
 
     expect(request).not.toHaveBeenCalledWith('/auth/passkeys', expect.anything());
 });
+
+it('shows a refusal the server keys on the credential', async () => {
+    const { ApiError } = jest.requireActual('@/lib/api');
+
+    signedIn(
+        jest.fn(async (path: string) => {
+            if (path === '/auth/passkeys') {
+                return { data: [] };
+            }
+
+            throw new ApiError(422, 'The given data was invalid.', {
+                credential: ['That passkey is not one this account holds.'],
+            });
+        }),
+    );
+
+    render(<PasskeyCard />);
+
+    fireEvent.press(await screen.findByText('Add a passkey'));
+
+    // No input on this screen owns `credential`, so an unrendered field error
+    // is a refusal that reaches the person as nothing at all.
+    expect(
+        await screen.findByText('That passkey is not one this account holds.'),
+    ).toBeOnTheScreen();
+});
