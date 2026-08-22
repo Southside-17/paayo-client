@@ -127,3 +127,10 @@ Do not set `Content-Type` on the multipart branch -- only the native layer knows
 the boundary it is about to generate. And re-sending is safe: RN's `getParts()`
 is idempotent, so the 401-refresh retry can hand back the same FormData, which a
 consumed web `FormData` could not.
+
+## Files go up in parts, as raw bodies, never as a Blob in a FormData
+React Native's `FormData.getParts()` has no Blob branch: it spreads the value, and a `blob.slice()` has no own enumerable properties, so the part arrives as garbage. `xhr.send(blob)` **is** supported — `convertRequestBody` returns `{blob: body.data}` — so a chunk goes as the raw request body with the offset on the query string.
+
+`src/lib/upload.ts` owns the loop: read the file as a Blob through XHR (`responseType: 'blob'`, because Expo's fetch will not read a `file://` URI), open the upload, send 4MB slices in order, then seal it. Slicing a Blob does not copy anything.
+
+`xhr.upload.onprogress` is the only real upload progress there is — `fetch` cannot report it at all, which is the other half of why `sendBytes` exists alongside `sendJson`. `onProgress` is reported as a fraction of the **whole file**, parts already landed plus movement inside the one in flight, never of the part alone.

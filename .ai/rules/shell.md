@@ -144,3 +144,18 @@ button reading Cancel there means both things at once. Destructive actions take
 `destructive`, which is the one place `Button`'s destructive variant is used.
 
 The backdrop dismisses, matching every other dialog on the platform.
+
+## The provider list is a fallback, never a step
+Where a provider covers the address, `service/[id].tsx` resolves and `router.replace`s straight to Book — the client never sees a list, and Book shows who is coming as a card with no picker, no "choose another", no override. The list is only drawn when nobody covers that zone, and it opens with a banner naming the service and the market, because a list appearing where an answer was expected reads as a downgrade unless it explains itself.
+
+`replace` rather than `push`, so back from Book returns to the category rather than to a screen the client was never meant to stop on.
+
+## A screen that uploads reports it, and uploads as it goes
+Media is sent when it is picked, not when the form is submitted: Book stays instant, and a failure appears next to the thumbnail that caused it instead of after the person thought they were finished. Each item carries its own progress bar and its own retry.
+
+`MediaPicker`'s `onChange` takes an **updater**, not a list. Uploads run concurrently and report progress as they go, so a callback that closed over the list it was handed wipes whatever landed while it was in flight — this was a real bug, caught by a test, not a hypothetical.
+
+## expo-maps needs a mock with an imperative handle
+`pin-map.tsx` aims the camera through a ref, so a bare `View` stand-in throws on a method it does not have. The mock in `jest.setup.js` renders `null` and imports nothing from `react-native`: NativeWind's babel plugin rewrites any `View` in a `jest.mock` factory into an interop call, and a mock factory may not reference an out-of-scope variable.
+
+A read-only map is `pointerEvents="none"`, not `uiSettings`. `AppleMapsUISettings` has no gesture toggles at all, so the Google-shaped object that locks the map on Android does nothing on iOS.
