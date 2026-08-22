@@ -3,7 +3,9 @@ paths:
   - 'src/lib/logo.ts'
   - 'src/components/app-logo.tsx'
   - 'scripts/sync-logo.mjs'
-  - 'assets/images/paayo-logo.svg'
+  - 'scripts/render-icons.mjs'
+  - 'scripts/lib/svg-mark.mjs'
+  - 'assets/images/**'
 ---
 
 # The Paayo mark
@@ -47,3 +49,38 @@ tokens first, and this file follows.
 Every other icon here is square and takes `size`. The pin is roughly 0.7 as
 wide as it is tall, so holding one side to a square squashes it. The width is
 derived from `LOGO_ASPECT`; pass only the height.
+
+## The icons are generated from the same artwork
+`assets/images/*.png` -- the app icon, both adaptive-icon layers, the themed
+monochrome layer, the splash mark and the web favicon -- come out of
+`scripts/render-icons.mjs`. Do not retouch them; re-render:
+
+```sh
+node scripts/render-icons.mjs
+npx expo prebuild --clean && npm run android    # icons are native resources
+```
+
+**A Metro reload will never show a new icon.** They are compiled into the
+native projects, which are gitignored and regenerated, so an icon change is a
+prebuild and a reinstall. That is the usual reason one looks unchanged.
+
+Nothing was installed to draw them. The script fills the outlines itself --
+flatten each cubic, scanline four times per output row, exact coverage across
+x -- which is a page of code and no dependency, against a rasteriser pulled in
+for six files. `scripts/lib/svg-mark.mjs` holds the parsing and curve maths
+that this and `sync-logo.mjs` both need.
+
+Three sizings, and they are not arbitrary:
+
+- **0.76 of the height** for `icon.png`, which iOS masks to a rounded square.
+  It is also the one file that must stay **fully opaque** -- iOS rejects an
+  icon carrying alpha -- so it is the only one given a background.
+- **0.48** for the two Android adaptive layers and the monochrome one. Android
+  crops them to a circle 66/108 of the canvas across, and a mark this tall only
+  fits if its *diagonal* clears that circle, which is a much smaller fraction
+  than the square icon can take.
+- **0.88** for the splash, which is masked by nothing.
+
+The monochrome layer is a flat silhouette Android tints itself, so it is the
+pin with the counter punched back out and the dot returned -- not the mark with
+its colours removed, which would fill in solid and lose the P.
