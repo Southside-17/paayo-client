@@ -8,18 +8,10 @@ import { FieldError } from '@/components/ui/field-error';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Text } from '@/components/ui/text';
+import { on } from '@/lib/dates';
 import { useSession } from '@/lib/session';
 import type { MessageResponse, SuspensionNotice } from '@/lib/types';
 import { useSubmit } from '@/lib/use-submit';
-
-/** Philippine ordering, the same call every other date in the app goes through. */
-function on(date: string): string {
-    return new Date(date).toLocaleDateString('en-PH', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-    });
-}
 
 /**
  * The four facts about a hold, in the order they are asked about.

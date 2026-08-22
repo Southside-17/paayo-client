@@ -4,6 +4,7 @@ import { useColorScheme } from 'nativewind';
 import { ActivityIndicator, LogBox, View } from 'react-native';
 
 import { SessionProvider, useSession } from '@/lib/session';
+import { WorkspaceProvider } from '@/lib/workspace';
 import palette from '@/theme/palette';
 
 import '../global.css';
@@ -79,7 +80,9 @@ export default function RootLayout() {
     return (
         <ThemeProvider value={navigationTheme(scheme)}>
             <SessionProvider>
-                <RootNavigator />
+                <WorkspaceProvider>
+                    <RootNavigator />
+                </WorkspaceProvider>
             </SessionProvider>
 
             <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />

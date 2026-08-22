@@ -24,7 +24,37 @@ export type User = {
     administrator: boolean;
     /** The sanction in force, or null. Present on every read of the account. */
     suspension: SuspensionNotice | null;
+    /** Every business this account may act as. Empty for an ordinary client. */
+    staffs: Staff[];
     created_at: string;
+};
+
+/** A service company, as the people on its staff see it. */
+export type Provider = {
+    id: string;
+    name: string;
+    slug: string;
+    market: { id: string; name: string } | null;
+    registration_verified: boolean;
+    /** The sanction on the business, which is never the one on a person. */
+    suspension: SuspensionNotice | null;
+};
+
+export type StaffRole = 'owner' | 'manager' | 'technician';
+
+/**
+ * One person's place on one business's staff.
+ *
+ * `permissions` is the role's list, sent rather than derived: what a role
+ * carries is the server's to decide, and a copy of that table here would be one
+ * more thing to keep in step.
+ */
+export type Staff = {
+    id: string;
+    role: StaffRole;
+    role_label: string;
+    permissions: string[];
+    provider: Provider;
 };
 
 /**
@@ -222,6 +252,8 @@ export type Booking = {
     surcharge: number | null;
     service: { id: string; name: string; pricing_unit: PricingUnit };
     provider: { id: string; name: string };
+    /** Who asked. Sent only to the business the work was booked against. */
+    client?: { id: string; nickname: string; phone: string | null };
     attachments?: Attachment[];
     created_at: string;
 };

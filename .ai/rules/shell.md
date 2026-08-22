@@ -8,6 +8,10 @@ paths:
   - 'src/components/settings-list.tsx'
   - 'src/components/social-card.tsx'
   - 'src/lib/providers.ts'
+  - src/lib/workspace.tsx
+  - src/components/business-bar.tsx
+  - src/components/business-switch.tsx
+  - src/components/hold-notice.tsx
 ---
 
 # The signed-in shell
@@ -177,3 +181,49 @@ Media is sent when it is picked, not when the form is submitted: Book stays inst
 `pin-map.tsx` aims the camera through a ref, so a bare `View` stand-in throws on a method it does not have. The mock in `jest.setup.js` renders `null` and imports nothing from `react-native`: NativeWind's babel plugin rewrites any `View` in a `jest.mock` factory into an interop call, and a mock factory may not reference an out-of-scope variable.
 
 A read-only map is `pointerEvents="none"`, not `uiSettings`. `AppleMapsUISettings` has no gesture toggles at all, so the Google-shaped object that locks the map on Android does nothing on iOS.
+
+## Which side you are on is an id, held in memory, looked up every render
+`src/lib/workspace.tsx` holds the **staff id**, never the staff record, and
+reads the record back out of `session.user.staffs` on every render. Two things
+fall out of that and both are wanted: a suspension lifted mid-session is read
+fresh rather than off a stale copy, and being taken off a staff empties the
+workspace on its own, which `(provider)/_layout.tsx` turns into a redirect home
+without anything having to notice.
+
+It is **not persisted**, so the app opens on the personal side every time. That
+is a consequence, not a preference: the token lives in `expo-secure-store`,
+which is for secrets, and there is no other storage here without adding a
+dependency. Persisting it would also mean validating the stored id against the
+account on boot. Revisit when a provider is a daily driver.
+
+`session.user.staffs` is read as possibly absent, the same way `user.suspension`
+is read truthily: the app ships on its own schedule, and an older server that
+omits the field must leave someone on the personal side rather than take the
+account screen down.
+
+## Switching is dismissAll then replace, and the stack is anchored to `(tabs)`
+`enter()` and `leave()` own the navigation, so no caller can half-switch.
+`router.dismissAll()` drops whatever was pushed and `router.replace()` swaps the
+root, which leaves exactly the mode that was chosen and nothing underneath it --
+without it, switching from a pushed screen leaves the other mode sitting under
+back. `(app)/_layout.tsx` carries `unstable_settings = { initialRouteName:
+'(tabs)' }` for the same reason the auth stack does.
+
+## A held business stays on the list, and stays tappable
+The switcher draws every business whatever its standing, with a `suspended`
+pill, and switching into one works. Hiding it is the one way of never being told
+about it; the notice is on the other side of the tap, at the top of Jobs and of
+Business, drawn by `hold-notice.tsx`. The heading follows `punitive` -- the same
+split `held.tsx` makes for a person, for the same reason.
+
+## The business side is two tabs and a bar, not a third gate
+`(provider)/` is a sibling group to `(tabs)` inside the same Stack, so it sits
+under the three gates in `(app)/_layout.tsx` rather than adding a fourth.
+`BusinessBar` opens every provider screen -- which side of the app you are on is
+never something to remember -- and is the way back to the switcher. Job detail
+lives at `(app)/job/[id].tsx`, a sibling of both groups, the same shape
+`profile/*` and `booking/*` already take.
+
+Accepting and declining is not built. Job detail says so in a sentence rather
+than drawing a disabled button, because a greyed-out control reads as something
+that is temporarily unavailable rather than as something that does not exist.

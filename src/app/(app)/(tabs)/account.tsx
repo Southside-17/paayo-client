@@ -7,6 +7,7 @@ import { ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/avatar';
+import { BusinessSwitch } from '@/components/business-switch';
 import { FormMessage } from '@/components/form-message';
 import { SettingsList, type SettingsRow } from '@/components/settings-list';
 import { Button } from '@/components/ui/button';
@@ -99,6 +100,8 @@ export default function Account() {
                         </StatusPill>
                     </View>
                 </View>
+
+                <BusinessSwitch businesses={user.staffs ?? []} />
 
                 <View className="flex-row gap-2">
                     <Button variant="outline" onPress={choosePicture} busy={busy}>

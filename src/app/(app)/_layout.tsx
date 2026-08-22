@@ -2,6 +2,9 @@ import { Redirect, Stack, usePathname } from 'expo-router';
 
 import { useSession } from '@/lib/session';
 
+/** The personal side is the root of this stack, so switching always lands home. */
+export const unstable_settings = { initialRouteName: '(tabs)' };
+
 /**
  * Everything past sign in, holding the three gates the server holds.
  *
