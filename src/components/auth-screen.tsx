@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { ScrollView, View } from 'react-native';
 
+import { AppLogo } from '@/components/app-logo';
 import { KeyboardAvoiding } from '@/components/ui/keyboard-avoiding';
 import { Text } from '@/components/ui/text';
 
@@ -18,9 +19,7 @@ export function AuthScreen({ title, subtitle, children }: Props) {
             >
                 <View className="mx-auto w-full max-w-sm gap-6">
                     <View className="items-center gap-3">
-                        <View className="bg-brand-subtle size-14 items-center justify-center rounded-2xl">
-                            <Text className="text-brand text-2xl font-bold">P</Text>
-                        </View>
+                        <AppLogo height={56} />
                         <View className="gap-1">
                             <Text className="text-center text-2xl font-bold">{title}</Text>
                             {subtitle ? (
