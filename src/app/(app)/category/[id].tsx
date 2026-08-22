@@ -1,9 +1,9 @@
-import { Link, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { Link, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button } from '@/components/ui/button';
+import { BackButton } from '@/components/back-button';
 import { Card } from '@/components/ui/card';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { Text } from '@/components/ui/text';
@@ -17,7 +17,7 @@ import type { Service } from '@/lib/types';
 export default function CategoryServices() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const session = useSession();
-    const address = useDefaultAddress();
+    const { address, ready } = useDefaultAddress();
     const addressId = address?.id;
     const [services, setServices] = useState<Service[] | null>(null);
 
@@ -26,7 +26,9 @@ export default function CategoryServices() {
 
     useFocusEffect(
         useCallback(() => {
-            if (!authenticatedRequest) {
+            // Waiting on the address is what keeps the list from being drawn
+            // unfiltered and then shrinking.
+            if (!authenticatedRequest || !ready) {
                 return;
             }
 
@@ -39,7 +41,7 @@ export default function CategoryServices() {
             void authenticatedRequest<{ data: Service[] }>(`/services?${query.toString()}`)
                 .then(({ data }) => setServices(data))
                 .catch(() => setServices([]));
-        }, [authenticatedRequest, addressId, id]),
+        }, [authenticatedRequest, addressId, ready, id]),
     );
 
     const name = services?.[0]?.category?.name ?? 'Services';
@@ -47,12 +49,8 @@ export default function CategoryServices() {
     return (
         <SafeAreaView className="bg-background flex-1">
             <ScrollView contentContainerClassName="gap-5 p-6">
-                <View className="flex-row items-center justify-between">
-                    <ScreenHeader title={name} />
-                    <Button variant="ghost" onPress={() => router.back()}>
-                        Done
-                    </Button>
-                </View>
+                <BackButton label="Home" />
+                <ScreenHeader title={name} />
 
                 {services?.length === 0 ? (
                     <Card className="gap-2">

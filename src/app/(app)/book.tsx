@@ -102,12 +102,11 @@ export default function Book() {
                     contentContainerClassName="gap-5 p-6"
                     keyboardShouldPersistTaps="handled"
                 >
-                    <View className="flex-row items-center justify-between">
-                        <ScreenHeader title="Book" />
+                    <ScreenHeader title="Book">
                         <Button variant="ghost" onPress={() => router.back()}>
                             Cancel
                         </Button>
-                    </View>
+                    </ScreenHeader>
 
                     <FormMessage message={message ?? errorFor('listing_id') ?? null} />
 

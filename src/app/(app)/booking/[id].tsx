@@ -1,9 +1,10 @@
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FormMessage } from '@/components/form-message';
+import { BackButton } from '@/components/back-button';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ScreenHeader } from '@/components/ui/screen-header';
@@ -56,15 +57,11 @@ export default function BookingDetail() {
     return (
         <SafeAreaView className="bg-background flex-1">
             <ScrollView contentContainerClassName="gap-5 p-6">
-                <View className="flex-row items-start justify-between">
-                    <ScreenHeader
-                        eyebrow={booking?.provider.name}
-                        title={booking?.service.name ?? 'Booking'}
-                    />
-                    <Button variant="ghost" onPress={() => router.back()}>
-                        Done
-                    </Button>
-                </View>
+                <BackButton label="Bookings" />
+                <ScreenHeader
+                    eyebrow={booking?.provider.name}
+                    title={booking?.service.name ?? 'Booking'}
+                />
 
                 <FormMessage message={message ?? errorFor('status') ?? null} />
 

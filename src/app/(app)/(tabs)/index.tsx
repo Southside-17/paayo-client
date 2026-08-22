@@ -79,7 +79,12 @@ export default function Home() {
                     <Pressable className="border-border bg-card flex-row items-center gap-2 rounded-xl border px-4 py-3">
                         <View className="flex-1 gap-0.5">
                             <Text className="text-muted-foreground text-xs">Work happens at</Text>
-                            {primary ? (
+                            {/* Nothing until it is known. Saying "Add an address"
+                                first and correcting it a moment later reads as a
+                                glitch, and it is one. */}
+                            {addresses === null ? (
+                                <Text className="font-medium"> </Text>
+                            ) : primary ? (
                                 <View className="flex-row items-center gap-2">
                                     <Text className="font-medium">{primary.label}</Text>
                                     {primary.latitude === null ? (
@@ -98,9 +103,17 @@ export default function Home() {
                     <Text className="font-semibold">What do you need done?</Text>
 
                     {categories === null ? (
-                        <Card>
-                            <Text className="text-muted-foreground text-sm">Loading the catalog…</Text>
-                        </Card>
+                        <View className="flex-row flex-wrap gap-3">
+                            {[0, 1, 2].map((at) => (
+                                <View
+                                    key={at}
+                                    className="border-border bg-card grow basis-[30%] items-center gap-2 rounded-xl border px-2 py-4 opacity-40"
+                                >
+                                    <View className="bg-muted size-11 rounded-xl" />
+                                    <View className="bg-muted h-3 w-16 rounded-full" />
+                                </View>
+                            ))}
+                        </View>
                     ) : null}
 
                     {categories?.length === 0 ? (

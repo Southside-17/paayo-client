@@ -1,9 +1,10 @@
-import { Link, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { Link, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Badge } from '@/components/ui/badge';
+import { BackButton } from '@/components/back-button';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ScreenHeader } from '@/components/ui/screen-header';
@@ -19,7 +20,7 @@ import type { Service } from '@/lib/types';
 export default function ServiceOffers() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const session = useSession();
-    const address = useDefaultAddress();
+    const { address, ready } = useDefaultAddress();
     const addressId = address?.id;
     const [service, setService] = useState<Service | null>(null);
 
@@ -28,7 +29,9 @@ export default function ServiceOffers() {
 
     useFocusEffect(
         useCallback(() => {
-            if (!authenticatedRequest) {
+            // Waiting on the address is what keeps the list from being drawn
+            // unfiltered and then shrinking.
+            if (!authenticatedRequest || !ready) {
                 return;
             }
 
@@ -37,7 +40,7 @@ export default function ServiceOffers() {
             void authenticatedRequest<{ data: Service }>(`/services/${id}${query}`)
                 .then(({ data }) => setService(data))
                 .catch(() => setService(null));
-        }, [authenticatedRequest, addressId, id]),
+        }, [authenticatedRequest, addressId, ready, id]),
     );
 
     const listings = service?.listings ?? [];
@@ -45,15 +48,11 @@ export default function ServiceOffers() {
     return (
         <SafeAreaView className="bg-background flex-1">
             <ScrollView contentContainerClassName="gap-5 p-6">
-                <View className="flex-row items-start justify-between">
-                    <ScreenHeader
-                        eyebrow={service?.category?.name}
-                        title={service?.name ?? 'Service'}
-                    />
-                    <Button variant="ghost" onPress={() => router.back()}>
-                        Done
-                    </Button>
-                </View>
+                <BackButton label={service?.category?.name ?? 'Back'} />
+                <ScreenHeader
+                    eyebrow={service?.category?.name}
+                    title={service?.name ?? 'Service'}
+                />
 
                 {service?.description ? (
                     <Text className="text-muted-foreground text-sm">{service.description}</Text>
@@ -100,9 +99,7 @@ export default function ServiceOffers() {
                             href={{ pathname: '/book', params: { listing: listing.id } }}
                             asChild
                         >
-                            <Pressable>
-                                <Button variant="brand">Book this provider</Button>
-                            </Pressable>
+                            <Button variant="brand">Book this provider</Button>
                         </Link>
                     </Card>
                 ))}
