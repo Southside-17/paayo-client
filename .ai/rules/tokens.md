@@ -35,6 +35,10 @@ The live brand is signal amber -- `--brand: oklch(0.672 0.146 62)` in the
 console, which converts to `212 126 29`. Take colours from the console, and
 from nowhere else.
 
+The same green came back in the logo artwork, and the answer was the same: the
+mark is drawn in the brand token, not in the colour the SVG happens to carry.
+See `.ai/rules/logo.md`.
+
 ## Three outputs, because not everything can read a variable
 `global.css` holds the variables, `colors.js` points Tailwind at them, and
 `palette.js` spells the same colours out as literals. NativeWind resolves the

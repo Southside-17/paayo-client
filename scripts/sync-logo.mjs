@@ -12,7 +12,7 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 
-import { measure, readShapes } from './lib/svg-mark.mjs';
+import { measure, readShapes, roleOf } from './lib/svg-mark.mjs';
 
 const SOURCE = process.argv[2] ?? 'assets/images/paayo-logo.svg';
 const OUTPUT = 'src/lib/logo.ts';
@@ -20,9 +20,12 @@ const OUTPUT = 'src/lib/logo.ts';
 const shapes = readShapes(readFileSync(SOURCE, 'utf8'));
 const { left, top, width, height } = measure(shapes);
 
+const roles = shapes.map(({ fill }) => roleOf(fill));
+const union = [...new Set(roles)].map((role) => `'${role}'`).join(' | ');
+
 const literals = shapes
-    .map(({ d, fill, translate }) =>
-        `    { d: '${d}', fill: '${fill}', transform: 'translate(${translate[0]},${translate[1]})' },`)
+    .map(({ d, translate }, at) =>
+        `    { d: '${d}', role: '${roles[at]}', transform: 'translate(${translate[0]},${translate[1]})' },`)
     .join('\n');
 
 writeFileSync(OUTPUT, `/*
@@ -35,14 +38,18 @@ export const LOGO_VIEW_BOX = '${left} ${top} ${width} ${height}';
 /** How much narrower than tall the mark is, from those same bounds. */
 export const LOGO_ASPECT = ${width} / ${height};
 
+/** The palette tokens the mark is drawn in. */
+export type LogoRole = ${union};
+
 /** One filled path of the mark, painted in the order they are listed. */
-export type LogoShape = { d: string; fill: string; transform: string };
+export type LogoShape = { d: string; role: LogoRole; transform: string };
 
 /**
- * The mark carries its own colours rather than taking them from the palette.
- * It is one fixed thing in both themes: the white counter sits against the
- * green it is punched out of, never against the page, so it needs no dark
- * variant. See .ai/rules/logo.md before reaching for a token here.
+ * The mark takes its colours from the palette rather than from the artwork.
+ * The SVG is green; the brand is amber, and the mark follows the brand. The
+ * counter is \`brand-foreground\` because that is exactly what it is -- the
+ * colour meant to sit on top of the brand -- so it inverts with the theme
+ * without needing a rule of its own. See .ai/rules/logo.md.
  */
 export const LOGO_SHAPES: LogoShape[] = [
 ${literals}

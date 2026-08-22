@@ -16,7 +16,8 @@
 import { deflateSync } from 'node:zlib';
 import { readFileSync, writeFileSync } from 'node:fs';
 
-import { measure, readShapes, toPolygons } from './lib/svg-mark.mjs';
+import palette from '../src/theme/palette.js';
+import { measure, readShapes, roleOf, toPolygons } from './lib/svg-mark.mjs';
 
 const SOURCE = process.argv[2] ?? 'assets/images/paayo-logo.svg';
 const OUT = 'assets/images/';
@@ -182,7 +183,7 @@ function render(size, fraction, background, mono = false) {
 
     if (!mono) {
         for (const shape of shapes) {
-            paint(canvas, cover(shape), hex(shape.fill));
+            paint(canvas, cover(shape), brand(shape));
         }
 
         return canvas;
@@ -197,7 +198,16 @@ function render(size, fraction, background, mono = false) {
     return canvas;
 }
 
-function hex(colour) {
+/**
+ * The colour one shape is drawn in, from the light palette.
+ *
+ * A launcher icon is one file with no theme to follow, and it sits on the
+ * white ground below, so it takes the light values in both. Android's themed
+ * icon is the dark case and it is handled separately, as a silhouette.
+ */
+function brand(shape) {
+    const colour = palette.light[roleOf(shape.fill)];
+
     return [1, 3, 5].map((at) => parseInt(colour.slice(at, at + 2), 16));
 }
 

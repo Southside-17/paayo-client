@@ -29,21 +29,34 @@ them by eye gives a mark that is quietly too small and slightly off-centre.
 The script accepts absolute `M`/`C`/`Z` and throws on anything else. A new
 export using other commands needs the walker taught them, not the check removed.
 
-## The mark is green. The brand is not.
-The artwork is `#00B14F` green with a `#F59E0C` dot; the live brand token is
-signal amber, `212 126 29`. That is not an oversight to reconcile -- see
-`.ai/rules/tokens.md`, where the same green was proposed as the brand colour and
-was never adopted. Two consequences:
+## The artwork is green. The mark is drawn in amber.
+The SVG is `#00B14F` green with a `#F59E0C` dot. The brand token is signal
+amber, and it stays amber -- `.ai/rules/tokens.md` records that this same green
+was proposed as the brand colour and was never adopted. Asked to choose between
+them, we kept the brand and moved the mark. So:
 
-- **Do not re-token the palette from the artwork.** Colours come from the
-  console's `app.css` through `sync-tokens.mjs`, and from nowhere else.
-- **Do not tint the mark from the palette either.** It carries its own fills
-  and is the same in both themes. The white counter is punched out of the green
-  it sits inside, never seen against the page, so there is no dark variant to
-  add and no `currentColor` to inherit -- `react-native-svg` has neither.
+- **The SVG is the source of the geometry, not of the colour.** Do not read a
+  fill out of it at runtime, and do not re-token the palette from it either.
+  Colours come from the console through `sync-tokens.mjs` and from nowhere else.
+- **`scripts/lib/svg-mark.mjs` maps each artwork colour to a palette token**
+  and `sync-logo.mjs` bakes the token names, not the hexes, into
+  `src/lib/logo.ts`. A re-export in different colours throws there rather than
+  quietly picking a token for itself.
+- **The counter is `brand-foreground`, which is what it literally is** -- the
+  colour meant to sit on top of the brand. That is why the mark inverts
+  correctly in dark mode without a rule of its own: near-white on amber in
+  light, near-black on lighter amber in dark.
+- **The dot shares `brand` with the pin.** In the artwork it was a second
+  accent colour; with one brand colour it reads as the pin showing through the
+  counter, which is the same shape and needs no third token.
 
-If the brand ever does move to the green, that is a change to the console's
-tokens first, and this file follows.
+`AppLogo` reads the palette by scheme rather than inheriting anything.
+`react-native-svg` sits outside NativeWind and has no `currentColor`, so this
+matches how every lucide glyph here is coloured.
+
+The launcher icons take the **light** values in both themes: an icon is one
+file with no scheme to follow, sitting on the white ground the script paints
+below it. Android's themed icon is the dark case, and it is a silhouette.
 
 ## `AppLogo` takes a height, not a size
 Every other icon here is square and takes `size`. The pin is roughly 0.7 as

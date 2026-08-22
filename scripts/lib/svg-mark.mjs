@@ -10,6 +10,35 @@
  * wrong answer, so this throws instead.
  */
 
+/**
+ * Which palette token each colour in the artwork stands for.
+ *
+ * The mark is drawn in green because that is what the designer sent, and the
+ * app draws it in the brand's amber because that is what the brand is. So the
+ * SVG is the source of the *geometry*, and the colour is ours -- see
+ * .ai/rules/logo.md. Keying this on the artwork's own hex means a re-export in
+ * new colours throws here rather than quietly picking a token for itself.
+ */
+const ROLES = {
+    '#00B14F': 'brand',
+    '#FEFEFE': 'brand-foreground',
+    '#F59E0C': 'brand',
+};
+
+/** The palette token one of the artwork's fills stands for. */
+export function roleOf(fill) {
+    const role = ROLES[fill.toUpperCase()];
+
+    if (!role) {
+        throw new Error(
+            `the artwork fills a path with ${fill}, which stands for no palette token. `
+            + 'Decide what it means and add it to ROLES in scripts/lib/svg-mark.mjs.',
+        );
+    }
+
+    return role;
+}
+
 /** Every filled path in the file, with its translate read off. */
 export function readShapes(svg) {
     const found = [...svg.matchAll(
