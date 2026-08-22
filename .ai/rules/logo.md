@@ -75,7 +75,29 @@ npx expo prebuild --clean && npm run android    # icons are native resources
 
 **A Metro reload will never show a new icon.** They are compiled into the
 native projects, which are gitignored and regenerated, so an icon change is a
-prebuild and a reinstall. That is the usual reason one looks unchanged.
+prebuild and a reinstall. That is the first reason one looks unchanged.
+
+**And the launcher caches icons past the reinstall.** Even with the right
+artwork in the installed APK, the home screen and app drawer keep drawing the
+old one, because a launcher reads an icon once and holds it -- and a debug
+reinstall keeps the same package and version, so nothing tells it to look
+again. Restart the launcher rather than doubting the build:
+
+```sh
+adb shell cmd shortcut get-default-launcher     # com.sec.android.app.launcher here
+adb shell am force-stop <launcher-package>
+```
+
+Settle which of the two it is by reading the pixels rather than the screen --
+pull the APK the device is actually running and look inside it:
+
+```sh
+adb pull "$(adb shell pm path com.paayo.ph | sed 's/package://' | tr -d '\r')" installed.apk
+unzip -o installed.apk res/mipmap-xxxhdpi-v4/ic_launcher.webp -d apk
+```
+
+A correct icon in there and a stale one on screen is the cache; a stale one in
+there is the build.
 
 Nothing was installed to draw them. The script fills the outlines itself --
 flatten each cubic, scanline four times per output row, exact coverage across
