@@ -298,7 +298,7 @@ export default function Book() {
                             invalid={Boolean(wrong('description'))}
                         />
                         <Text className="text-muted-foreground text-sm">
-                            What is wrong, and anything they should know before they arrive.
+                            Anything they need to know before they arrive.
                         </Text>
                         <FieldError message={wrong('description')} />
                     </Card>
