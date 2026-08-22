@@ -39,9 +39,9 @@ export default function TabsLayout() {
                 }}
             />
             <Tabs.Screen
-                name="requests"
+                name="bookings"
                 options={{
-                    title: 'Requests',
+                    title: 'Bookings',
                     tabBarIcon: ({ color, size }) => <ListChecks color={color} size={size} />,
                 }}
             />
