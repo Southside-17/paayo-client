@@ -4,11 +4,14 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BackButton } from '@/components/back-button';
+import { FormMessage } from '@/components/form-message';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Text } from '@/components/ui/text';
+import { ApiError } from '@/lib/api';
 import { peso, priceRange } from '@/lib/money';
 import { useSession } from '@/lib/session';
 import type { Listing, ServiceOffer } from '@/lib/types';
@@ -31,6 +34,7 @@ export default function ServiceOffers() {
     const { address, ready } = useDefaultAddress();
     const addressId = address?.id;
     const [offer, setOffer] = useState<ServiceOffer | null>(null);
+    const [failure, setFailure] = useState<string | null>(null);
 
     const authenticatedRequest =
         session.status === 'authenticated' ? session.authenticatedRequest : null;
@@ -60,6 +64,8 @@ export default function ServiceOffers() {
 
             const query = addressId ? `?address=${addressId}` : '';
 
+            setFailure(null);
+
             void authenticatedRequest<ServiceOffer>(`/services/${id}${query}`)
                 .then((answer) => {
                     // Covered ground: there is nothing to choose, so this screen
@@ -72,7 +78,17 @@ export default function ServiceOffers() {
 
                     setOffer(answer);
                 })
-                .catch(() => setOffer(null));
+                .catch((error: unknown) => {
+                    // Never silent. A refusal that explains itself -- an address
+                    // with no pin, most often -- has to reach the screen, or
+                    // this sits on a skeleton forever and says nothing.
+                    setFailure(
+                        error instanceof ApiError
+                            ? (error.errorFor('address') ?? error.message)
+                            : 'Could not reach Paayo. Check your connection and try again.',
+                    );
+                    setOffer(null);
+                });
         }, [authenticatedRequest, addressId, ready, id, name, book]),
     );
 
@@ -88,7 +104,9 @@ export default function ServiceOffers() {
                 <BackButton label={category ?? service?.category?.name ?? 'Back'} />
                 <ScreenHeader title={name ?? service?.name ?? 'Service'} />
 
-                {offer === null ? (
+                {failure !== null ? <FormMessage message={failure} /> : null}
+
+                {offer === null && failure === null ? (
                     <>
                         <Skeleton className="h-4 w-3/4" />
                         {[0, 1].map((at) => (
@@ -111,13 +129,45 @@ export default function ServiceOffers() {
                     </Card>
                 ) : null}
 
-                {offer && alternatives.length === 0 ? (
+                {/* Three different situations used to share one sentence, so
+                    neither the client nor anyone debugging could tell which had
+                    happened. They are separate now. */}
+                {offer && alternatives.length === 0 && !address ? (
+                    <Card className="gap-3">
+                        <Text className="font-semibold">Where should they go?</Text>
+                        <Text className="text-muted-foreground text-sm">
+                            Add an address and drop a pin on it. Who can come depends on
+                            exactly where the work is.
+                        </Text>
+                        <Button
+                            variant="brand"
+                            onPress={() =>
+                                router.push({
+                                    pathname: '/profile/addresses',
+                                    params: { from: name ?? 'Back' },
+                                })
+                            }
+                        >
+                            Add an address
+                        </Button>
+                    </Card>
+                ) : null}
+
+                {offer && alternatives.length === 0 && address && !address.latitude ? (
+                    <Card className="gap-2">
+                        <Text className="font-semibold">{address.label} has no pin</Text>
+                        <Text className="text-muted-foreground text-sm">
+                            Nobody can be matched to it. Open the address and drop a pin on
+                            the map.
+                        </Text>
+                    </Card>
+                ) : null}
+
+                {offer && alternatives.length === 0 && address && address.latitude ? (
                     <Card className="gap-2">
                         <Text className="font-semibold">Nobody offers this yet</Text>
                         <Text className="text-muted-foreground text-sm">
-                            {address
-                                ? 'No provider in your area offers this service.'
-                                : 'Add an address with a pin to see who works near you.'}
+                            {`No provider working ${offer.market?.name ?? 'your area'} offers this service.`}
                         </Text>
                     </Card>
                 ) : null}

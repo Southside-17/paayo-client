@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react-native';
 import { useEffect } from 'react';
 
 import ServiceOffers from '@/app/(app)/service/[id]';
+import { ApiError } from '@/lib/api';
 import { useSession } from '@/lib/session';
 import { useDefaultAddress } from '@/lib/use-default-address';
 import { router } from 'expo-router';
@@ -41,7 +42,7 @@ function signedIn(authenticatedRequest: jest.Mock) {
         reload: jest.fn(),
     });
     (useDefaultAddress as jest.Mock).mockReturnValue({
-        address: { id: 'a1', label: 'Home' },
+        address: { id: 'a1', label: 'Home', latitude: 7.07, longitude: 125.61 },
         ready: true,
     });
 }
@@ -102,6 +103,95 @@ it('explains itself, naming the service and the market, when nobody covers', asy
 
     expect(screen.getByText('Davao Aircon Specialists')).toBeOnTheScreen();
     expect(router.replace).not.toHaveBeenCalled();
+});
+
+// The address arrives after the first render, and the answer depends on it.
+// Asking before it settles is what would silently produce an empty screen.
+it('waits for the address, then asks again with it', async () => {
+    const request = jest.fn(async () => ({
+        data: service,
+        market: { id: 'm1', name: 'Davao City' },
+        covering: listing('l1', 'Kool Breeze Aircon Services'),
+        alternatives: [],
+    }));
+
+    (useSession as jest.Mock).mockReturnValue({
+        status: 'authenticated',
+        authenticatedRequest: request,
+        reload: jest.fn(),
+    });
+    (useDefaultAddress as jest.Mock).mockReturnValue({ address: null, ready: false });
+
+    const view = render(<ServiceOffers />);
+
+    expect(request).not.toHaveBeenCalled();
+
+    (useDefaultAddress as jest.Mock).mockReturnValue({
+        address: { id: 'a1', label: 'Home', latitude: 7.07 },
+        ready: true,
+    });
+
+    view.rerender(<ServiceOffers />);
+
+    await waitFor(() => expect(request).toHaveBeenCalledWith('/services/s1?address=a1'));
+});
+
+it('asks the client for an address rather than blaming the catalog', async () => {
+    (useSession as jest.Mock).mockReturnValue({
+        status: 'authenticated',
+        authenticatedRequest: jest.fn(async () => ({ data: service })),
+        reload: jest.fn(),
+    });
+    (useDefaultAddress as jest.Mock).mockReturnValue({ address: null, ready: true });
+
+    render(<ServiceOffers />);
+
+    await waitFor(() => expect(screen.getByText('Where should they go?')).toBeOnTheScreen());
+});
+
+it('says an address has no pin instead of saying nobody serves it', async () => {
+    (useSession as jest.Mock).mockReturnValue({
+        status: 'authenticated',
+        authenticatedRequest: jest.fn(async () => ({
+            data: service,
+            market: { id: 'm1', name: 'Davao City' },
+            covering: null,
+            alternatives: [],
+        })),
+        reload: jest.fn(),
+    });
+    (useDefaultAddress as jest.Mock).mockReturnValue({
+        address: { id: 'a1', label: 'Home', latitude: null },
+        ready: true,
+    });
+
+    render(<ServiceOffers />);
+
+    await waitFor(() => expect(screen.getByText('Home has no pin')).toBeOnTheScreen());
+});
+
+it('shows a refusal rather than sitting on a skeleton', async () => {
+    (useSession as jest.Mock).mockReturnValue({
+        status: 'authenticated',
+        authenticatedRequest: jest.fn(async () => {
+            throw new ApiError(422, 'Unprocessable', {
+                address: ['Drop a pin on this address before searching from it.'],
+            });
+        }),
+        reload: jest.fn(),
+    });
+    (useDefaultAddress as jest.Mock).mockReturnValue({
+        address: { id: 'a1', label: 'Home', latitude: 7.07 },
+        ready: true,
+    });
+
+    render(<ServiceOffers />);
+
+    await waitFor(() =>
+        expect(
+            screen.getByText('Drop a pin on this address before searching from it.'),
+        ).toBeOnTheScreen(),
+    );
 });
 
 it('says nobody offers it rather than showing an empty list', async () => {
