@@ -10,6 +10,14 @@ import { useSession } from '@/lib/session';
 jest.mock('@/lib/session', () => ({ useSession: jest.fn() }));
 jest.mock('expo-router', () => ({ Link: MockLink }));
 jest.mock('expo-image-picker', () => ({ launchImageLibraryAsync: jest.fn() }));
+jest.mock('@/lib/picture', () => ({
+    AVATAR_SIZE: 512,
+    preparePicture: jest.fn(async () => ({
+        uri: 'file:///small.jpg',
+        name: 'avatar.jpg',
+        type: 'image/jpeg',
+    })),
+}));
 
 function MockLink({ href, children }: { href: string; children: ReactNode }) {
     return <View accessibilityLabel={`to ${href}`}>{children}</View>;
@@ -78,7 +86,7 @@ it('points each section at the screen that owns it', () => {
 it('shows why an upload was refused, though no input owns the field', async () => {
     jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
         canceled: false,
-        assets: [{ uri: 'file:///photo.jpg', fileName: 'photo.jpg', mimeType: 'image/jpeg' }],
+        assets: [{ uri: 'file:///photo.jpg', width: 3024, height: 3024 }],
     } as never);
 
     signedIn(

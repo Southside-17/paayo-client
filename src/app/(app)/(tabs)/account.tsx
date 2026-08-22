@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { StatusPill } from '@/components/ui/status-pill';
 import { Text } from '@/components/ui/text';
+import { AVATAR_SIZE, preparePicture } from '@/lib/picture';
 import { useSession } from '@/lib/session';
 import type { MessageResponse } from '@/lib/types';
 import { useSubmit } from '@/lib/use-submit';
@@ -56,14 +57,10 @@ export default function Account() {
                 return;
             }
 
-            const asset = picked.assets[0];
+            const part = await preparePicture(picked.assets[0], AVATAR_SIZE, 'avatar.jpg');
             const body = new FormData();
 
-            body.append('avatar', {
-                uri: asset.uri,
-                name: asset.fileName ?? 'avatar.jpg',
-                type: asset.mimeType ?? 'image/jpeg',
-            } as unknown as Blob);
+            body.append('avatar', part as unknown as Blob);
 
             await session.authenticatedRequest<MessageResponse>('/profile/avatar', {
                 method: 'POST',

@@ -78,3 +78,18 @@ carry the last-way-in rule, so they live only on `profile/socials.tsx`.
 `(tabs)/requests.tsx` has no server behind it and shows a written explanation
 rather than a spinner, a placeholder list, or demo data. When booking lands,
 that copy is what it replaces.
+
+## The picker's crop settles the shape, never the resolution
+`allowsEditing` and `aspect` are geometry, and `quality` is JPEG compression --
+`expo-image-picker` has no output-size option at all. A square crop of a
+full-size camera photo comes back at the source's own pixels: measured off the
+device, one crop was 340x340 at 19KB and another 3024x3024 at 741KB, from the
+same settings. Both pass the server's caps, and the second is megabytes to draw
+something never rendered above 72pt.
+
+So every picked image goes through `preparePicture` in `src/lib/picture.ts`
+before it is appended to a `FormData`. It resizes down only -- scaling up spends
+bytes to add blur -- and re-saves as JPEG whatever arrived, so the part carries a
+name and a type the server's `mimes` rule can match rather than whatever the
+picker reported. The identification upload wants the same treatment when it
+lands; give it its own longest-side rather than reusing `AVATAR_SIZE`.
