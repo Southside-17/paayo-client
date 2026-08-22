@@ -2,7 +2,7 @@
 paths:
   - 'package.json'
   - 'app.config.ts'
-  - 'scripts/with-jdk.mjs'
+  - 'scripts/with-android-env.mjs'
 ---
 
 # Toolchain
@@ -12,12 +12,24 @@ paths:
 gitignored. Never edit them directly -- a regeneration silently discards it. Put
 platform settings in `app.config.ts`, or a config plugin when that is not enough.
 
-## Android needs JDK 17 or 21, not 25
-React Native's native modules go through AGP's CMake configure step, which still
-makes restricted JNI calls. JDK 25 made those fatal (JEP 472), so a build on 25
-dies with `configureCMakeDebug ... restricted method` -- an error that reads like
-a code fault and is not. `scripts/with-jdk.mjs` resolves a supported JDK and
-fails with a plain sentence when it cannot. Delete it once RN supports 25.
+## Android builds run through scripts/with-android-env.mjs
+`npm run android` goes through it, and it resolves the two paths Gradle needs
+before handing over. Both failures without it read like code faults rather than
+missing configuration.
+
+**JDK 17 or 21, not 25.** React Native's native modules go through AGP's CMake
+configure step, which still makes restricted JNI calls. JDK 25 made those fatal
+(JEP 472), so a build on 25 dies with `configureCMakeDebug ... restricted
+method`. This half goes away once RN supports 25.
+
+**The SDK.** Without `ANDROID_HOME` Gradle says only "SDK location not found",
+which is equally true whether the SDK is missing or merely unannounced. Android
+Studio writes `android/local.properties` when it opens the project -- and
+prebuild throws that away with the rest of `android/`, so it is not a fix.
+The script accepts `ANDROID_HOME`/`ANDROID_SDK_ROOT` when they are already set
+and otherwise looks where Studio installs. A path only counts if it holds
+`platform-tools`, so a stale variable is treated as unset rather than passed on
+to fail later. This half is permanent.
 
 Install a JDK as a **cask**, never `brew install openjdk@21`: the formula is
 keg-only, so macOS never registers it and nothing finds it without env vars.
@@ -36,12 +48,16 @@ Native's bundling phase the write of `ip.txt` into the app bundle and fails ever
 the breakage looks like it came from the phone. CocoaPods already opts its own
 targets out. `app.config.ts` forces it back to `NO` on regeneration.
 
-## Signing lives in the environment
-A regenerated `ios/` loses the team Xcode wrote into the project, so
-`APPLE_TEAM_ID` in `.env` feeds `DEVELOPMENT_TEAM` through the same config
-plugin. The certificate itself is not reproducible -- it is minted once by Xcode
-against an Apple ID and lives in the login keychain. On a fresh machine, select
-the team in Xcode once, then the CLI works from then on.
+## Do not pin the iOS development team in app.config.ts
+It looks like the obvious way to survive a regenerated `ios/`, and it stops
+device builds working. `expo run:ios` passes `-allowProvisioningUpdates` only
+when it finds no team in the project, so writing one in tells it signing is
+already arranged and xcodebuild then fails on a profile nobody created. Leave
+the project teamless and let Xcode mint what it needs.
+
+The certificate is not reproducible either -- it is minted once by Xcode against
+an Apple ID and lives in the login keychain. On a fresh machine, select the team
+in Xcode once, then the CLI works from then on.
 
 A free Personal Team signs for **7 days**. When a build that worked yesterday
 refuses to launch, re-run `npx expo run:ios --device`; nothing is wrong.
