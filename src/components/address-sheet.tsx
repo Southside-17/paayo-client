@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { Badge } from '@/components/ui/badge';
 import { Sheet } from '@/components/ui/sheet';
@@ -28,20 +28,18 @@ export function AddressSheet({ open, addresses, selected, onSelect, onDismiss }:
         <Sheet open={open} onDismiss={onDismiss} label="Where should work happen?">
             <Text className="text-lg font-bold">Where should work happen?</Text>
 
-            <ScrollView contentContainerClassName="gap-2">
-                {addresses.length === 0 ? (
-                    <Text className="text-muted-foreground text-sm">No addresses saved yet.</Text>
-                ) : null}
+            {addresses.length === 0 ? (
+                <Text className="text-muted-foreground text-sm">No addresses saved yet.</Text>
+            ) : null}
 
-                {addresses.map((address) => (
-                    <AddressRow
-                        key={address.id}
-                        address={address}
-                        selected={address.id === selected?.id}
-                        onSelect={onSelect}
-                    />
-                ))}
-            </ScrollView>
+            {addresses.map((address) => (
+                <AddressRow
+                    key={address.id}
+                    address={address}
+                    selected={address.id === selected?.id}
+                    onSelect={onSelect}
+                />
+            ))}
 
             <Pressable
                 accessibilityRole="button"

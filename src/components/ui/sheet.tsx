@@ -114,7 +114,7 @@ export function Sheet({ open, onDismiss, children, label, className }: Props) {
                             className,
                         )}
                     >
-                        <SafeAreaView edges={['bottom']} className="px-5 pb-6 pt-3">
+                        <SafeAreaView edges={['bottom']} className="px-5 pb-5 pt-3">
                             <View className="bg-input h-1 w-9 self-center rounded-full" />
 
                             <ScrollView
