@@ -288,6 +288,13 @@ Accepting and declining is not built. Job detail says so in a sentence rather
 than drawing a disabled button, because a greyed-out control reads as something
 that is temporarily unavailable rather than as something that does not exist.
 
+## A screen with a text field wraps in KeyboardAvoiding
+See `.ai/rules/general.md`, first section. `job/[id].tsx` shipped without it and
+its decline note typed underneath the keyboard -- the third time that exact bug
+has gone out. `src/lib/__tests__/keyboard-avoidance.test.ts` now fails any
+screen importing `Input` that references neither `KeyboardAvoiding` nor
+`AuthScreen`.
+
 ## Answering a job is not a symmetric choice, so the buttons are not either
 Two equal side-by-side buttons is the obvious shape and the wrong one. Taking
 work is the ordinary answer and commits the business to showing up; turning it

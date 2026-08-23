@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
+import { KeyboardAvoiding } from '@/components/ui/keyboard-avoiding';
 import { Label } from '@/components/ui/label';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -90,199 +91,204 @@ export default function Job() {
 
     return (
         <SafeAreaView className="bg-background flex-1">
-            <ScrollView contentContainerClassName="gap-5 p-6">
-                <BackButton label="Jobs" />
-
-                <ScreenHeader
-                    eyebrow={job?.client?.nickname}
-                    title={name ?? job?.service.name ?? 'Job'}
+            <KeyboardAvoiding className="flex-1">
+                <ScrollView
+                    contentContainerClassName="gap-5 p-6"
+                    keyboardShouldPersistTaps="handled"
                 >
-                    {job ? (
-                        <View className="max-w-[45%] items-end">
-                            <Text className="text-brand text-right text-lg font-bold">
-                                {priceRange(job.price_min, job.price_max, job.service.pricing_unit)}
-                            </Text>
-                            <Text className="text-muted-foreground text-right text-[11px]">
-                                {visitAt(job.scheduled_at)}
-                            </Text>
-                            {job.surcharge ? (
+                    <BackButton label="Jobs" />
+
+                    <ScreenHeader
+                        eyebrow={job?.client?.nickname}
+                        title={name ?? job?.service.name ?? 'Job'}
+                    >
+                        {job ? (
+                            <View className="max-w-[45%] items-end">
+                                <Text className="text-brand text-right text-lg font-bold">
+                                    {priceRange(job.price_min, job.price_max, job.service.pricing_unit)}
+                                </Text>
                                 <Text className="text-muted-foreground text-right text-[11px]">
-                                    plus {peso(job.surcharge)} trip charge
+                                    {visitAt(job.scheduled_at)}
                                 </Text>
-                            ) : null}
-                        </View>
-                    ) : null}
-                </ScreenHeader>
-
-                <FormMessage message={message ?? errorFor('status') ?? null} />
-
-                {job === null ? (
-                    <>
-                        <Skeleton className="h-7 w-40 rounded-full" />
-                        <Card className="gap-3">
-                            <Skeleton className="h-4 w-full" />
-                            <Skeleton className="h-4 w-3/4" />
-                        </Card>
-                        <Card className="gap-2">
-                            <Skeleton className="h-5 w-36" />
-                            <Skeleton className="h-4 w-full" />
-                        </Card>
-                    </>
-                ) : null}
-
-                {job ? (
-                    <>
-                        <StatusPill tone={job.status.tone}>{job.status.wording}</StatusPill>
-
-                        <Card className="gap-1">
-                            <Label>Who asked?</Label>
-                            <Text className="text-lg font-semibold">
-                                {job.client?.nickname ?? 'A client'}
-                            </Text>
-                            {job.client?.phone ? (
-                                <Text className="text-muted-foreground text-sm">
-                                    {job.client.phone}
-                                </Text>
-                            ) : (
-                                <Text className="text-muted-foreground text-sm">
-                                    No phone number on this account.
-                                </Text>
-                            )}
-                        </Card>
-
-                        <WhereCard
-                            place={{
-                                label: job.address.label,
-                                line: job.address.line,
-                                landmark: job.address.landmark,
-                                latitude: job.latitude,
-                                longitude: job.longitude,
-                            }}
-                        />
-
-                        <WhenCard scheduled={job.scheduled_at} />
-
-                        <Card className="gap-2">
-                            <Label>What does it look like?</Label>
-
-                            {job.attachments?.length ? (
-                                <View className="flex-row flex-wrap gap-2">
-                                    {job.attachments.map((attachment) => {
-                                        const video = attachment.mime.startsWith('video/');
-                                        const uri = attachment.url;
-
-                                        if (!uri) {
-                                            return null;
-                                        }
-
-                                        return (
-                                            <Pressable
-                                                key={attachment.id}
-                                                accessibilityRole="button"
-                                                accessibilityLabel={
-                                                    video ? 'Play video' : 'View photo'
-                                                }
-                                                onPress={() => setViewing({ uri, video })}
-                                            >
-                                                <MediaThumb uri={uri} video={video} />
-                                            </Pressable>
-                                        );
-                                    })}
-                                </View>
-                            ) : (
-                                <Text className="text-muted-foreground text-sm">
-                                    Nothing was attached to this booking.
-                                </Text>
-                            )}
-                        </Card>
-
-                        <Card className="gap-2">
-                            <Label>Why do they need you?</Label>
-                            <Text className="text-sm">{job.description}</Text>
-                        </Card>
-
-                        {/* A hold replaces the controls rather than disabling
-                            them. A greyed-out button reads as temporarily
-                            unavailable; the notice says what is actually true. */}
-                        {job.status.value === 'pending' && staff.provider.suspension ? (
-                            <HoldNotice suspension={staff.provider.suspension} />
-                        ) : null}
-
-                        {job.status.value === 'pending' && !staff.provider.suspension ? (
-                            <View className="gap-3">
-                                {turningDown ? (
-                                    <View className="gap-2">
-                                        <Label>Why not? (only we see this)</Label>
-                                        <Input
-                                            value={note}
-                                            onChangeText={setNote}
-                                            multiline
-                                            textAlignVertical="top"
-                                            className="h-20 py-3"
-                                            placeholder="Fully booked, too far, wrong job."
-                                            invalid={Boolean(errorFor('note'))}
-                                        />
-                                        <Button
-                                            variant="outline"
-                                            busy={busy}
-                                            onPress={() =>
-                                                void answer('refusal', {
-                                                    note: note.trim() || null,
-                                                })
-                                            }
-                                        >
-                                            Turn it down
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            onPress={() => setTurningDown(false)}
-                                        >
-                                            Keep it
-                                        </Button>
-                                    </View>
-                                ) : (
-                                    <>
-                                        {/* Not two equal buttons. Taking work is
-                                            the ordinary answer; turning it down
-                                            is the exception and carries a note,
-                                            so it does not get equal weight. */}
-                                        <Button busy={busy} onPress={() => setTaking(true)}>
-                                            Take this job
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            onPress={() => setTurningDown(true)}
-                                        >
-                                            Can&apos;t take it
-                                        </Button>
-                                    </>
-                                )}
+                                {job.surcharge ? (
+                                    <Text className="text-muted-foreground text-right text-[11px]">
+                                        plus {peso(job.surcharge)} trip charge
+                                    </Text>
+                                ) : null}
                             </View>
                         ) : null}
-                    </>
-                ) : null}
+                    </ScreenHeader>
 
-                {/* Names the promise rather than asking whether you are sure. */}
-                <ConfirmDialog
-                    open={taking}
-                    title="Take this job?"
-                    body={
-                        job
-                            ? `You are saying you will be at ${job.address.line ?? 'the address'} on ${visitAt(job.scheduled_at)}. ${job.client?.nickname ?? 'The client'} will see that you accepted.`
-                            : ''
-                    }
-                    confirm="Take the job"
-                    dismiss="Not yet"
-                    busy={busy}
-                    onConfirm={() => {
-                        setTaking(false);
-                        void answer('acceptance');
-                    }}
-                    onDismiss={() => setTaking(false)}
-                />
+                    <FormMessage message={message ?? errorFor('status') ?? null} />
 
-                <MediaViewer item={viewing} onClose={() => setViewing(null)} />
-            </ScrollView>
+                    {job === null ? (
+                        <>
+                            <Skeleton className="h-7 w-40 rounded-full" />
+                            <Card className="gap-3">
+                                <Skeleton className="h-4 w-full" />
+                                <Skeleton className="h-4 w-3/4" />
+                            </Card>
+                            <Card className="gap-2">
+                                <Skeleton className="h-5 w-36" />
+                                <Skeleton className="h-4 w-full" />
+                            </Card>
+                        </>
+                    ) : null}
+
+                    {job ? (
+                        <>
+                            <StatusPill tone={job.status.tone}>{job.status.wording}</StatusPill>
+
+                            <Card className="gap-1">
+                                <Label>Who asked?</Label>
+                                <Text className="text-lg font-semibold">
+                                    {job.client?.nickname ?? 'A client'}
+                                </Text>
+                                {job.client?.phone ? (
+                                    <Text className="text-muted-foreground text-sm">
+                                        {job.client.phone}
+                                    </Text>
+                                ) : (
+                                    <Text className="text-muted-foreground text-sm">
+                                        No phone number on this account.
+                                    </Text>
+                                )}
+                            </Card>
+
+                            <WhereCard
+                                place={{
+                                    label: job.address.label,
+                                    line: job.address.line,
+                                    landmark: job.address.landmark,
+                                    latitude: job.latitude,
+                                    longitude: job.longitude,
+                                }}
+                            />
+
+                            <WhenCard scheduled={job.scheduled_at} />
+
+                            <Card className="gap-2">
+                                <Label>What does it look like?</Label>
+
+                                {job.attachments?.length ? (
+                                    <View className="flex-row flex-wrap gap-2">
+                                        {job.attachments.map((attachment) => {
+                                            const video = attachment.mime.startsWith('video/');
+                                            const uri = attachment.url;
+
+                                            if (!uri) {
+                                                return null;
+                                            }
+
+                                            return (
+                                                <Pressable
+                                                    key={attachment.id}
+                                                    accessibilityRole="button"
+                                                    accessibilityLabel={
+                                                        video ? 'Play video' : 'View photo'
+                                                    }
+                                                    onPress={() => setViewing({ uri, video })}
+                                                >
+                                                    <MediaThumb uri={uri} video={video} />
+                                                </Pressable>
+                                            );
+                                        })}
+                                    </View>
+                                ) : (
+                                    <Text className="text-muted-foreground text-sm">
+                                        Nothing was attached to this booking.
+                                    </Text>
+                                )}
+                            </Card>
+
+                            <Card className="gap-2">
+                                <Label>Why do they need you?</Label>
+                                <Text className="text-sm">{job.description}</Text>
+                            </Card>
+
+                            {/* A hold replaces the controls rather than disabling
+                                them. A greyed-out button reads as temporarily
+                                unavailable; the notice says what is actually true. */}
+                            {job.status.value === 'pending' && staff.provider.suspension ? (
+                                <HoldNotice suspension={staff.provider.suspension} />
+                            ) : null}
+
+                            {job.status.value === 'pending' && !staff.provider.suspension ? (
+                                <View className="gap-3">
+                                    {turningDown ? (
+                                        <View className="gap-2">
+                                            <Label>Why not? (only we see this)</Label>
+                                            <Input
+                                                value={note}
+                                                onChangeText={setNote}
+                                                multiline
+                                                textAlignVertical="top"
+                                                className="h-20 py-3"
+                                                placeholder="Fully booked, too far, wrong job."
+                                                invalid={Boolean(errorFor('note'))}
+                                            />
+                                            <Button
+                                                variant="outline"
+                                                busy={busy}
+                                                onPress={() =>
+                                                    void answer('refusal', {
+                                                        note: note.trim() || null,
+                                                    })
+                                                }
+                                            >
+                                                Turn it down
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                onPress={() => setTurningDown(false)}
+                                            >
+                                                Keep it
+                                            </Button>
+                                        </View>
+                                    ) : (
+                                        <>
+                                            {/* Not two equal buttons. Taking work is
+                                                the ordinary answer; turning it down
+                                                is the exception and carries a note,
+                                                so it does not get equal weight. */}
+                                            <Button busy={busy} onPress={() => setTaking(true)}>
+                                                Take this job
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                onPress={() => setTurningDown(true)}
+                                            >
+                                                Can&apos;t take it
+                                            </Button>
+                                        </>
+                                    )}
+                                </View>
+                            ) : null}
+                        </>
+                    ) : null}
+
+                    {/* Names the promise rather than asking whether you are sure. */}
+                    <ConfirmDialog
+                        open={taking}
+                        title="Take this job?"
+                        body={
+                            job
+                                ? `You are saying you will be at ${job.address.line ?? 'the address'} on ${visitAt(job.scheduled_at)}. ${job.client?.nickname ?? 'The client'} will see that you accepted.`
+                                : ''
+                        }
+                        confirm="Take the job"
+                        dismiss="Not yet"
+                        busy={busy}
+                        onConfirm={() => {
+                            setTaking(false);
+                            void answer('acceptance');
+                        }}
+                        onDismiss={() => setTaking(false)}
+                    />
+
+                    <MediaViewer item={viewing} onClose={() => setViewing(null)} />
+                </ScrollView>
+            </KeyboardAvoiding>
         </SafeAreaView>
     );
 }

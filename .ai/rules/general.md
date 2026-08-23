@@ -6,6 +6,32 @@ paths:
 
 # General
 
+## Any screen you can type into must clear the keyboard -- CHECK THIS EVERY TIME
+**Shipped broken three times.** A text field low on a screen, typed into, and
+hidden behind the keyboard the second it opens. Nothing else catches it: the
+component renders, the value updates, the request goes out, every test passes.
+
+Wrap the screen body in `KeyboardAvoiding` from
+`src/components/ui/keyboard-avoiding.tsx`, inside `SafeAreaView` and around the
+`ScrollView`, and give the `ScrollView` `keyboardShouldPersistTaps="handled"` so
+the first tap on a button still lands while the keyboard is up. `AuthScreen`
+already does this, so anything built on it is covered.
+
+```tsx
+<SafeAreaView className="bg-background flex-1">
+    <KeyboardAvoiding className="flex-1">
+        <ScrollView contentContainerClassName="gap-5 p-6" keyboardShouldPersistTaps="handled">
+```
+
+`behavior="padding"` on **both** platforms. Leaving it undefined on Android --
+the usual advice -- makes the component inert, because an edge-to-edge window is
+never resized for the keyboard whatever `adjustResize` says in the manifest.
+
+`src/lib/__tests__/keyboard-avoidance.test.ts` enforces it: it reads every
+`.tsx` under `src/` that imports the `Input` primitive and fails the ones that
+reference neither `KeyboardAvoiding` nor `AuthScreen`. Do not exempt a file to
+make it pass -- the exemption list is for the primitives themselves.
+
 ## Carried from the console
 These hold here exactly as they do in the server repo. See its `.ai/rules/general.md`.
 
