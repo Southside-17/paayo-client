@@ -119,8 +119,8 @@ const job: Booking = {
     id: 'b1',
     status: {
         value: 'pending',
-        label: 'Awaiting a provider',
-        wording: 'awaiting a provider',
+        label: 'Pending',
+        wording: 'pending',
         tone: 'info',
         is_open: true,
         needs_another_provider: false,
@@ -356,6 +356,36 @@ describe('the business side', () => {
         expect(await screen.findByText('Aircon cleaning')).toBeOnTheScreen();
         expect(screen.getByText('Mara')).toBeOnTheScreen();
         expect(screen.getByText('Barangay 5, Davao City, Davao del Sur, 8000')).toBeOnTheScreen();
+    });
+
+    // The same vocabulary the client's own list narrows by, off the same enum.
+    it('narrows the queue to one status, and counts what is in each', async () => {
+        const taken = {
+            ...job,
+            id: 'j2',
+            status: { ...job.status, value: 'accepted', label: 'Accepted', wording: 'accepted' },
+            service: { ...job.service, name: 'Freon recharge' },
+        };
+
+        acting(staffAt('s1', 'Bright Electric'));
+        signedIn(
+            jest.fn().mockResolvedValue({
+                data: [job, taken],
+                meta: {
+                    filters: [
+                        { value: 'pending', label: 'Pending' },
+                        { value: 'accepted', label: 'Accepted' },
+                    ],
+                },
+            }),
+        );
+
+        render(<Jobs />);
+
+        fireEvent.press(await screen.findByLabelText('Accepted, 1'));
+
+        expect(screen.getByText('Freon recharge')).toBeOnTheScreen();
+        expect(screen.queryByText('Aircon cleaning')).toBeNull();
     });
 
     it('says so when there is nothing booked', async () => {

@@ -286,6 +286,12 @@ export type BookingStatus = {
     needs_another_provider: boolean;
 };
 
+/** One status a list of bookings can be narrowed to. The server picks these. */
+export type BookingFilter = {
+    value: string;
+    label: string;
+};
+
 /** A provider that turned a booking down. The note they gave is not sent. */
 export type Decline = {
     listing_id: string;

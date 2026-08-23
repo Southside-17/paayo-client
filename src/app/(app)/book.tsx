@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { when } from '@/app/(app)/(tabs)/bookings';
 import { BackButton } from '@/components/back-button';
 import { WhereCard, WhoCard } from '@/components/booking-facts';
 import { FormMessage } from '@/components/form-message';
@@ -18,6 +17,7 @@ import { Label } from '@/components/ui/label';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Text } from '@/components/ui/text';
+import { when } from '@/lib/bookings';
 import { useSession } from '@/lib/session';
 import type { Booking } from '@/lib/types';
 import { useSelectedAddress } from '@/lib/use-selected-address';

@@ -104,7 +104,7 @@ const address = { id: 'a1', label: 'Home', is_default: true, latitude: 14.55, lo
 
 const booking = {
     id: 'b1',
-    status: { value: 'pending', label: 'Awaiting a provider', wording: 'awaiting a provider', tone: 'info', is_open: true },
+    status: { value: 'pending', label: 'Pending', wording: 'pending', tone: 'info', is_open: true },
     description: 'The unit drips.',
     scheduled_at: '2026-09-01T02:00:00.000000Z',
     cancelled_at: null,
@@ -300,8 +300,74 @@ it('lists a booking with the tone the server gave it', async () => {
     render(<Bookings />);
 
     await waitFor(() => expect(screen.getByText('Cleaning')).toBeOnTheScreen());
-    expect(screen.getByText('awaiting a provider')).toBeOnTheScreen();
+    expect(screen.getByText('pending')).toBeOnTheScreen();
     expect(screen.getByText('FixRight Manila')).toBeOnTheScreen();
+});
+
+describe('narrowing the list', () => {
+    const accepted = {
+        ...booking,
+        id: 'b2',
+        status: { value: 'accepted', label: 'Accepted', wording: 'accepted', tone: 'success', is_open: true },
+        service: { ...booking.service, name: 'Rewiring' },
+    };
+
+    const filters = [
+        { value: 'pending', label: 'Pending' },
+        { value: 'accepted', label: 'Accepted' },
+        { value: 'declined', label: 'Turned down' },
+    ];
+
+    const listing = () =>
+        jest.fn(() => Promise.resolve({ data: [booking, accepted], meta: { filters } }));
+
+    // The server picks which statuses are worth a chip, so a case added there
+    // turns up here without an app release.
+    it('offers the statuses the server named, and counts what is in each', async () => {
+        signedIn(listing());
+
+        render(<Bookings />);
+
+        expect(await screen.findByLabelText('All, 2')).toBeOnTheScreen();
+        expect(screen.getByLabelText('Pending, 1')).toBeOnTheScreen();
+        expect(screen.getByLabelText('Turned down, 0')).toBeOnTheScreen();
+    });
+
+    it('shows only the chosen status, and everything again when it is tapped off', async () => {
+        signedIn(listing());
+
+        render(<Bookings />);
+
+        fireEvent.press(await screen.findByLabelText('Accepted, 1'));
+
+        expect(screen.getByText('Rewiring')).toBeOnTheScreen();
+        expect(screen.queryByText('Cleaning')).toBeNull();
+
+        fireEvent.press(screen.getByLabelText('Accepted, 1'));
+
+        expect(screen.getByText('Cleaning')).toBeOnTheScreen();
+    });
+
+    // "Nothing booked yet" would be a lie with two bookings one tap away.
+    it('separates an empty filter from an empty account', async () => {
+        signedIn(listing());
+
+        render(<Bookings />);
+
+        fireEvent.press(await screen.findByLabelText('Turned down, 0'));
+
+        expect(screen.getByText('Nothing turned down')).toBeOnTheScreen();
+        expect(screen.queryByText('Nothing booked yet')).toBeNull();
+    });
+
+    it('offers nothing to narrow when there is nothing to narrow', async () => {
+        signedIn(jest.fn(() => Promise.resolve({ data: [], meta: { filters } })));
+
+        render(<Bookings />);
+
+        await waitFor(() => expect(screen.getByText('Nothing booked yet')).toBeOnTheScreen());
+        expect(screen.queryByLabelText('All, 0')).toBeNull();
+    });
 });
 
 it('says nothing is booked rather than showing an empty list', async () => {

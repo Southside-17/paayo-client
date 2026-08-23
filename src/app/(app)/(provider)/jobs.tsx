@@ -1,9 +1,9 @@
 import { Link, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { when } from '@/app/(app)/(tabs)/bookings';
+import { BookingFilter } from '@/components/booking-filter';
 import { BusinessChip } from '@/components/business-chip';
 import { HoldNotice } from '@/components/hold-notice';
 import { NotifyNotice } from '@/components/notify-notice';
@@ -12,9 +12,10 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusPill } from '@/components/ui/status-pill';
 import { Text } from '@/components/ui/text';
+import { countByStatus, narrowTo, when } from '@/lib/bookings';
 import { enablePush, pushIsReachable, pushIsSupported } from '@/lib/push';
 import { useSession } from '@/lib/session';
-import type { Booking } from '@/lib/types';
+import type { Booking, BookingFilter as Filter } from '@/lib/types';
 import { useWorkspace } from '@/lib/workspace';
 
 /**
@@ -24,6 +25,8 @@ export default function Jobs() {
     const session = useSession();
     const { staff } = useWorkspace();
     const [jobs, setJobs] = useState<Booking[] | null>(null);
+    const [filters, setFilters] = useState<Filter[]>([]);
+    const [narrowed, setNarrowed] = useState<string | null>(null);
     const [reachable, setReachable] = useState(true);
 
     const authenticatedRequest =
@@ -36,13 +39,22 @@ export default function Jobs() {
                 return;
             }
 
-            void authenticatedRequest<{ data: Booking[] }>(`/providers/${provider}/bookings`)
-                .then(({ data }) => setJobs(data))
+            void authenticatedRequest<{ data: Booking[]; meta?: { filters?: Filter[] } }>(
+                `/providers/${provider}/bookings`,
+            )
+                .then(({ data, meta }) => {
+                    setJobs(data);
+                    setFilters(meta?.filters ?? []);
+                })
                 .catch(() => setJobs([]));
 
             void pushIsReachable().then(setReachable);
         }, [authenticatedRequest, provider]),
     );
+
+    const counts = useMemo(() => countByStatus(jobs ?? []), [jobs]);
+    const showing = useMemo(() => narrowTo(jobs ?? [], narrowed), [jobs, narrowed]);
+    const label = filters.find((filter) => filter.value === narrowed)?.label.toLowerCase();
 
     if (!staff) {
         return null;
@@ -66,6 +78,16 @@ export default function Jobs() {
                         }}
                     />
                 ) : null}
+
+                {jobs === null ? null : (
+                    <BookingFilter
+                        filters={filters}
+                        counts={counts}
+                        total={jobs.length}
+                        chosen={narrowed}
+                        onChoose={setNarrowed}
+                    />
+                )}
 
                 {jobs === null
                     ? [0, 1].map((at) => (
@@ -92,7 +114,16 @@ export default function Jobs() {
                     </Card>
                 ) : null}
 
-                {jobs?.map((job) => (
+                {jobs !== null && jobs.length > 0 && showing.length === 0 ? (
+                    <Card className="gap-2">
+                        <Text className="font-semibold">{`Nothing ${label ?? 'here'}`}</Text>
+                        <Text className="text-muted-foreground text-sm">
+                            The rest of the work booked here is still there under All.
+                        </Text>
+                    </Card>
+                ) : null}
+
+                {showing.map((job) => (
                     <Link
                         key={job.id}
                         href={{
