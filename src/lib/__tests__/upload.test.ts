@@ -3,7 +3,13 @@ import { uploadAttachment } from '@/lib/upload';
 type Put = { url: string; bytes: number; source: boolean };
 
 type MockFs = {
-    __state: { size: number; reads: [number, number][]; puts: Put[]; carved: number };
+    __state: {
+        size: number;
+        reads: [number, number][];
+        puts: Put[];
+        carved: number;
+        asked: { sessionType?: string }[];
+    };
     __reset: (size: number, refuse?: number) => void;
 };
 
@@ -25,7 +31,8 @@ jest.mock('expo-file-system', () => {
         carved: number;
         refuse: number;
         refused: number;
-    } = { size: 0, reads: [], puts: [], carved: 0, refuse: 0, refused: 0 };
+        asked: { sessionType?: string }[];
+    } = { size: 0, reads: [], puts: [], carved: 0, refuse: 0, refused: 0, asked: [] };
 
     class MockHandle {
         offset = 0;
@@ -82,7 +89,12 @@ jest.mock('expo-file-system', () => {
             return new MockHandle(this);
         }
 
-        createUploadTask(url: string, options: { onProgress?: (p: { bytesSent: number }) => void }) {
+        createUploadTask(
+            url: string,
+            options: { sessionType?: string; onProgress?: (p: { bytesSent: number }) => void },
+        ) {
+            state.asked.push({ sessionType: options.sessionType });
+
             return {
                 uploadAsync: async () => {
                     const refusing = state.refused < state.refuse;
@@ -125,6 +137,7 @@ jest.mock('expo-file-system', () => {
             state.carved = 0;
             state.refuse = refuse;
             state.refused = 0;
+            state.asked = [];
         },
     };
 });
@@ -293,4 +306,31 @@ it('reports progress across the whole file, and finishes at one', async () => {
 
     expect(seen.at(-1)).toBe(1);
     expect(Math.max(...seen)).toBeLessThanOrEqual(1);
+});
+
+// An iOS background session waits for connectivity and gives up after seven
+// days, so a part the store never answers would leave the attachment at a
+// progress that never becomes null -- and Book refuses to place a booking while
+// anything is still in flight. The upload has to be able to fail.
+it('asks for a foreground session on every part, so a stalled part can fail', async () => {
+    reset(PART * 2);
+
+    const { send } = serverFor(PART * 2);
+
+    await uploadAttachment(send as never, { uri: 'file:///clip.mp4', mimeType: 'video/mp4' });
+
+    expect(disk.asked).toHaveLength(2);
+    expect(disk.asked.every((asked) => asked.sessionType === 'foreground')).toBe(true);
+});
+
+// The retry tile and the re-grant both hang off this: a part that will not land
+// has to reach the caller as a rejection, not as an upload that never returns.
+it('gives up on a part that is refused twice, rather than waiting on it', async () => {
+    reset(1024, 2);
+
+    const { send } = serverFor(1024);
+
+    await expect(
+        uploadAttachment(send as never, { uri: 'file:///a.jpg', mimeType: 'image/jpeg' }),
+    ).rejects.toThrow('Some of that file did not go up.');
 });

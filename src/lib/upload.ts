@@ -104,11 +104,23 @@ function carve(source: File, part: Part, into: Directory): File {
  * No headers of our own either: the address is signed, and a store reads an
  * Authorization header in preference to the signature in the query string and
  * then fails to verify a token it was never issued.
+ *
+ * Foreground, against expo-file-system's default. An iOS background session
+ * waits for connectivity and gives up after its resource timeout of seven days,
+ * so a part the store never answers -- a signed address naming a host the phone
+ * cannot reach is the way to get there -- neither lands nor fails, and the
+ * attachment sits at a progress that never becomes null. Book reads that as an
+ * upload still in flight and refuses to place the booking, forever. A
+ * foreground session times out and reports it, which is what the re-grant and
+ * the retry tile are already there to handle. Nothing is lost by asking for
+ * one: the module does not restore the JavaScript task after a relaunch, so a
+ * background session could not report a part it finished while away either.
  */
 async function putPart(part: Part, body: File, onMoved: (bytes: number) => void): Promise<boolean> {
     const task = body.createUploadTask(part.url, {
         httpMethod: 'PUT',
         uploadType: UploadType.BINARY_CONTENT,
+        sessionType: 'foreground',
         onProgress: ({ bytesSent }) => onMoved(Math.min(bytesSent, part.size)),
     });
 

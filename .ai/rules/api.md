@@ -3,6 +3,7 @@ paths:
   - 'src/lib/api.ts'
   - 'src/lib/session.tsx'
   - 'src/lib/types.ts'
+  - 'src/lib/upload.ts'
 ---
 
 # Talking to the server
@@ -153,3 +154,7 @@ Part size is the server's to decide and arrives as `upload.part_size`; the slice
 Progress is `createUploadTask`'s `onProgress`, summed across parts as a fraction of the **whole file**, never of the part alone, and parts finishing out of order is normal now. `request()` reports no progress of its own and takes no callback: nothing that goes through the API is big enough to need one.
 
 There is no `received` on an attachment. The server never sees the bytes, so it does not count them; `uploaded` per part in the grant is the only truth about what landed, and it comes from the store.
+
+**A part is put on a foreground session, and that is not the default.** `expo-file-system` asks for `sessionType: 'background'` unless told otherwise, and an iOS background `URLSession` waits for connectivity rather than failing -- its resource timeout is seven days. So a part the store never answers neither lands nor errors, `uploadAsync` never settles, and the attachment stays at a progress that never becomes `null`. `stillSending` reads that as an upload in flight and Book refuses to place the booking with "Wait for the upload to finish.", with no progress and no retry tile, until the app is killed. The way to get there is a signed address naming a host the client cannot reach -- which is what `AWS_ENDPOINT=localhost` on the server hands a phone.
+
+Foreground costs nothing here. The module does not restore the JavaScript `UploadTask` after a relaunch, so a background session could never report a part it finished while the app was away either; resuming is a `GET /attachments/{id}/parts` away, and that is already how a killed upload picks up. Android's OkHttp path has always had 60s timeouts, so this only ever wedged on iOS.
