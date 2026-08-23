@@ -89,9 +89,10 @@ const job: Booking = {
     declines: [],
     price_min: 150_000,
     price_max: null,
-    address: { label: 'Home', line: '12 Mabini Street, Poblacion' },
+    address: { line: 'Barangay 5, Davao City, Davao del Sur, 8000' },
     latitude: 7.07,
     longitude: 125.61,
+    pin_radius: 300,
     surcharge: null,
     service: {
         id: 's1',
@@ -253,7 +254,7 @@ describe('the business side', () => {
 
         expect(await screen.findByText('Aircon cleaning')).toBeOnTheScreen();
         expect(screen.getByText('Mara')).toBeOnTheScreen();
-        expect(screen.getByText('12 Mabini Street, Poblacion')).toBeOnTheScreen();
+        expect(screen.getByText('Barangay 5, Davao City, Davao del Sur, 8000')).toBeOnTheScreen();
     });
 
     it('says so when there is nothing booked', async () => {
@@ -321,32 +322,60 @@ describe('the business side', () => {
         expect(screen.getByText('The unit drips.')).toBeOnTheScreen();
     });
 
-    it('says the number and the pin arrive with the job, before it is taken', async () => {
+    // One banner at the top rather than a disclaimer beside every field it
+    // applies to, which is how the same sentence ended up under the phone and
+    // under the map.
+    it('says once, at the top, what taking the job would tell them', async () => {
+        acting(staffAt('s1', 'Bright Electric'));
+        signedIn(jest.fn().mockResolvedValue({ data: job }));
+
+        render(<Job />);
+
+        expect(
+            await screen.findByText(
+                'Exact address and phone number are hidden until you take this job.',
+            ),
+        ).toBeOnTheScreen();
+    });
+
+    // A masked number and an empty field are different answers: one says the
+    // client is reachable and the other says they never filled it in.
+    it('shows the number masked back to its network prefix', async () => {
         acting(staffAt('s1', 'Bright Electric'));
         signedIn(
             jest.fn().mockResolvedValue({
-                data: { ...job, client: { id: 'u9', nickname: 'Mara', phone: null } },
+                data: { ...job, client: { id: 'u9', nickname: 'Mara', phone: '0917•••••••' } },
             }),
         );
 
         render(<Job />);
 
-        expect(await screen.findByText(/number is shared once you take the job/)).toBeOnTheScreen();
-        expect(screen.getByText(/pin is approximate until you take the job/)).toBeOnTheScreen();
+        expect(await screen.findByText('0917•••••••')).toBeOnTheScreen();
+        expect(screen.queryByText('No phone number on this account.')).not.toBeOnTheScreen();
     });
 
-    it('drops both notices once the job has been taken', async () => {
+    it('drops the banner once the job has been taken', async () => {
         acting(staffAt('s1', 'Bright Electric'));
         signedIn(
             jest.fn().mockResolvedValue({
-                data: { ...job, accepted_at: '2026-08-02T00:00:00.000000Z' },
+                data: {
+                    ...job,
+                    accepted_at: '2026-08-02T00:00:00.000000Z',
+                    address: { label: 'Home', line: '12 Mabini Street, Barangay 5, Davao City' },
+                    pin_radius: null,
+                    status: { ...job.status, value: 'accepted' },
+                },
             }),
         );
 
         render(<Job />);
 
         expect(await screen.findByText('09171234567')).toBeOnTheScreen();
-        expect(screen.queryByText(/pin is approximate/)).not.toBeOnTheScreen();
+        expect(
+            screen.queryByText(
+                'Exact address and phone number are hidden until you take this job.',
+            ),
+        ).not.toBeOnTheScreen();
     });
 
     it('reads one job off the business being acted as', async () => {
@@ -381,12 +410,14 @@ describe('the business side', () => {
 
         fireEvent.press(await screen.findByText('Take this job'));
 
-        // The address is on the screen twice by then -- the Where card and the
+        // The area is on the screen twice by then -- the Where card and the
         // dialog -- so the sentence is matched whole rather than by its parts.
         expect(
-            screen.getByText(/You are saying you will be at 12 Mabini Street, Poblacion/),
+            screen.getByText(/You are saying you will be in Barangay 5, Davao City/),
         ).toBeOnTheScreen();
-        expect(screen.getByText(/Mara will see that you accepted/)).toBeOnTheScreen();
+        expect(
+            screen.getByText(/The street and Mara's number arrive once you accept/),
+        ).toBeOnTheScreen();
         expect(screen.getByText('Take the job')).toBeOnTheScreen();
     });
 

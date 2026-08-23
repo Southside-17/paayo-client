@@ -56,29 +56,35 @@ export function WhereCard({
     place,
     map = true,
     audience = 'client',
-    approximate = false,
+    radius = null,
 }: {
     place: Place;
     map?: boolean;
     audience?: Audience;
-    /** The pin is the coarse one the server sends before a job is taken. */
-    approximate?: boolean;
+    /** Metres the real address can be from the pin, straight off `pin_radius`. */
+    radius?: number | null;
 }) {
     const { colorScheme } = useColorScheme();
     const colours = palette[colorScheme ?? 'light'];
     const [unopened, setUnopened] = useState(false);
     const business = audience === 'provider';
+    const area = typeof radius === 'number' && radius > 0;
     const pin =
         typeof place.latitude === 'number' && typeof place.longitude === 'number'
             ? { latitude: place.latitude, longitude: place.longitude }
             : null;
+    const unnamed = area
+        ? 'Somewhere around here'
+        : business
+          ? "The client's address"
+          : 'Your address';
 
     return (
         <Card className="gap-2">
             <View className="flex-row items-center justify-between gap-3">
                 <Label>{business ? 'Where is the job?' : 'Where is the trouble?'}</Label>
 
-                {pin ? (
+                {pin && !area ? (
                     <Pressable
                         accessibilityRole="button"
                         onPress={() => {
@@ -97,14 +103,10 @@ export function WhereCard({
             </View>
 
             {unopened ? (
-                <Text className="text-warning text-sm">
-                    No maps app on this phone answered.
-                </Text>
+                <Text className="text-warning text-sm">No maps app on this phone answered.</Text>
             ) : null}
 
-            <Text className="text-lg font-semibold">
-                {place.label ?? (business ? "The client's address" : 'Your address')}
-            </Text>
+            <Text className="text-lg font-semibold">{place.label ?? unnamed}</Text>
 
             {place.line ? (
                 <Text className="text-muted-foreground text-sm">{place.line}</Text>
@@ -117,12 +119,8 @@ export function WhereCard({
                 </View>
             ) : null}
 
-            {map && pin ? <PinMap pin={pin} focus={pin} className="mt-1 h-40" /> : null}
-
-            {map && pin && approximate ? (
-                <Text className="text-muted-foreground text-sm">
-                    The pin is approximate until you take the job.
-                </Text>
+            {map && pin ? (
+                <PinMap pin={pin} focus={pin} radius={radius} className="mt-1 h-40" />
             ) : null}
 
             {map && !pin ? (

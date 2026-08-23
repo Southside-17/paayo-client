@@ -77,6 +77,7 @@ const declined: Booking = {
     address: { label: 'Home', line: '12 Mabini Street' },
     latitude: 7.07,
     longitude: 125.61,
+    pin_radius: null,
     surcharge: null,
     service: {
         id: 's1',

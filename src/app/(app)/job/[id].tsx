@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BackButton } from '@/components/back-button';
 import { WhenCard, WhereCard } from '@/components/booking-facts';
 import { FormMessage } from '@/components/form-message';
+import { HandoverNotice } from '@/components/handover-notice';
 import { HoldNotice } from '@/components/hold-notice';
 import { MediaThumb } from '@/components/media-thumb';
 import { MediaViewer, type Viewable } from '@/components/media-viewer';
@@ -138,6 +139,8 @@ export default function Job() {
                         <>
                             <StatusPill tone={job.status.tone}>{job.status.wording}</StatusPill>
 
+                            <HandoverNotice job={job} />
+
                             <Card className="gap-1">
                                 <Label>Who asked?</Label>
                                 <Text className="text-lg font-semibold">
@@ -149,16 +152,14 @@ export default function Job() {
                                     </Text>
                                 ) : (
                                     <Text className="text-muted-foreground text-sm">
-                                        {job.accepted_at
-                                            ? 'No phone number on this account.'
-                                            : 'Their number is shared once you take the job.'}
+                                        No phone number on this account.
                                     </Text>
                                 )}
                             </Card>
 
                             <WhereCard
                                 audience="provider"
-                                approximate={!job.accepted_at}
+                                radius={job.pin_radius}
                                 place={{
                                     label: job.address.label,
                                     line: job.address.line,
@@ -264,7 +265,7 @@ export default function Job() {
                         title="Take this job?"
                         body={
                             job
-                                ? `You are saying you will be at ${job.address.line ?? 'the address'} on ${visitAt(job.scheduled_at)}. ${job.client?.nickname ?? 'The client'} will see that you accepted.`
+                                ? `You are saying you will be in ${job.address.line ?? 'the area'} on ${visitAt(job.scheduled_at)}. The street and ${job.client?.nickname ?? 'the client'}'s number arrive once you accept.`
                                 : ''
                         }
                         confirm="Take the job"

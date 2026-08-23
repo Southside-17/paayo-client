@@ -249,6 +249,12 @@ export type Booking = {
     declines: Decline[];
     price_min: number | null;
     price_max: number | null;
+    /**
+     * The place, as much of it as the reader is owed.
+     *
+     * A business waiting on an answer gets nothing finer than the barangay, so
+     * every field here is optional -- see `pin_radius`.
+     */
     address: {
         label?: string | null;
         line?: string | null;
@@ -256,6 +262,8 @@ export type Booking = {
     } & Record<string, unknown>;
     latitude: number | null;
     longitude: number | null;
+    /** Metres the real address can be from the pin. Null once the pin is exact. */
+    pin_radius: number | null;
     surcharge: number | null;
     service: { id: string; name: string; pricing_unit: PricingUnit };
     provider: { id: string; name: string };

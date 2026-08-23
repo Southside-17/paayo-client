@@ -87,6 +87,28 @@ it('offers nothing to open when the address has no pin', () => {
     expect(screen.queryByText('Open in Maps')).not.toBeOnTheScreen();
 });
 
+// Neither maps URL can draw a circle, and both drop a marker on whatever point
+// they are given -- so the handover would state the doorstep the card refuses to.
+it('hands nothing over while the pin is only an area', () => {
+    render(<WhereCard place={pinned} map={false} radius={300} audience="provider" />);
+
+    expect(screen.queryByText('Open in Maps')).not.toBeOnTheScreen();
+});
+
+it('stops short of naming the place when the address is only an area', () => {
+    render(
+        <WhereCard
+            place={{ line: 'Barangay 5, Davao City' }}
+            map={false}
+            radius={300}
+            audience="provider"
+        />,
+    );
+
+    expect(screen.getByText('Somewhere around here')).toBeOnTheScreen();
+    expect(screen.getByText('Barangay 5, Davao City')).toBeOnTheScreen();
+});
+
 // A tap that does nothing at all reads as a broken button.
 it('says so when nothing on the phone answers', async () => {
     jest.spyOn(Linking, 'openURL').mockRejectedValue(new Error('no handler'));
