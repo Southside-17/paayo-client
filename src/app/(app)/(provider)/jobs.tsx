@@ -4,7 +4,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { when } from '@/app/(app)/(tabs)/bookings';
-import { BusinessBar } from '@/components/business-bar';
+import { BusinessChip } from '@/components/business-chip';
 import { HoldNotice } from '@/components/hold-notice';
 import { NotifyNotice } from '@/components/notify-notice';
 import { Card } from '@/components/ui/card';
@@ -51,9 +51,9 @@ export default function Jobs() {
     return (
         <SafeAreaView className="bg-background flex-1" edges={['top']}>
             <ScrollView contentContainerClassName="gap-4 p-6">
-                <BusinessBar from="Jobs" />
-
-                <ScreenHeader title="Jobs" />
+                <ScreenHeader title="Jobs">
+                    <BusinessChip />
+                </ScreenHeader>
 
                 <HoldNotice suspension={staff.provider.suspension} />
 

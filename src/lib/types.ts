@@ -52,7 +52,39 @@ export type Staff = {
     role: StaffRole;
     role_label: string;
     permissions: string[];
+    /** Set once this person has asked to leave and nobody has answered. */
+    resignation_requested_at: string | null;
+    /** When an unanswered request goes through on its own. */
+    resignation_lapses_at: string | null;
     provider: Provider;
+};
+
+/** Somebody on a business's staff, as their colleagues see them. */
+export type ProviderStaff = {
+    id: string;
+    role: StaffRole;
+    role_label: string;
+    joined_at: string | null;
+    resignation_requested_at: string | null;
+    resignation_lapses_at: string | null;
+    is_you: boolean;
+    user: {
+        id: string;
+        nickname: string;
+        email: string;
+        avatar_url?: string;
+    };
+};
+
+/** Somebody asked to join a staff who has not accepted yet. */
+export type Invitation = {
+    id: string;
+    email: string;
+    role: StaffRole;
+    role_label: string;
+    is_expired: boolean;
+    expires_at: string | null;
+    created_at: string | null;
 };
 
 /**
@@ -206,6 +238,28 @@ export type Listing = {
     provider: { id: string; name: string; slug: string };
     /** Only present when the query named an address. */
     surcharge?: number | null;
+};
+
+/** Where one of a business's own offers stands, in the server's words. */
+export type ListingStanding = {
+    wording: string;
+    tone: Tone;
+    /** The sentence under the row saying why it stands there. */
+    reason: string;
+};
+
+/**
+ * One of a business's own offers, as the people on its staff see it. Not
+ * `Listing`, which is what a client is shown of somebody else's offer.
+ */
+export type ProviderListing = {
+    id: string;
+    description: string | null;
+    price_min: number | null;
+    price_max: number | null;
+    paused_at: string | null;
+    service: Service;
+    standing: ListingStanding;
 };
 
 /** One photo or video, uploaded before the booking it belongs to exists. */

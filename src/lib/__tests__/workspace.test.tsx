@@ -17,6 +17,8 @@ function staffAt(id: string, name: string): Staff {
         role: 'owner',
         role_label: 'Owner',
         permissions: ['booking:view'],
+        resignation_requested_at: null,
+        resignation_lapses_at: null,
         provider: {
             id: `p-${id}`,
             name,

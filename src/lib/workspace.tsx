@@ -35,10 +35,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     // copy, and it empties itself when someone is taken off the staff.
     const staff = businesses.find((one) => one.id === id) ?? null;
 
+    // A technician holds no permissions at all, so there is no queue and no
+    // service list to land on -- only the one screen that names the business.
     const enter = useCallback((chosen: Staff) => {
         setId(chosen.id);
         router.dismissAll();
-        router.replace('/jobs');
+        router.replace(chosen.permissions.includes('booking:view') ? '/jobs' : '/standing');
     }, []);
 
     const leave = useCallback(() => {

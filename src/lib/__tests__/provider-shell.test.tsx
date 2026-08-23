@@ -6,10 +6,9 @@ import Business from '@/app/(app)/(provider)/business';
 import ProviderLayout from '@/app/(app)/(provider)/_layout';
 import Job from '@/app/(app)/job/[id]';
 import Jobs from '@/app/(app)/(provider)/jobs';
-import Account from '@/app/(app)/(tabs)/account';
-import Switch from '@/app/(app)/switch';
+import { BusinessChip } from '@/components/business-chip';
 import { useSession } from '@/lib/session';
-import type { Booking, Staff, SuspensionNotice } from '@/lib/types';
+import type { Booking, ProviderStaff, Staff, SuspensionNotice } from '@/lib/types';
 import { useWorkspace } from '@/lib/workspace';
 
 jest.mock('@/lib/session', () => ({ useSession: jest.fn() }));
@@ -18,6 +17,7 @@ jest.mock('expo-image-picker', () => ({ launchImageLibraryAsync: jest.fn() }));
 jest.mock('expo-router', () => ({
     Link: MockLink,
     Redirect: MockRedirect,
+    Stack: MockStack,
     Tabs: MockTabs,
     useFocusEffect: MockUseFocusEffect,
     useLocalSearchParams: () => ({ id: 'b1', name: 'Aircon cleaning' }),
@@ -30,6 +30,10 @@ function MockLink({ href, children }: { href: unknown; children: ReactNode }) {
 
 function MockRedirect({ href }: { href: string }) {
     return <View accessibilityLabel={`redirect ${href}`} />;
+}
+
+function MockStack() {
+    return <View accessibilityLabel="stack" />;
 }
 
 function MockTabs({ children }: { children: ReactNode }) {
@@ -54,12 +58,19 @@ const held: SuspensionNotice = {
     appealed_at: null,
 };
 
-function staffAt(id: string, name: string, over: Partial<Staff['provider']> = {}): Staff {
+function staffAt(
+    id: string,
+    name: string,
+    over: Partial<Staff['provider']> = {},
+    permissions: string[] = ['booking:view', 'staff:view', 'invitation:view', 'listing:view'],
+): Staff {
     return {
         id,
-        role: 'owner',
-        role_label: 'Owner',
-        permissions: ['booking:view'],
+        role: permissions.length === 0 ? 'technician' : 'owner',
+        role_label: permissions.length === 0 ? 'Technician' : 'Owner',
+        permissions,
+        resignation_requested_at: null,
+        resignation_lapses_at: null,
         provider: {
             id: `p-${id}`,
             name,
@@ -70,6 +81,38 @@ function staffAt(id: string, name: string, over: Partial<Staff['provider']> = {}
             ...over,
         },
     };
+}
+
+/**
+ * Somebody on a staff, as the roster sends them.
+ */
+function person(over: Partial<ProviderStaff> = {}): ProviderStaff {
+    return {
+        id: 'st1',
+        role: 'owner',
+        role_label: 'Owner',
+        joined_at: '2026-02-03T00:00:00.000000Z',
+        resignation_requested_at: null,
+        resignation_lapses_at: null,
+        is_you: true,
+        user: { id: 'u1', nickname: 'Mara', email: 'mara@example.com' },
+        ...over,
+    };
+}
+
+/**
+ * Somebody who has asked to leave and is waiting on an answer.
+ */
+function leaver(): ProviderStaff {
+    return person({
+        id: 'st2',
+        role: 'technician',
+        role_label: 'Technician',
+        is_you: false,
+        resignation_requested_at: '2026-09-03T00:00:00.000000Z',
+        resignation_lapses_at: '2026-09-10T00:00:00.000000Z',
+        user: { id: 'u2', nickname: 'Jun', email: 'jun@example.com' },
+    });
 }
 
 const job: Booking = {
@@ -137,64 +180,119 @@ function signedIn(authenticatedRequest: jest.Mock = jest.fn(), staffs: Staff[] =
     });
 }
 
+/**
+ * One request mock that answers by path, because the business screen reads its
+ * staff, its invitations and its offers in the same breath.
+ */
+function answering(byPath: Record<string, unknown>) {
+    return jest.fn(async (path: string) => {
+        const match = Object.keys(byPath).find((key) => path.includes(key));
+
+        return match ? byPath[match] : { data: [] };
+    });
+}
+
 beforeEach(() => jest.clearAllMocks());
 
 describe('the way in', () => {
-    it('offers no switch to an account that is on no staff', () => {
+    it('draws no chip for an account that is on no staff', () => {
         signedIn();
+        acting(null, []);
 
-        render(<Account />);
+        render(<BusinessChip />);
 
-        expect(screen.queryByText(/Switch to/)).not.toBeOnTheScreen();
+        expect(screen.queryByLabelText(/Acting as/)).not.toBeOnTheScreen();
     });
 
-    // One business is named outright: that reads as the thing it does, where
-    // "a business" reads as a category of thing.
-    it('names the one business rather than calling it a business', () => {
+    it('names the side being acted on', () => {
         signedIn(jest.fn(), [staffAt('s1', 'Bright Electric')]);
+        acting(null, [staffAt('s1', 'Bright Electric')]);
 
-        render(<Account />);
+        render(<BusinessChip />);
 
-        expect(screen.getByText('Switch to Bright Electric')).toBeOnTheScreen();
+        expect(screen.getByText('Mara')).toBeOnTheScreen();
     });
 
-    it('stops naming them once there is more than one', () => {
-        signedIn(jest.fn(), [staffAt('s1', 'Bright Electric'), staffAt('s2', 'Zamora Aircon')]);
+    // One business is the common case, so the chip switches straight across.
+    // A sheet listing two rows to make a foregone choice is a wasted tap.
+    it('switches straight across when there is only one business', () => {
+        const business = staffAt('s1', 'Bright Electric');
+        signedIn(jest.fn(), [business]);
+        acting(null, [business]);
 
-        render(<Account />);
+        render(<BusinessChip />);
 
-        expect(screen.getByText('Switch to a business')).toBeOnTheScreen();
-        expect(screen.getByText('2 businesses')).toBeOnTheScreen();
+        fireEvent.press(screen.getByLabelText(/Acting as/));
+
+        expect(enter).toHaveBeenCalledWith(business);
+        expect(screen.queryByText('Act as')).not.toBeOnTheScreen();
+    });
+
+    it('switches straight back out again', () => {
+        const business = staffAt('s1', 'Bright Electric');
+        signedIn(jest.fn(), [business]);
+        acting(business, [business]);
+
+        render(<BusinessChip />);
+
+        fireEvent.press(screen.getByLabelText(/Acting as/));
+
+        expect(leave).toHaveBeenCalled();
     });
 });
 
 describe('the switcher', () => {
-    it('lists personal above every business', () => {
-        acting(null, [staffAt('s1', 'Bright Electric'), staffAt('s2', 'Zamora Aircon')]);
+    const two = () => [staffAt('s1', 'Bright Electric'), staffAt('s2', 'Zamora Aircon')];
 
-        render(<Switch />);
+    it('opens a sheet once there is a choice to make', () => {
+        signedIn(jest.fn(), two());
+        acting(null, two());
 
-        expect(screen.getByText('Personal')).toBeOnTheScreen();
+        render(<BusinessChip />);
+
+        fireEvent.press(screen.getByLabelText(/Acting as/));
+
+        expect(screen.getByText('Act as')).toBeOnTheScreen();
         expect(screen.getByText('Bright Electric')).toBeOnTheScreen();
         expect(screen.getByText('Zamora Aircon')).toBeOnTheScreen();
     });
 
+    // Name over role, so the personal row parses the same way a business row
+    // does: who, then what you are there.
+    it('leads the personal row with the name and puts Personal under it', () => {
+        signedIn(jest.fn(), two());
+        acting(null, two());
+
+        render(<BusinessChip />);
+
+        fireEvent.press(screen.getByLabelText(/Acting as/));
+
+        // Twice: once on the chip, once as the row it opens.
+        expect(screen.getAllByText('Mara')).toHaveLength(2);
+        expect(screen.getByText('Personal')).toBeOnTheScreen();
+    });
+
     it('switches into the business that was tapped', () => {
-        const business = staffAt('s1', 'Bright Electric');
-        acting(null, [business]);
+        const businesses = two();
+        signedIn(jest.fn(), businesses);
+        acting(null, businesses);
 
-        render(<Switch />);
+        render(<BusinessChip />);
 
-        fireEvent.press(screen.getByText('Bright Electric'));
+        fireEvent.press(screen.getByLabelText(/Acting as/));
+        fireEvent.press(screen.getByText('Zamora Aircon'));
 
-        expect(enter).toHaveBeenCalledWith(business);
+        expect(enter).toHaveBeenCalledWith(businesses[1]);
     });
 
     it('switches back out to personal', () => {
-        acting(staffAt('s1', 'Bright Electric'));
+        const businesses = two();
+        signedIn(jest.fn(), businesses);
+        acting(businesses[0], businesses);
 
-        render(<Switch />);
+        render(<BusinessChip />);
 
+        fireEvent.press(screen.getByLabelText(/Acting as/));
         fireEvent.press(screen.getByText('Personal'));
 
         expect(leave).toHaveBeenCalled();
@@ -203,16 +301,19 @@ describe('the switcher', () => {
     // Held businesses stay on the list and stay tappable. Hiding one would be
     // the single way of never being told about it.
     it('keeps a suspended business listed, and says so on the row', () => {
-        const suspended = staffAt('s1', 'Held Cooling', { suspension: held });
-        acting(null, [suspended]);
+        const businesses = [staffAt('s1', 'Held Cooling', { suspension: held }), staffAt('s2', 'Zamora Aircon')];
+        signedIn(jest.fn(), businesses);
+        acting(null, businesses);
 
-        render(<Switch />);
+        render(<BusinessChip />);
 
-        expect(screen.getByText('suspended')).toBeOnTheScreen();
+        fireEvent.press(screen.getByLabelText(/Acting as/));
+
+        expect(screen.getByText('on hold')).toBeOnTheScreen();
 
         fireEvent.press(screen.getByText('Held Cooling'));
 
-        expect(enter).toHaveBeenCalledWith(suspended);
+        expect(enter).toHaveBeenCalledWith(businesses[0]);
     });
 });
 
@@ -291,22 +392,47 @@ describe('the business side', () => {
         expect(await screen.findByText('This business is on hold')).toBeOnTheScreen();
     });
 
-    it('names the market the business is locked to', () => {
+    it('names the market the business is locked to', async () => {
         acting(staffAt('s1', 'Bright Electric'));
+        signedIn(answering({}));
 
         render(<Business />);
 
-        expect(screen.getByText('Davao City')).toBeOnTheScreen();
+        expect(await screen.findByText('Davao City')).toBeOnTheScreen();
         expect(screen.getByText('registered')).toBeOnTheScreen();
     });
 
-    it('warns when no market has been set, since nothing can be booked', () => {
+    it('warns when no market has been set, since nothing can be booked', async () => {
         acting(staffAt('s1', 'Bright Electric', { market: null, registration_verified: false }));
+        signedIn(answering({}));
 
         render(<Business />);
 
-        expect(screen.getByText(/No market yet/)).toBeOnTheScreen();
-        expect(screen.getByText('not registered')).toBeOnTheScreen();
+        expect(
+            await screen.findByText(/No market yet, so nothing can be booked/),
+        ).toBeOnTheScreen();
+        expect(screen.getByText('no papers')).toBeOnTheScreen();
+    });
+
+    // Staff leads because it is the only thing on the screen anybody can change.
+    it('leads with the people, and names the ones who want out', async () => {
+        acting(staffAt('s1', 'Bright Electric'));
+        signedIn(answering({ '/staffs': { data: [person(), leaver()] } }));
+
+        render(<Business />);
+
+        expect(await screen.findByText('Jun')).toBeOnTheScreen();
+        expect(screen.getByText(/Mara/)).toBeOnTheScreen();
+        expect(screen.getByText('Wants to leave')).toBeOnTheScreen();
+    });
+
+    it('says who owns the market and the papers, since the business cannot change either', async () => {
+        acting(staffAt('s1', 'Bright Electric'));
+        signedIn(answering({}));
+
+        render(<Business />);
+
+        expect(await screen.findByText('Set by Paayo')).toBeOnTheScreen();
     });
 
     it('shows one job in full, leading with who asked and how to reach them', async () => {
@@ -515,13 +641,13 @@ describe('the business side', () => {
         expect(screen.queryByText("Can't take it")).not.toBeOnTheScreen();
     });
 
-    it('offers the way back to personal', () => {
-        acting(staffAt('s1', 'Bright Electric'));
+    it('keeps the staff away from a technician, who may not read it', async () => {
+        acting(staffAt('s1', 'Bright Electric', {}, []));
+        signedIn(answering({ '/staffs': { data: [person()] } }));
 
         render(<Business />);
 
-        fireEvent.press(screen.getByText('Switch to personal'));
-
-        expect(leave).toHaveBeenCalled();
+        expect(await screen.findByText('Set by Paayo')).toBeOnTheScreen();
+        expect(screen.queryByText('Who works here')).not.toBeOnTheScreen();
     });
 });
