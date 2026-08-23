@@ -138,7 +138,7 @@ export function PinMap({ pin, focus, radius, onMove, className = 'h-56' }: Props
                               {
                                   center: pin,
                                   radius: radius as number,
-                                  color: `${colours.brand}33`,
+                                  color: colours['brand-subtle'],
                                   lineColor: colours.brand,
                                   lineWidth: 2,
                               },

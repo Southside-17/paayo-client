@@ -178,8 +178,8 @@ it('draws a circle and no marker when the pin carries a radius', () => {
     ]);
 });
 
-// The seeded ground sits exactly on the snapping grid, so the coarse pin and
-// the real one are the same point. The circle is the only thing that says so.
+// A pin already on a grid line is left where it is, so the coarse pin and the
+// real one are the same point. The circle is the only thing that says so.
 it('still draws the circle where snapping moved the pin nowhere', () => {
     const onGrid = { latitude: 7.07, longitude: 125.61 };
 
