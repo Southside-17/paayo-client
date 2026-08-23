@@ -6,11 +6,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { when } from '@/app/(app)/(tabs)/bookings';
 import { BusinessBar } from '@/components/business-bar';
 import { HoldNotice } from '@/components/hold-notice';
+import { NotifyNotice } from '@/components/notify-notice';
 import { Card } from '@/components/ui/card';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusPill } from '@/components/ui/status-pill';
 import { Text } from '@/components/ui/text';
+import { enablePush, pushIsReachable, pushIsSupported } from '@/lib/push';
 import { useSession } from '@/lib/session';
 import type { Booking } from '@/lib/types';
 import { useWorkspace } from '@/lib/workspace';
@@ -22,6 +24,7 @@ export default function Jobs() {
     const session = useSession();
     const { staff } = useWorkspace();
     const [jobs, setJobs] = useState<Booking[] | null>(null);
+    const [reachable, setReachable] = useState(true);
 
     const authenticatedRequest =
         session.status === 'authenticated' ? session.authenticatedRequest : null;
@@ -36,6 +39,8 @@ export default function Jobs() {
             void authenticatedRequest<{ data: Booking[] }>(`/providers/${provider}/bookings`)
                 .then(({ data }) => setJobs(data))
                 .catch(() => setJobs([]));
+
+            void pushIsReachable().then(setReachable);
         }, [authenticatedRequest, provider]),
     );
 
@@ -51,6 +56,16 @@ export default function Jobs() {
                 <ScreenHeader title="Jobs" />
 
                 <HoldNotice suspension={staff.provider.suspension} />
+
+                {pushIsSupported() && !reachable ? (
+                    <NotifyNotice
+                        onAsk={() => {
+                            void (session.status === 'authenticated'
+                                ? enablePush(session.token ?? '').then(setReachable)
+                                : null);
+                        }}
+                    />
+                ) : null}
 
                 {jobs === null
                     ? [0, 1].map((at) => (

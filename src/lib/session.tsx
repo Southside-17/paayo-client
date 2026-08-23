@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 
 import { ApiError, DEVICE_NAME, request, type RequestMethod } from './api';
 import { passkeyAssertion } from './passkey';
+import { dropPushRegistration, syncPushRegistration } from './push';
 import { clearToken, readToken, writeToken } from './tokens';
 import { isTwoFactorChallenge, type LoginResult, type TokenResponse, type User } from './types';
 
@@ -45,6 +46,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         await writeToken(response.token);
         setToken(response.token);
         setState({ status: 'authenticated', user: response.data });
+
+        void syncPushRegistration(response.token);
     }, []);
 
     const forget = useCallback(async () => {
@@ -243,6 +246,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     const logout = useCallback(async () => {
         try {
             if (token) {
+                await dropPushRegistration(token);
                 await request<void>('/auth/logout', { method: 'POST', token });
             }
         } catch {

@@ -1,6 +1,7 @@
 import type { ExpoConfig } from 'expo/config';
 import { withXcodeProject } from 'expo/config-plugins';
 
+import { withIosPushEntitlement } from './scripts/with-ios-push-entitlement';
 import { withIosSceneLifecycle } from './scripts/with-ios-scene-lifecycle';
 import palette from './src/theme/palette';
 
@@ -28,6 +29,10 @@ const config: ExpoConfig = {
     icon: './assets/images/icon.png',
     android: {
         package: 'com.paayo.ph',
+        // Firebase Cloud Messaging reads the sender id out of this file. Without
+        // it the app registers against no project and getDevicePushTokenAsync
+        // rejects; there is no key to put in app.config.ts instead.
+        googleServicesFile: process.env.GOOGLE_SERVICES_JSON ?? './google-services.json',
         // expo-maps carries Google Maps on Android only; iOS renders Apple Maps
         // and needs no key. Restrict this one to Android apps, this package and
         // the signing SHA-1, with no API on it but Maps SDK for Android.
@@ -55,6 +60,12 @@ const config: ExpoConfig = {
             process.env.EXPO_PUBLIC_PASSKEY_RP_ID && process.env.EXPO_PUBLIC_PASSKEY_IOS
                 ? [`webcredentials:${process.env.EXPO_PUBLIC_PASSKEY_RP_ID}`]
                 : undefined,
+        // Push Notifications is a paid Apple Developer Program capability, the
+        // same as Associated Domains above: a free Personal Team cannot hold the
+        // entitlement and asking for it fails the whole build, not only push.
+        entitlements: process.env.EXPO_PUBLIC_PUSH_IOS
+            ? { 'aps-environment': 'development' }
+            : undefined,
         infoPlist: {
             NSLocalNetworkUsageDescription:
                 'Paayo reaches the development server running on your computer.',
@@ -177,4 +188,4 @@ function withIosBuildSettings(expoConfig: ExpoConfig): ExpoConfig {
     });
 }
 
-export default withIosSceneLifecycle(withIosBuildSettings(config));
+export default withIosPushEntitlement(withIosSceneLifecycle(withIosBuildSettings(config)));

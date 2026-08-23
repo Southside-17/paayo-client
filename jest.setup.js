@@ -84,3 +84,18 @@ jest.mock('expo-video', () => {
         __play: play,
     };
 });
+
+// expo-notifications reaches the OS for permission and for a token, and warns
+// on import about Expo Go. The stand-in denies by default, which is how a phone
+// that has never been asked behaves; a test that wants a granted phone says so.
+jest.mock('expo-notifications', () => ({
+    getPermissionsAsync: jest.fn(async () => ({ granted: false, canAskAgain: true })),
+    requestPermissionsAsync: jest.fn(async () => ({ granted: false, canAskAgain: true })),
+    getDevicePushTokenAsync: jest.fn(async () => ({ data: 'device-token', type: 'android' })),
+    setNotificationHandler: jest.fn(),
+    addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+}));
+
+// Android push needs no entitlement, so the suite runs as a build that can be
+// notified on either platform. The iOS-unconfigured case reloads the module.
+process.env.EXPO_PUBLIC_PUSH_IOS = '1';

@@ -1,6 +1,7 @@
 ---
 paths:
   - 'src/lib/api.ts'
+  - 'src/lib/push.ts'
   - 'src/lib/session.tsx'
   - 'src/lib/types.ts'
   - 'src/lib/upload.ts'
@@ -166,3 +167,35 @@ There is no `received` on an attachment. The server never sees the bytes, so it 
 **A part is put on a foreground session, and that is not the default.** `expo-file-system` asks for `sessionType: 'background'` unless told otherwise, and an iOS background `URLSession` waits for connectivity rather than failing -- its resource timeout is seven days. So a part the store never answers neither lands nor errors, `uploadAsync` never settles, and the attachment stays at a progress that never becomes `null`. `stillSending` reads that as an upload in flight and Book refuses to place the booking with "Wait for the upload to finish.", with no progress and no retry tile, until the app is killed. The way to get there is a signed address naming a host the client cannot reach -- which is what `AWS_ENDPOINT=localhost` on the server hands a phone.
 
 Foreground costs nothing here. The module does not restore the JavaScript `UploadTask` after a relaunch, so a background session could never report a part it finished while the app was away either; resuming is a `GET /attachments/{id}/parts` away, and that is already how a killed upload picks up. Android's OkHttp path has always had 60s timeouts, so this only ever wedged on iOS.
+
+## Push registers on sign in but never prompts there
+`syncPushRegistration()` runs from `adopt()` and posts the token only when the OS
+has **already** granted permission. It never calls
+`requestPermissionsAsync()` — a prompt at sign in is the one guaranteed to be
+declined, and iOS gives you exactly one ask per install. The ask lives on the
+Jobs screen behind `NotifyNotice`, where a business is looking at the work it
+would be notified about.
+
+`dropPushRegistration()` runs inside `logout()` **before** `/auth/logout`, since
+the bearer token is what authorises the delete. It swallows its own failures:
+signing out matters more than tidying up, and the server drops the row anyway
+the next time Apple or Google reports the token gone.
+
+`getDevicePushTokenAsync()`, never `getExpoPushTokenAsync()` — the server talks
+to APNs and FCM directly and an Expo token is meaningless to it. See the
+server's `.ai/rules/push.md` for why that choice is not reversible cheaply.
+
+## pushIsSupported() is the iOS entitlement gate, exactly like passkeys
+Android returns true unconditionally; iOS returns true only when
+`EXPO_PUBLIC_PUSH_IOS` is set. Push Notifications is a paid Apple Developer
+Program capability, so a free Personal Team build must not declare
+`aps-environment` at all — Xcode refuses to mint a profile and the app stops
+installing, not just push. Same shape and same reason as
+`EXPO_PUBLIC_PASSKEY_IOS`; the env pair is read as the module graph is built, so
+tests reload the module inside `jest.isolateModules`.
+
+`android.googleServicesFile` is required for FCM and is not committed. Without
+`google-services.json` the app registers against no project and the token read
+throws, which `readPushToken()` swallows — so a missing file looks like a phone
+that simply cannot be notified, with nothing in the UI to say why. Check
+`adb logcat | grep -i fcm`.

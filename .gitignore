@@ -27,3 +27,6 @@ expo-env.d.ts
 
 # OS
 .DS_Store
+
+# Firebase client config: environment specific, and regenerated per project.
+google-services.json

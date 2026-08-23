@@ -1,6 +1,8 @@
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import * as Notifications from 'expo-notifications';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'nativewind';
+import { useEffect } from 'react';
 import { ActivityIndicator, LogBox, View } from 'react-native';
 
 import { SessionProvider, useSession } from '@/lib/session';
@@ -13,6 +15,40 @@ import '../global.css';
  * LogBox's notification bar cannot be read in this app, so it is turned off.
  */
 LogBox.ignoreAllLogs();
+
+Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+    }),
+});
+
+/** Where a notification of each kind is read in full. */
+const DESTINATIONS: Record<string, (id: string) => string> = {
+    'booking.placed': (id) => `/job/${id}`,
+    'booking.accepted': (id) => `/booking/${id}`,
+    'booking.declined': (id) => `/booking/${id}`,
+};
+
+/**
+ * Open the record a tapped notification is about.
+ */
+function useNotificationTaps() {
+    useEffect(() => {
+        const listener = Notifications.addNotificationResponseReceivedListener(({ notification }) => {
+            const data = notification.request.content.data as Record<string, unknown>;
+            const destination = DESTINATIONS[String(data.type)];
+
+            if (destination && typeof data.booking_id === 'string') {
+                router.push(destination(data.booking_id) as never);
+            }
+        });
+
+        return () => listener.remove();
+    }, []);
+}
 
 /**
  * React Navigation paints the ground beneath every screen and during every
@@ -39,6 +75,8 @@ function navigationTheme(scheme: 'light' | 'dark') {
 
 function RootNavigator() {
     const session = useSession();
+
+    useNotificationTaps();
 
     if (session.status === 'loading') {
         return (
