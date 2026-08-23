@@ -48,6 +48,7 @@ export default function Job() {
     const [viewing, setViewing] = useState<Viewable | null>(null);
     const [taking, setTaking] = useState(false);
     const [turningDown, setTurningDown] = useState(false);
+    const [refusing, setRefusing] = useState(false);
     const [note, setNote] = useState('');
 
     const authenticatedRequest =
@@ -86,6 +87,7 @@ export default function Job() {
 
             setJob(data);
             setTurningDown(false);
+            setNote('');
             router.back();
         });
 
@@ -155,7 +157,10 @@ export default function Job() {
                                 )}
                             </Card>
 
+                            {/* Both cards are read from the client's end too,
+                                so they are told which end this is. */}
                             <WhereCard
+                                audience="provider"
                                 place={{
                                     label: job.address.label,
                                     line: job.address.line,
@@ -165,7 +170,7 @@ export default function Job() {
                                 }}
                             />
 
-                            <WhenCard scheduled={job.scheduled_at} />
+                            <WhenCard scheduled={job.scheduled_at} audience="provider" />
 
                             <Card className="gap-2">
                                 <Label>What does it look like?</Label>
@@ -230,11 +235,7 @@ export default function Job() {
                                             <Button
                                                 variant="outline"
                                                 busy={busy}
-                                                onPress={() =>
-                                                    void answer('refusal', {
-                                                        note: note.trim() || null,
-                                                    })
-                                                }
+                                                onPress={() => setRefusing(true)}
                                             >
                                                 Turn it down
                                             </Button>
@@ -284,6 +285,29 @@ export default function Job() {
                             void answer('acceptance');
                         }}
                         onDismiss={() => setTaking(false)}
+                    />
+
+                    {/* Both answers commit the business, so both are asked for.
+                        This one names what the client is left with, because
+                        turning work down is the answer that cannot be taken
+                        back. */}
+                    <ConfirmDialog
+                        open={refusing}
+                        title="Turn down this job?"
+                        body={
+                            job
+                                ? `${job.client?.nickname ?? 'The client'} will be asked to choose another business. You cannot take this job back afterwards.`
+                                : ''
+                        }
+                        confirm="Turn it down"
+                        dismiss="Keep it"
+                        destructive
+                        busy={busy}
+                        onConfirm={() => {
+                            setRefusing(false);
+                            void answer('refusal', { note: note.trim() || null });
+                        }}
+                        onDismiss={() => setRefusing(false)}
                     />
 
                     <MediaViewer item={viewing} onClose={() => setViewing(null)} />

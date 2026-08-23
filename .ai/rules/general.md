@@ -27,7 +27,7 @@ already does this, so anything built on it is covered.
 the usual advice -- makes the component inert, because an edge-to-edge window is
 never resized for the keyboard whatever `adjustResize` says in the manifest.
 
-`src/lib/__tests__/keyboard-avoidance.test.ts` enforces it: it reads every
+`src/lib/__tests__/keyboard-avoidance.test.js` enforces it: it reads every
 `.tsx` under `src/` that imports the `Input` primitive and fails the ones that
 reference neither `KeyboardAvoiding` nor `AuthScreen`. Do not exempt a file to
 make it pass -- the exemption list is for the primitives themselves.

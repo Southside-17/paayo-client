@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react-native';
 
-import { WhenCard } from '@/components/booking-facts';
+import { WhenCard, WhereCard } from '@/components/booking-facts';
 
 /** Tuesday, 1 September 2026 at half past two, built locally so no zone shifts it. */
 const visit = new Date(2026, 8, 1, 14, 30);
@@ -26,4 +26,32 @@ it('drops the minutes from an hour that has none', () => {
     render(<WhenCard scheduled={new Date(2026, 8, 1, 8, 0).toISOString()} />);
 
     expect(screen.getByText('8AM')).toBeOnTheScreen();
+});
+
+// The same booking is read from both ends. A business reading "when are they
+// arriving?" about its own visit is being addressed as somebody else.
+it('asks the client when someone is coming to them', () => {
+    render(<WhenCard scheduled={visit.toISOString()} />);
+
+    expect(screen.getByText('When are they arriving?')).toBeOnTheScreen();
+});
+
+it('asks the business when it is expected', () => {
+    render(<WhenCard scheduled={visit.toISOString()} audience="provider" />);
+
+    expect(screen.getByText('When are you expected?')).toBeOnTheScreen();
+});
+
+it("calls the address the client's, not the reader's, on the business side", () => {
+    render(<WhereCard place={{ line: '12 Mabini Street' }} map={false} audience="provider" />);
+
+    expect(screen.getByText('Where is the job?')).toBeOnTheScreen();
+    expect(screen.getByText("The client's address")).toBeOnTheScreen();
+});
+
+it("keeps the trouble the client's own on their side", () => {
+    render(<WhereCard place={{ line: '12 Mabini Street' }} map={false} />);
+
+    expect(screen.getByText('Where is the trouble?')).toBeOnTheScreen();
+    expect(screen.getByText('Your address')).toBeOnTheScreen();
 });

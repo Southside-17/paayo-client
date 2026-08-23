@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 import { useEffect, type ReactNode } from 'react';
 import { View } from 'react-native';
 
@@ -370,7 +370,7 @@ describe('the business side', () => {
         render(<Job />);
 
         fireEvent.press(await screen.findByText('Take this job'));
-        fireEvent.press(screen.getByText('Take the job'));
+        fireEvent.press(within(screen.getByTestId('confirm-dialog')).getByText('Take the job'));
 
         await waitFor(() =>
             expect(authenticatedRequest).toHaveBeenCalledWith(
@@ -393,12 +393,54 @@ describe('the business side', () => {
             '  Fully booked.  ',
         );
         fireEvent.press(screen.getByText('Turn it down'));
+        fireEvent.press(within(screen.getByTestId('confirm-dialog')).getByText('Turn it down'));
 
         await waitFor(() =>
             expect(authenticatedRequest).toHaveBeenCalledWith(
                 '/providers/p-s1/bookings/b1/refusal',
                 { method: 'POST', body: { note: 'Fully booked.' } },
             ),
+        );
+    });
+
+    // Both answers commit the business, so neither goes through on one tap.
+    it('names what the client is left with before the job is turned down', async () => {
+        acting(staffAt('s1', 'Bright Electric'));
+        const authenticatedRequest = jest.fn().mockResolvedValue({ data: job });
+        signedIn(authenticatedRequest);
+
+        render(<Job />);
+
+        fireEvent.press(await screen.findByText("Can't take it"));
+        fireEvent.press(screen.getByText('Turn it down'));
+
+        const dialog = within(screen.getByTestId('confirm-dialog'));
+
+        expect(dialog.getByText('Turn down this job?')).toBeOnTheScreen();
+        expect(
+            dialog.getByText(/Mara will be asked to choose another business/),
+        ).toBeOnTheScreen();
+        expect(authenticatedRequest).not.toHaveBeenCalledWith(
+            '/providers/p-s1/bookings/b1/refusal',
+            expect.anything(),
+        );
+    });
+
+    it('leaves the job alone when the refusal is backed out of', async () => {
+        acting(staffAt('s1', 'Bright Electric'));
+        const authenticatedRequest = jest.fn().mockResolvedValue({ data: job });
+        signedIn(authenticatedRequest);
+
+        render(<Job />);
+
+        fireEvent.press(await screen.findByText("Can't take it"));
+        fireEvent.press(screen.getByText('Turn it down'));
+        fireEvent.press(within(screen.getByTestId('confirm-dialog')).getByText('Keep it'));
+
+        expect(screen.queryByTestId('confirm-dialog')).not.toBeOnTheScreen();
+        expect(authenticatedRequest).not.toHaveBeenCalledWith(
+            '/providers/p-s1/bookings/b1/refusal',
+            expect.anything(),
         );
     });
 

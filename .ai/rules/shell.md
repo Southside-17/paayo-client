@@ -160,14 +160,21 @@ sheet with teal system buttons and Roboto -- which against this app's amber,
 Urbanist and dark card reads as a dialog from a different application. It was
 tried and rejected on exactly that ground.
 
-Two actions ask before they happen, and both are the kind that should: placing
-a booking commits someone to a visit, and cancelling one cannot be undone.
+Every answer that commits a person or a business asks first: placing a booking,
+cancelling one, taking a job, and turning one down. There is no one-tap path
+through any of them.
 
 The confirming button says what happens -- **Place booking**, **Cancel
-booking** -- never OK. The way out is never the word the confirming button
-uses: a dialog headed "Cancel this booking?" offers **Keep it**, because a
-button reading Cancel there means both things at once. Destructive actions take
-`destructive`, which is the one place `Button`'s destructive variant is used.
+booking**, **Take the job**, **Turn it down** -- never OK, and it keeps the
+same wording as the button that opened it. The way out is never the word the
+confirming button uses: a dialog headed "Cancel this booking?" offers **Keep
+it**, because a button reading Cancel there means both things at once.
+`destructive` is reserved for what cannot be taken back -- cancelling a booking
+and turning down a job -- and is the only use of `Button`'s destructive
+variant.
+
+The card carries `testID="confirm-dialog"`, so a test presses the dialog's
+button rather than the one behind it when both read the same.
 
 The backdrop dismisses, matching every other dialog on the platform.
 
@@ -291,7 +298,7 @@ that is temporarily unavailable rather than as something that does not exist.
 ## A screen with a text field wraps in KeyboardAvoiding
 See `.ai/rules/general.md`, first section. `job/[id].tsx` shipped without it and
 its decline note typed underneath the keyboard -- the third time that exact bug
-has gone out. `src/lib/__tests__/keyboard-avoidance.test.ts` now fails any
+has gone out. `src/lib/__tests__/keyboard-avoidance.test.js` now fails any
 screen importing `Input` that references neither `KeyboardAvoiding` nor
 `AuthScreen`.
 
@@ -303,17 +310,32 @@ mistake exactly as cheap as the common action.
 
 `job/[id].tsx` gives **Take this job** the primary full-width button and
 **Can't take it** a ghost beneath it. Declining swaps the pair for a note field
-and its own confirm rather than opening a dialog — `ConfirmDialog` holds no
-input, and typing a reason is itself the deliberate step.
+— `ConfirmDialog` holds no input, so the reason is typed on the screen — and
+both answers then confirm.
 
-The accept dialog names the promise instead of asking whether you are sure:
-*"You are saying you will be at 12 Mabini Street on Tue 1 Sep at 9AM. Mara will
-see that you accepted."* The confirming button says what happens — **Take the
-job** — which is the rule confirmations already follow here.
+Each dialog names what it does instead of asking whether you are sure.
+Accepting: *"You are saying you will be at 12 Mabini Street on Tue 1 Sep at
+9AM. Mara will see that you accepted."* Turning down: *"Mara will be asked to
+choose another business. You cannot take this job back afterwards."* — the
+client's position and the irreversibility, which are the two things a business
+would want to have been told.
 
 The header carries the visit time beside the price. A provider deciding is
 answering *is this worth my Tuesday morning*, and those two facts are the
 decision; the service name is context and `WhenCard` sits below the fold.
+
+## A shared card is told which end is reading it
+`WhoCard`, `WhereCard` and `WhenCard` in `src/components/booking-facts.tsx` are
+drawn on both `booking/[id].tsx` and `job/[id].tsx`, and the words are not the
+same from both ends. A business reading *"When are they arriving?"* about its
+own visit is being addressed as somebody else, which is how the provider side
+shipped.
+
+They take `audience: 'client' | 'provider'`, defaulting to `client`, and swap
+every sentence that names a reader -- *When are you expected?*, *Where is the
+job?*, *The client's address*. Reuse a card on a new screen and the first
+question is whose voice it is written in; the default is the client's, so the
+business side always passes the prop.
 
 ## A hold replaces the controls, it does not disable them
 Under a provider suspension `job/[id].tsx` draws `HoldNotice` where Accept and

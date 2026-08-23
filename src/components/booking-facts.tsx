@@ -6,6 +6,14 @@ import { Label } from '@/components/ui/label';
 import { Text } from '@/components/ui/text';
 import { cn } from '@/lib/utils';
 
+/**
+ * Who is reading the card.
+ *
+ * One booking is read from both ends, and the words are not the same from both
+ * ends: the client is waiting for somebody, the business is the somebody.
+ */
+export type Audience = 'client' | 'provider';
+
 /** The parts of an address worth reading back before someone is sent to it. */
 export type Place = {
     label?: string | null;
@@ -39,7 +47,16 @@ export function WhoCard({ provider, note }: { provider: string; note?: string })
  * decided which services and which provider were offered. Changing it here
  * would quietly invalidate both.
  */
-export function WhereCard({ place, map = true }: { place: Place; map?: boolean }) {
+export function WhereCard({
+    place,
+    map = true,
+    audience = 'client',
+}: {
+    place: Place;
+    map?: boolean;
+    audience?: Audience;
+}) {
+    const business = audience === 'provider';
     const pin =
         typeof place.latitude === 'number' && typeof place.longitude === 'number'
             ? { latitude: place.latitude, longitude: place.longitude }
@@ -47,8 +64,10 @@ export function WhereCard({ place, map = true }: { place: Place; map?: boolean }
 
     return (
         <Card className="gap-2">
-            <Label>Where is the trouble?</Label>
-            <Text className="text-lg font-semibold">{place.label ?? 'Your address'}</Text>
+            <Label>{business ? 'Where is the job?' : 'Where is the trouble?'}</Label>
+            <Text className="text-lg font-semibold">
+                {place.label ?? (business ? "The client's address" : 'Your address')}
+            </Text>
 
             {place.line ? (
                 <Text className="text-muted-foreground text-sm">{place.line}</Text>
@@ -65,7 +84,9 @@ export function WhereCard({ place, map = true }: { place: Place; map?: boolean }
 
             {map && !pin ? (
                 <Text className="text-warning text-sm">
-                    This address has no pin, so nobody can be matched to it.
+                    {business
+                        ? 'This job has no pin, so there is no map to follow.'
+                        : 'This address has no pin, so nobody can be matched to it.'}
                 </Text>
             ) : null}
         </Card>
@@ -89,7 +110,13 @@ function clock(at: Date): string {
 /**
  * When someone is coming, drawn as the week the visit falls in.
  */
-export function WhenCard({ scheduled }: { scheduled: string }) {
+export function WhenCard({
+    scheduled,
+    audience = 'client',
+}: {
+    scheduled: string;
+    audience?: Audience;
+}) {
     const visit = new Date(scheduled);
     const monday = new Date(visit);
 
@@ -105,7 +132,9 @@ export function WhenCard({ scheduled }: { scheduled: string }) {
 
     return (
         <Card className="gap-2">
-            <Label>When are they arriving?</Label>
+            <Label>
+                {audience === 'provider' ? 'When are you expected?' : 'When are they arriving?'}
+            </Label>
             <Text className="text-lg font-semibold">
                 {visit.toLocaleDateString('en-PH', {
                     weekday: 'long',

@@ -52,6 +52,7 @@ export function ConfirmDialog({
                 className="flex-1 justify-center bg-black/60 px-8"
             >
                 <Pressable
+                    testID="confirm-dialog"
                     className="bg-card border-border gap-4 rounded-2xl border p-6"
                     onPress={() => undefined}
                 >
