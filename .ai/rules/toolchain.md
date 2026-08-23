@@ -137,6 +137,28 @@ Google lists as unlimited -- not the 10,000/month tier the billed services use.
 Places, Geocoding and Directions are the billed ones; none are used, and address
 autocomplete would be Places.
 
+**A zoom number does not mean the same thing on both maps, and the difference is
+set by the map's HEIGHT.** expo-maps hands Apple an `MKCoordinateRegion` whose
+span is `360 / 2^zoom` degrees in *both* directions -- `ios/MapUtils.swift`
+divides by `cos(0)`, so `latitudeDelta == longitudeDelta` -- and MapKit **fits**
+that square, so on a wide short view the height is what binds. Google Maps
+instead shows `360 x dp / (256 x 2^zoom)`. Matching the visible ground is
+therefore `zoom_android = zoom_ios + log2(height_dp / 256)`: **negative**, about
+-0.68 on the `h-40` booking card and -0.19 on the `h-56` address screen. At the
+same number Android is zoomed *in* by 1.6x on the booking card.
+
+`mercatorOffset()` computes it from the height measured by `onLayout`, and the
+`MapView` is held back until that first layout arrives, because `cameraPosition`
+is read once by the native view and a later correction would not apply. Do not
+replace it with a constant -- the offset is a function of the height, and `PinMap`
+is drawn at two of them. Do not derive it from the width either: that was the
+first attempt, it has the sign the wrong way round, and it made the mismatch
+worse on a real phone.
+
+Consequence for tests: nothing renders until a layout event lands, so
+`pin-map.test.tsx` renders through a `draw()` helper that fires one. iOS is the
+reference and keeps the bare `STREET_ZOOM` / `AREA_ZOOM`.
+
 `cameraPosition` is the camera the view *opens* with, not one it tracks. Both
 platforms document it as the initial position, and passing a fresh object on
 every render makes the map jump back over the pin at full zoom each time
@@ -145,6 +167,19 @@ someone taps -- the pin lands, and the view they were reading is gone. So
 the ref's `setCameraPosition`, driven by a separate `focus` prop. Dropping a pin
 never sets `focus`; loading a saved address and reading the device's fix both
 do.
+
+**`setCameraPosition` must not be called on mount, and `focus` must be compared
+by value.** The native Android view holds `cameraState` as a Kotlin `lateinit`
+that is not initialised while the first effects run, so a call there is rejected
+-- and since nothing awaits it, it arrives as an endless `Uncaught (in promise)
+... lateinit property cameraState has not been initialized` on every screen
+carrying a map. It is also unnecessary: `cameraPosition` has already placed the
+camera. Worse, every caller builds `focus` inline (`focus={pin}` in
+`booking-facts.tsx`, where `pin` is rebuilt each render), so keying the effect
+on object identity re-aimed the camera on every single render. `PinMap` therefore
+holds the last place it aimed at in a ref, depends on `focus?.latitude` /
+`focus?.longitude` as primitives, and catches the rejection. Do not put the
+whole object back in the dependency array.
 
 Coordinates are placed on the map and nowhere else. There is no latitude or
 longitude input -- a seven-decimal pair typed on a phone is a worse fix than a
@@ -167,6 +202,30 @@ builds as before with the passkey buttons hidden.
 build has no entitlement to open. Both are read through Expo's env shim as the
 module graph is built, not per call, which is why the tests reload the module
 inside `jest.isolateModules` instead of setting `process.env` and calling again.
+
+## expo-notifications applies its own config plugin, and its entitlement breaks the build
+`expo-notifications` ships an `app.plugin.js`, and prebuild applies it **from the
+dependency list alone** -- listing it in `plugins` is not what turns it on, and
+removing it from `plugins` does not turn it off. It writes
+`aps-environment` into the entitlements, which a free Personal Team cannot hold,
+so Xcode refuses to mint a profile and the whole app stops building. Same wall as
+Associated Domains above, reached by a different door: there the entitlement was
+ours to withhold, here it arrives whether we ask or not. A `--clean` prebuild
+does not help; it is regenerated every time.
+
+`scripts/with-ios-push-entitlement.js` deletes the key unless
+`EXPO_PUBLIC_PUSH_IOS` is set, and is composed at the bottom of `app.config.ts`
+with the other mods. The native module stays autolinked either way -- check
+`grep -c ExpoNotifications ios/Podfile.lock` -- which is the pairing that
+matters: the module must be present or the JS import throws on iOS, and the
+entitlement must be absent or nothing installs. Setting the flag after enrolling
+in the Apple Developer Program puts the entitlement back with no code change.
+
+**A native module added on one platform must be prebuilt on both.** iOS was left
+a day behind Android during the push work, so Metro served the new JS to an old
+binary with no `ExpoNotifications` in it and every screen threw on import. The
+symptom is the bare "Cannot find native module" this file warns about elsewhere,
+and it looks nothing like a missing prebuild.
 
 ## Both entries in `scheme` are load bearing
 `paayo` is ours; `com.paayo.ph` is where Google returns from sign in, because an
