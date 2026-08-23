@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { Linking } from 'react-native';
 
 import { WhenCard, WhereCard } from '@/components/booking-facts';
 
@@ -54,4 +55,44 @@ it("keeps the trouble the client's own on their side", () => {
 
     expect(screen.getByText('Where is the trouble?')).toBeOnTheScreen();
     expect(screen.getByText('Your address')).toBeOnTheScreen();
+});
+
+/** Somewhere pinned, so the card has a point to hand over. */
+const pinned = {
+    label: 'Home',
+    line: '12 Mabini Street, Poblacion',
+    latitude: 7.07,
+    longitude: 125.61,
+};
+
+// Our map is a picture. Getting there belongs to the app the person already
+// navigates with, so the card hands the pin over rather than growing routing.
+it('hands the pin to the maps app the phone already uses', async () => {
+    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+
+    render(<WhereCard place={pinned} map={false} />);
+    fireEvent.press(screen.getByText('Open in Maps'));
+
+    expect(openURL).toHaveBeenCalledWith(expect.stringContaining('7.07,125.61'));
+    expect(openURL).toHaveBeenCalledWith(
+        expect.stringContaining(encodeURIComponent('12 Mabini Street, Poblacion')),
+    );
+
+    await waitFor(() => expect(screen.queryByText(/No maps app/)).not.toBeOnTheScreen());
+});
+
+it('offers nothing to open when the address has no pin', () => {
+    render(<WhereCard place={{ line: '12 Mabini Street' }} map={false} />);
+
+    expect(screen.queryByText('Open in Maps')).not.toBeOnTheScreen();
+});
+
+// A tap that does nothing at all reads as a broken button.
+it('says so when nothing on the phone answers', async () => {
+    jest.spyOn(Linking, 'openURL').mockRejectedValue(new Error('no handler'));
+
+    render(<WhereCard place={pinned} map={false} />);
+    fireEvent.press(screen.getByText('Open in Maps'));
+
+    expect(await screen.findByText('No maps app on this phone answered.')).toBeOnTheScreen();
 });

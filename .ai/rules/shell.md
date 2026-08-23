@@ -324,6 +324,18 @@ The header carries the visit time beside the price. A provider deciding is
 answering *is this worth my Tuesday morning*, and those two facts are the
 decision; the service name is context and `WhenCard` sits below the fold.
 
+## The map is a picture; getting there is the phone's own app
+`WhereCard` draws `PinMap` and puts **Open in Maps** at the top right of the
+card, which hands the pin to `Linking.openURL` and stops there. Paayo does not
+route, and the person already has the app they navigate with -- a client
+checking their own pin and a technician driving to a job both want the same
+thing, so the control is on both sides.
+
+iOS takes `http://maps.apple.com/?ll=` (which opens the app, not the browser)
+and Android takes `geo:` (which offers its chooser). A tap that opens nothing
+says *No maps app on this phone answered.* rather than doing nothing, which
+reads as a broken button.
+
 ## A shared card is told which end is reading it
 `WhoCard`, `WhereCard` and `WhenCard` in `src/components/booking-facts.tsx` are
 drawn on both `booking/[id].tsx` and `job/[id].tsx`, and the words are not the

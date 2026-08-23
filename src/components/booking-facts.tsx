@@ -1,10 +1,14 @@
-import { View } from 'react-native';
+import ExternalLink from 'lucide-react-native/icons/external-link';
+import { useColorScheme } from 'nativewind';
+import { useState } from 'react';
+import { Linking, Platform, Pressable, View } from 'react-native';
 
 import { PinMap } from '@/components/pin-map';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Text } from '@/components/ui/text';
 import { cn } from '@/lib/utils';
+import palette from '@/theme/palette';
 
 /**
  * Who is reading the card.
@@ -41,6 +45,23 @@ export function WhoCard({ provider, note }: { provider: string; note?: string })
 }
 
 /**
+ * The pin as whichever maps app the phone actually uses will take it.
+ *
+ * `geo:` hands Android's chooser the point, which is the whole reason to leave:
+ * getting there is not this app's job, and the person already has the app they
+ * navigate with. Apple has no equivalent scheme, so iOS gets the maps.apple.com
+ * link, which opens the app rather than the browser.
+ */
+function mapsUrl(pin: { latitude: number; longitude: number }, name: string): string {
+    const at = `${pin.latitude},${pin.longitude}`;
+    const label = encodeURIComponent(name);
+
+    return Platform.OS === 'ios'
+        ? `http://maps.apple.com/?ll=${at}&q=${label}`
+        : `geo:${at}?q=${at}(${label})`;
+}
+
+/**
  * Where the work happens. Also never a control.
  *
  * The address is settled before a service is even chosen, because it is what
@@ -56,6 +77,9 @@ export function WhereCard({
     map?: boolean;
     audience?: Audience;
 }) {
+    const { colorScheme } = useColorScheme();
+    const colours = palette[colorScheme ?? 'light'];
+    const [unopened, setUnopened] = useState(false);
     const business = audience === 'provider';
     const pin =
         typeof place.latitude === 'number' && typeof place.longitude === 'number'
@@ -64,7 +88,35 @@ export function WhereCard({
 
     return (
         <Card className="gap-2">
-            <Label>{business ? 'Where is the job?' : 'Where is the trouble?'}</Label>
+            <View className="flex-row items-center justify-between gap-3">
+                <Label>{business ? 'Where is the job?' : 'Where is the trouble?'}</Label>
+
+                {/* Our map is a picture. Directions belong to the app the
+                    person already navigates with. */}
+                {pin ? (
+                    <Pressable
+                        accessibilityRole="button"
+                        onPress={() => {
+                            setUnopened(false);
+
+                            void Linking.openURL(
+                                mapsUrl(pin, place.line ?? place.label ?? 'Paayo'),
+                            ).catch(() => setUnopened(true));
+                        }}
+                        className="-mt-1.5 flex-row items-center gap-1 py-1"
+                    >
+                        <Text className="text-brand text-[13px] font-medium">Open in Maps</Text>
+                        <ExternalLink color={colours.brand} size={14} />
+                    </Pressable>
+                ) : null}
+            </View>
+
+            {unopened ? (
+                <Text className="text-warning text-sm">
+                    No maps app on this phone answered.
+                </Text>
+            ) : null}
+
             <Text className="text-lg font-semibold">
                 {place.label ?? (business ? "The client's address" : 'Your address')}
             </Text>
