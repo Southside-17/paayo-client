@@ -14,7 +14,7 @@ import { ApiError } from '@/lib/api';
 import { peso, priceRange } from '@/lib/money';
 import { useSession } from '@/lib/session';
 import type { Listing, ServiceOffer } from '@/lib/types';
-import { useDefaultAddress } from '@/lib/use-default-address';
+import { useSelectedAddress } from '@/lib/use-selected-address';
 
 /**
  * Who is coming, and only when that has to be asked.
@@ -30,7 +30,7 @@ export default function ServiceOffers() {
         category?: string;
     }>();
     const session = useSession();
-    const { address, ready } = useDefaultAddress();
+    const { address, ready } = useSelectedAddress();
     const addressId = address?.id;
     const [offer, setOffer] = useState<ServiceOffer | null>(null);
     const [failure, setFailure] = useState<string | null>(null);

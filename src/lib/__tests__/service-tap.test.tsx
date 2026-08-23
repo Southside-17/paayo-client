@@ -3,11 +3,11 @@ import { useEffect } from 'react';
 
 import CategoryServices from '@/app/(app)/category/[id]';
 import { useSession } from '@/lib/session';
-import { useDefaultAddress } from '@/lib/use-default-address';
+import { useSelectedAddress } from '@/lib/use-selected-address';
 import { router } from 'expo-router';
 
 jest.mock('@/lib/session', () => ({ useSession: jest.fn() }));
-jest.mock('@/lib/use-default-address', () => ({ useDefaultAddress: jest.fn() }));
+jest.mock('@/lib/use-selected-address', () => ({ useSelectedAddress: jest.fn() }));
 jest.mock('expo-router', () => ({
     useFocusEffect: MockUseFocusEffect,
     useLocalSearchParams: () => ({ id: 'c1', name: 'Air Condition' }),
@@ -37,7 +37,7 @@ function listed(covering: object | null) {
         })),
         reload: jest.fn(),
     });
-    (useDefaultAddress as jest.Mock).mockReturnValue({
+    (useSelectedAddress as jest.Mock).mockReturnValue({
         address: { id: 'a1', label: 'Home', latitude: 7.07, longitude: 125.61 },
         ready: true,
     });

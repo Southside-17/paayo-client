@@ -4,12 +4,14 @@ import type { ReactNode } from 'react';
 import { View } from 'react-native';
 
 import Home from '@/app/(app)/(tabs)/index';
+import { AddressesProvider } from '@/lib/addresses';
 import { useSession } from '@/lib/session';
 
 // A jest.mock factory cannot build JSX here, so both stand-ins are hoisted
 // function declarations the factories hand back. See .ai/rules/general.md.
 jest.mock('@/lib/session', () => ({ useSession: jest.fn() }));
 jest.mock('expo-router', () => ({ Link: MockLink, useFocusEffect: MockUseFocusEffect }));
+
 
 function MockLink({ children }: { href: unknown; children: ReactNode }) {
     return <View>{children}</View>;
@@ -71,10 +73,15 @@ function signedIn(payloads: { categories?: unknown[]; addresses?: unknown[] }) {
     });
 }
 
+/** Screens read the address from the provider, so the tree needs one. */
+function inApp(ui: ReactNode) {
+    return render(<AddressesProvider>{ui}</AddressesProvider>);
+}
+
 it('opens with a greeting and the nickname', async () => {
     signedIn({});
 
-    render(<Home />);
+    inApp(<Home />);
 
     await waitFor(() => expect(screen.getByText('Mara')).toBeOnTheScreen());
     expect(screen.getByText(/^Good (morning|afternoon|evening)$/)).toBeOnTheScreen();
@@ -83,7 +90,7 @@ it('opens with a greeting and the nickname', async () => {
 it('draws a tile for every trade on offer', async () => {
     signedIn({ categories: [category, { ...category, id: 'c2', name: 'Plumbing', icon: 'droplet' }] });
 
-    render(<Home />);
+    inApp(<Home />);
 
     await waitFor(() => expect(screen.getByText('Air Condition')).toBeOnTheScreen());
     expect(screen.getByText('Plumbing')).toBeOnTheScreen();
@@ -92,7 +99,7 @@ it('draws a tile for every trade on offer', async () => {
 it('names the address work would be sent to', async () => {
     signedIn({ addresses: [address] });
 
-    render(<Home />);
+    inApp(<Home />);
 
     await waitFor(() => expect(screen.getByText('Home')).toBeOnTheScreen());
     expect(screen.getByText('Work happens at')).toBeOnTheScreen();
@@ -103,7 +110,7 @@ it('names the address work would be sent to', async () => {
 it('marks an address that carries no pin', async () => {
     signedIn({ addresses: [{ ...address, latitude: null, longitude: null }] });
 
-    render(<Home />);
+    inApp(<Home />);
 
     await waitFor(() => expect(screen.getByText('No pin')).toBeOnTheScreen());
 });
@@ -111,7 +118,7 @@ it('marks an address that carries no pin', async () => {
 it('asks for an address when none is saved', async () => {
     signedIn({});
 
-    render(<Home />);
+    inApp(<Home />);
 
     await waitFor(() => expect(screen.getByText('Add an address')).toBeOnTheScreen());
 });
@@ -119,7 +126,7 @@ it('asks for an address when none is saved', async () => {
 it('says the catalog is empty rather than showing a blank grid', async () => {
     signedIn({});
 
-    render(<Home />);
+    inApp(<Home />);
 
     await waitFor(() => expect(screen.getByText('Nothing on offer yet')).toBeOnTheScreen());
 });

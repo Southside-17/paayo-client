@@ -1,7 +1,7 @@
 import { BackButton } from '@/components/back-button';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -9,6 +9,7 @@ import { FormMessage } from '@/components/form-message';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Text } from '@/components/ui/text';
+import { useAddresses } from '@/lib/addresses';
 import { useSession } from '@/lib/session';
 import type { Address } from '@/lib/types';
 import { useSubmit } from '@/lib/use-submit';
@@ -22,27 +23,14 @@ export default function Addresses() {
     const { from } = useLocalSearchParams<{ from?: string }>();
     const session = useSession();
     const { busy, message, submit } = useSubmit();
-    const [addresses, setAddresses] = useState<Address[] | null>(null);
-
-    const authenticatedRequest =
-        session.status === 'authenticated' ? session.authenticatedRequest : null;
-
-    const load = useCallback(async () => {
-        if (!authenticatedRequest) {
-            return;
-        }
-
-        const { data } = await authenticatedRequest<{ data: Address[] }>('/addresses');
-
-        setAddresses(data);
-    }, [authenticatedRequest]);
+    const { addresses, address: selected, ready, reload } = useAddresses();
 
     // Re-read on focus: the form is a separate screen, so returning from it is
     // the only signal that the list has changed.
     useFocusEffect(
         useCallback(() => {
-            void submit(load);
-        }, [load, submit]),
+            void submit(reload);
+        }, [reload, submit]),
     );
 
     if (session.status !== 'authenticated') {
@@ -55,7 +43,7 @@ export default function Addresses() {
                 method: 'DELETE',
             });
 
-            await load();
+            await reload();
         });
 
     return (
@@ -74,7 +62,7 @@ export default function Addresses() {
                     Add an address
                 </Button>
 
-                {addresses?.length === 0 ? (
+                {ready && addresses.length === 0 ? (
                     <Card>
                         <Text className="text-muted-foreground text-sm">
                             No addresses saved yet.
@@ -82,12 +70,17 @@ export default function Addresses() {
                     </Card>
                 ) : null}
 
-                {addresses?.map((address) => (
+                {addresses.map((address) => (
                     <Card key={address.id} className="gap-2">
                         <View className="flex-row items-center gap-2">
                             <Text className="font-semibold">{address.label}</Text>
+                            {address.id === selected?.id ? (
+                                <Text className="text-brand text-xs font-medium">Selected</Text>
+                            ) : null}
                             {address.is_default ? (
-                                <Text className="text-brand text-xs font-medium">Default</Text>
+                                <Text className="text-muted-foreground text-xs font-medium">
+                                    Default
+                                </Text>
                             ) : null}
                             {address.latitude !== null ? (
                                 <Text className="text-success text-xs font-medium">Pinned</Text>

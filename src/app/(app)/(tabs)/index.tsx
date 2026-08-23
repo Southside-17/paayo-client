@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AddressSheet } from '@/components/address-sheet';
 import { Avatar } from '@/components/avatar';
 import { CategoryIcon } from '@/components/category-icon';
 import { Badge } from '@/components/ui/badge';
@@ -11,8 +12,9 @@ import { Card } from '@/components/ui/card';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Text } from '@/components/ui/text';
+import { useAddresses } from '@/lib/addresses';
 import { useSession } from '@/lib/session';
-import type { Address, Category } from '@/lib/types';
+import type { Category } from '@/lib/types';
 import palette from '@/theme/palette';
 
 /** The greeting the header opens with, by the reader's own clock. */
@@ -32,7 +34,8 @@ export default function Home() {
     const { colorScheme } = useColorScheme();
     const colours = palette[colorScheme ?? 'light'];
     const [categories, setCategories] = useState<Category[] | null>(null);
-    const [addresses, setAddresses] = useState<Address[] | null>(null);
+    const [choosing, setChoosing] = useState(false);
+    const { addresses, address, ready, select } = useAddresses();
 
     const authenticatedRequest =
         session.status === 'authenticated' ? session.authenticatedRequest : null;
@@ -46,10 +49,6 @@ export default function Home() {
             void authenticatedRequest<{ data: Category[] }>('/categories')
                 .then(({ data }) => setCategories(data))
                 .catch(() => setCategories([]));
-
-            void authenticatedRequest<{ data: Address[] }>('/addresses')
-                .then(({ data }) => setAddresses(data))
-                .catch(() => setAddresses([]));
         }, [authenticatedRequest]),
     );
 
@@ -58,7 +57,6 @@ export default function Home() {
     }
 
     const { user } = session;
-    const primary = addresses?.find((address) => address.is_default) ?? addresses?.[0] ?? null;
 
     return (
         <SafeAreaView className="bg-background flex-1" edges={['top']}>
@@ -67,32 +65,47 @@ export default function Home() {
                     <Avatar nickname={user.nickname} url={user.avatar_url} size={44} />
                 </ScreenHeader>
 
-                <Link
-                    href={{ pathname: '/profile/addresses', params: { from: 'Home' } }}
-                    asChild
+                {/* The line names what was chosen, and tapping it chooses
+                    again. It used to lead to the addresses screen, which could
+                    add and edit them but never say which one work goes to. */}
+                <Pressable
+                    accessibilityRole="button"
+                    onPress={() => setChoosing(true)}
+                    className="border-border bg-card flex-row items-center gap-2 rounded-xl border px-4 py-3"
                 >
-                    <Pressable className="border-border bg-card flex-row items-center gap-2 rounded-xl border px-4 py-3">
-                        <View className="flex-1 gap-0.5">
-                            <Text className="text-muted-foreground text-xs">Work happens at</Text>
-                            {/* Nothing until it is known. Saying "Add an address"
-                                first and correcting it a moment later reads as a
-                                glitch, and it is one. */}
-                            {addresses === null ? (
-                                <Skeleton className="h-5 w-28" />
-                            ) : primary ? (
-                                <View className="flex-row items-center gap-2">
-                                    <Text className="font-medium">{primary.label}</Text>
-                                    {primary.latitude === null ? (
-                                        <Badge tone="warning">No pin</Badge>
-                                    ) : null}
-                                </View>
-                            ) : (
-                                <Text className="font-medium">Add an address</Text>
-                            )}
-                        </View>
-                        <Text className="text-brand text-sm font-semibold">Change</Text>
-                    </Pressable>
-                </Link>
+                    <View className="flex-1 gap-0.5">
+                        <Text className="text-muted-foreground text-xs">Work happens at</Text>
+                        {/* Nothing until it is known. Saying "Add an address"
+                            first and correcting it a moment later reads as a
+                            glitch, and it is one. */}
+                        {!ready ? (
+                            <Skeleton className="h-5 w-28" />
+                        ) : address ? (
+                            <Text className="font-medium">{address.label}</Text>
+                        ) : (
+                            <View className="flex-row items-center gap-2">
+                                <Text className="font-medium">
+                                    {addresses.length === 0 ? 'Add an address' : 'Drop a pin'}
+                                </Text>
+                                {addresses.length === 0 ? null : (
+                                    <Badge tone="warning">No pin</Badge>
+                                )}
+                            </View>
+                        )}
+                    </View>
+                    <Text className="text-brand text-sm font-semibold">Change</Text>
+                </Pressable>
+
+                <AddressSheet
+                    open={choosing}
+                    addresses={addresses}
+                    selected={address}
+                    onSelect={(chosen) => {
+                        select(chosen);
+                        setChoosing(false);
+                    }}
+                    onDismiss={() => setChoosing(false)}
+                />
 
                 <View className="gap-3">
                     <Text className="font-semibold">What do you need done?</Text>

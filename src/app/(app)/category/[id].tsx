@@ -8,9 +8,9 @@ import { Card } from '@/components/ui/card';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Text } from '@/components/ui/text';
-import { useDefaultAddress } from '@/lib/use-default-address';
 import { useSession } from '@/lib/session';
 import type { Service } from '@/lib/types';
+import { useSelectedAddress } from '@/lib/use-selected-address';
 
 /**
  * Go straight where the answer already is.
@@ -47,7 +47,7 @@ function open(service: Service, category: string) {
 export default function CategoryServices() {
     const { id, name } = useLocalSearchParams<{ id: string; name?: string }>();
     const session = useSession();
-    const { address, ready } = useDefaultAddress();
+    const { address, ready } = useSelectedAddress();
     const addressId = address?.id;
     const [services, setServices] = useState<Service[] | null>(null);
 

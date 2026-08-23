@@ -16,6 +16,7 @@ import { FieldError } from '@/components/ui/field-error';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Text } from '@/components/ui/text';
+import { useAddresses } from '@/lib/addresses';
 import { useSession } from '@/lib/session';
 import type { Address } from '@/lib/types';
 import { useSubmit } from '@/lib/use-submit';
@@ -41,6 +42,7 @@ type Field = (typeof FIELDS)[number]['key'];
 export default function EditAddress() {
     const session = useSession();
     const { busy, message, errorFor, submit } = useSubmit();
+    const { reload, select } = useAddresses();
     const { id } = useLocalSearchParams<{ id?: string }>();
 
     const [label, setLabel] = useState('');
@@ -138,10 +140,18 @@ export default function EditAddress() {
                 ),
             };
 
-            await session.authenticatedRequest<unknown>(
+            const { data } = await session.authenticatedRequest<{ data: Address }>(
                 id === undefined ? '/addresses' : `/addresses/${id}`,
                 { method: id === undefined ? 'POST' : 'PUT', body },
             );
+
+            await reload();
+
+            // A new address is where work is wanted, so it is what work is sent
+            // to. An edit is not a move: it leaves the choice where it was.
+            if (id === undefined) {
+                select(data);
+            }
 
             router.back();
         });

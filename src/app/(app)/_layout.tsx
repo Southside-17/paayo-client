@@ -1,5 +1,6 @@
 import { Redirect, Stack, usePathname } from 'expo-router';
 
+import { AddressesProvider } from '@/lib/addresses';
 import { useSession } from '@/lib/session';
 
 /** The personal side is the root of this stack, so switching always lands home. */
@@ -55,5 +56,11 @@ export default function AppLayout() {
         return <Redirect href="/" />;
     }
 
-    return <Stack screenOptions={{ headerShown: false }} />;
+    // Only past every gate: a held or unverified account has no business asking
+    // for addresses, and the screen it is held on has nowhere to put them.
+    return (
+        <AddressesProvider>
+            <Stack screenOptions={{ headerShown: false }} />
+        </AddressesProvider>
+    );
 }

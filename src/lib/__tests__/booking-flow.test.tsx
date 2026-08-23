@@ -14,9 +14,11 @@ import { router } from 'expo-router';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useVideoPlayer } from 'expo-video';
 
+import { AddressesProvider } from '@/lib/addresses';
 import { useSession } from '@/lib/session';
 
 jest.mock('@/lib/session', () => ({ useSession: jest.fn() }));
+
 jest.mock('expo-image-picker', () => ({ launchImageLibraryAsync: jest.fn() }));
 jest.mock('@/lib/picture', () => ({
     preparePicture: jest.fn(async (asset: { uri: string }) => ({
@@ -126,6 +128,37 @@ function signedIn(authenticatedRequest: jest.Mock) {
     });
 }
 
+/** Screens read the address from the provider, so the tree needs one. */
+function inApp(ui: ReactNode) {
+    return render(<AddressesProvider>{ui}</AddressesProvider>);
+}
+
+// The server refuses this too, but only after the confirmation has been agreed
+// to and the request has gone out, which reads as a booking that failed rather
+// than one that was never possible.
+it('refuses to place a booking with nowhere to send anyone', async () => {
+    const request = jest.fn((path: string) =>
+        path === '/addresses' ? Promise.resolve({ data: [] }) : Promise.resolve({ data: booking }),
+    );
+
+    signedIn(request);
+
+    inApp(<Book />);
+
+    await waitFor(() =>
+        expect(
+            screen.getByText('No address on this account, so there is nowhere to send anyone.'),
+        ).toBeOnTheScreen(),
+    );
+
+    await attachPhoto();
+    describeTheWork();
+    fireEvent.press(screen.getByText('Place booking'));
+
+    expect(screen.getByText('Add an address with a pin before booking.')).toBeOnTheScreen();
+    expect(request).not.toHaveBeenCalledWith('/bookings', expect.anything());
+});
+
 it('posts the listing, the address and a chosen time', async () => {
     const request = jest.fn((path: string, options?: { body: Record<string, string> }) => {
         void options;
@@ -137,7 +170,7 @@ it('posts the listing, the address and a chosen time', async () => {
 
     signedIn(request);
 
-    render(<Book />);
+    inApp(<Book />);
 
     await waitFor(() => expect(screen.getByText('Home')).toBeOnTheScreen());
     await attachPhoto();
@@ -175,7 +208,7 @@ it('shows a provider who does not work there, rather than going quiet', async ()
 
     signedIn(request);
 
-    render(<Book />);
+    inApp(<Book />);
 
     await waitFor(() => expect(screen.getByText('Home')).toBeOnTheScreen());
     await attachPhoto();
@@ -200,7 +233,7 @@ it('says a photo is missing rather than refusing quietly', async () => {
 
     signedIn(request);
 
-    render(<Book />);
+    inApp(<Book />);
 
     await waitFor(() => expect(screen.getByText('Home')).toBeOnTheScreen());
 
@@ -222,7 +255,7 @@ it('refuses an empty description under the field rather than at the server', asy
 
     signedIn(request);
 
-    render(<Book />);
+    inApp(<Book />);
 
     await waitFor(() => expect(screen.getByText('Home')).toBeOnTheScreen());
     await attachPhoto();
@@ -251,7 +284,7 @@ it('shows who and where without offering a way to change them', async () => {
 
     signedIn(request);
 
-    render(<Book />);
+    inApp(<Book />);
 
     await waitFor(() => expect(screen.getByText('Home')).toBeOnTheScreen());
 
@@ -290,7 +323,7 @@ it('asks before placing, and posts nothing until the answer is yes', async () =>
 
     signedIn(request);
 
-    render(<Book />);
+    inApp(<Book />);
 
     await waitFor(() => expect(screen.getByText('Home')).toBeOnTheScreen());
     await attachPhoto();
@@ -311,7 +344,7 @@ it('clears the provider list behind it once a booking is placed', async () => {
 
     signedIn(request);
 
-    render(<Book />);
+    inApp(<Book />);
 
     await waitFor(() => expect(screen.getByText('Home')).toBeOnTheScreen());
     await attachPhoto();

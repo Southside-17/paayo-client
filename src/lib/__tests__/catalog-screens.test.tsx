@@ -7,9 +7,11 @@ import CategoryServices from '@/app/(app)/category/[id]';
 import ServiceOffers from '@/app/(app)/service/[id]';
 import Home from '@/app/(app)/(tabs)/index';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AddressesProvider } from '@/lib/addresses';
 import { useSession } from '@/lib/session';
 
 jest.mock('@/lib/session', () => ({ useSession: jest.fn() }));
+
 jest.mock('expo-router', () => ({
     Link: MockLink,
     useFocusEffect: MockUseFocusEffect,
@@ -68,11 +70,16 @@ function answering(data: unknown) {
     });
 }
 
+/** Screens read the address from the provider, so the tree needs one. */
+function inApp(ui: ReactNode) {
+    return render(<AddressesProvider>{ui}</AddressesProvider>);
+}
+
 it('holds the shape of the grid while the catalog is on its way', () => {
     params = {};
     pending();
 
-    render(<Home />);
+    inApp(<Home />);
 
     expect(screen.UNSAFE_getAllByType(Skeleton).length).toBeGreaterThan(0);
 });
@@ -81,7 +88,7 @@ it('holds the shape of the list while the services are on their way', () => {
     params = { id: 'c1', name: 'Air Condition' };
     pending();
 
-    render(<CategoryServices />);
+    inApp(<CategoryServices />);
 
     expect(screen.UNSAFE_getAllByType(Skeleton).length).toBeGreaterThan(0);
 });
@@ -92,7 +99,7 @@ it('opens with the name of the trade that was tapped', () => {
     params = { id: 'c1', name: 'Air Condition' };
     pending();
 
-    render(<CategoryServices />);
+    inApp(<CategoryServices />);
 
     expect(screen.getByText('Air Condition')).toBeOnTheScreen();
 });
@@ -109,7 +116,7 @@ it('drops the skeleton once the services arrive', async () => {
         },
     ]);
 
-    render(<CategoryServices />);
+    inApp(<CategoryServices />);
 
     await waitFor(() => expect(screen.getByText('Cleaning')).toBeOnTheScreen());
     expect(screen.UNSAFE_queryAllByType(Skeleton)).toHaveLength(0);
@@ -121,7 +128,7 @@ it('opens the provider list with the service that was tapped', () => {
     params = { id: 's1', name: 'Cleaning', category: 'Air Condition' };
     pending();
 
-    render(<ServiceOffers />);
+    inApp(<ServiceOffers />);
 
     expect(screen.getByText('Cleaning')).toBeOnTheScreen();
     expect(screen.UNSAFE_getAllByType(Skeleton).length).toBeGreaterThan(0);

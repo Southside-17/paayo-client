@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import ServiceOffers from '@/app/(app)/service/[id]';
 import { ApiError } from '@/lib/api';
 import { useSession } from '@/lib/session';
-import { useDefaultAddress } from '@/lib/use-default-address';
+import { useSelectedAddress } from '@/lib/use-selected-address';
 import { router } from 'expo-router';
 
 /** Hoisted above jest.mock, which may not reach an imported binding. */
@@ -13,7 +13,7 @@ function MockUseFocusEffect(callback: () => void) {
 }
 
 jest.mock('@/lib/session', () => ({ useSession: jest.fn() }));
-jest.mock('@/lib/use-default-address', () => ({ useDefaultAddress: jest.fn() }));
+jest.mock('@/lib/use-selected-address', () => ({ useSelectedAddress: jest.fn() }));
 jest.mock('expo-router', () => ({
     useFocusEffect: MockUseFocusEffect,
     useLocalSearchParams: () => ({ id: 's1', name: 'Cleaning', category: 'Air Condition' }),
@@ -41,7 +41,7 @@ function signedIn(authenticatedRequest: jest.Mock) {
         authenticatedRequest,
         reload: jest.fn(),
     });
-    (useDefaultAddress as jest.Mock).mockReturnValue({
+    (useSelectedAddress as jest.Mock).mockReturnValue({
         address: { id: 'a1', label: 'Home', latitude: 7.07, longitude: 125.61 },
         ready: true,
     });
@@ -120,13 +120,13 @@ it('waits for the address, then asks again with it', async () => {
         authenticatedRequest: request,
         reload: jest.fn(),
     });
-    (useDefaultAddress as jest.Mock).mockReturnValue({ address: null, ready: false });
+    (useSelectedAddress as jest.Mock).mockReturnValue({ address: null, ready: false });
 
     const view = render(<ServiceOffers />);
 
     expect(request).not.toHaveBeenCalled();
 
-    (useDefaultAddress as jest.Mock).mockReturnValue({
+    (useSelectedAddress as jest.Mock).mockReturnValue({
         address: { id: 'a1', label: 'Home', latitude: 7.07 },
         ready: true,
     });
@@ -147,7 +147,7 @@ it('says an address has no pin instead of saying nobody serves it', async () => 
         })),
         reload: jest.fn(),
     });
-    (useDefaultAddress as jest.Mock).mockReturnValue({
+    (useSelectedAddress as jest.Mock).mockReturnValue({
         address: { id: 'a1', label: 'Home', latitude: null },
         ready: true,
     });
@@ -167,7 +167,7 @@ it('shows a refusal rather than sitting on a skeleton', async () => {
         }),
         reload: jest.fn(),
     });
-    (useDefaultAddress as jest.Mock).mockReturnValue({
+    (useSelectedAddress as jest.Mock).mockReturnValue({
         address: { id: 'a1', label: 'Home', latitude: 7.07 },
         ready: true,
     });

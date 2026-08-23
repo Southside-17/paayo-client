@@ -12,6 +12,9 @@ paths:
   - src/components/business-bar.tsx
   - src/components/business-switch.tsx
   - src/components/hold-notice.tsx
+  - src/lib/addresses.tsx
+  - src/lib/use-selected-address.ts
+  - src/components/address-sheet.tsx
 ---
 
 # The signed-in shell
@@ -171,6 +174,47 @@ The backdrop dismisses, matching every other dialog on the platform.
 Where a provider covers the address, `service/[id].tsx` resolves and `router.replace`s straight to Book — the client never sees a list, and Book shows who is coming as a card with no picker, no "choose another", no override. The list is only drawn when nobody covers that zone, and it opens with a banner naming the service and the market, because a list appearing where an answer was expected reads as a downgrade unless it explains itself.
 
 `replace` rather than `push`, so back from Book returns to the category rather than to a screen the client was never meant to stop on.
+
+## Where work goes is a selection, and the default is only its seed
+`src/lib/addresses.tsx` holds the **address id**, never the record, and reads it
+back out of the fetched list every render -- the same shape as
+`src/lib/workspace.tsx`, and for the same reasons: an address that is edited,
+unpinned or removed falls back to the seed on its own rather than being read off
+a stale copy.
+
+`addresses.is_default` is a persisted account flag and is **not** the selection.
+It seeds it, and nothing more. Before this the whole booking flow ran off
+`is_default`, so moving work to another address meant Home -> Change -> Edit ->
+toggle default -> Save: four taps through a management form, mutating account
+state to answer "which address am I booking for right now". Do not reintroduce
+that, and do not offer a way to change the default from the app -- selection
+supersedes it here.
+
+The selection is **not persisted**, so a cold start returns to the pinned
+default, exactly as the workspace does and for the same reason: the token lives
+in `expo-secure-store`, which is for secrets, and there is no other storage here
+without adding a dependency.
+
+An address with **no pin is never selectable, and never seeded** -- not even when
+it is the default. Coverage is decided by the pin, so selecting one would answer
+the catalog unfiltered: every row would arrive with no `covering`, every tap
+would land on the picker, and the picker would report that nobody serves the
+area. It is shown dimmed and explained rather than hidden, because an address
+that vanished from the list would read as lost.
+
+The list is asked for **once for the whole visit**, from `AddressesProvider`
+mounted around the last `<Stack>` in `(app)/_layout.tsx` -- past every gate, so a
+held or unverified account never asks. It was four requests for one booking:
+Home, the category screen, the picker and Book each read it on every focus, and
+every `router.back()` re-fired the lot. Screens that change an address call
+`reload()`; nothing else re-asks.
+
+## The address sheet selects, and the addresses screen manages
+`src/components/address-sheet.tsx` opens from Home's address line and does one
+thing: it answers which address work goes to. No add, no edit, no remove -- those
+live on `profile/addresses`, reached from Account or from the sheet's closing
+**Manage addresses** row. That row is navigation, not an action, and it is the
+only way forward for someone whose only address has no pin.
 
 ## A screen that uploads reports it, and uploads as it goes
 Media is sent when it is picked, not when the form is submitted: Book stays instant, and a failure appears next to the thumbnail that caused it instead of after the person thought they were finished. Each item carries its own progress bar and its own retry.

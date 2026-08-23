@@ -20,7 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Text } from '@/components/ui/text';
 import { useSession } from '@/lib/session';
 import type { Booking } from '@/lib/types';
-import { useDefaultAddress } from '@/lib/use-default-address';
+import { useSelectedAddress } from '@/lib/use-selected-address';
 import { useSubmit } from '@/lib/use-submit';
 import { cn } from '@/lib/utils';
 
@@ -52,7 +52,7 @@ function label(hour: number): string {
 }
 
 /** The fields this screen refuses on its own, before the server is asked. */
-type Missing = { description?: string; attachments?: string };
+type Missing = { description?: string; attachments?: string; address?: string };
 
 /**
  * Ask for the work at a time.
@@ -71,7 +71,7 @@ export default function Book() {
         covered?: string;
     }>();
     const session = useSession();
-    const { address, ready } = useDefaultAddress();
+    const { address, ready } = useSelectedAddress();
     const { busy, message, errorFor, submit } = useSubmit();
     const [day, setDay] = useState(() => days()[1]);
     const [hour, setHour] = useState(HOURS[1]);
@@ -134,6 +134,14 @@ export default function Book() {
 
         if (description.trim() === '') {
             found.description = 'Say what needs doing.';
+        }
+
+        // Nothing to send anyone to. The server refuses this too, but only after
+        // the confirmation has been agreed to and the request has gone out.
+        if (!address) {
+            found.address = ready
+                ? 'Add an address with a pin before booking.'
+                : 'Still reading your address.';
         }
 
         setMissing(found);
@@ -201,7 +209,7 @@ export default function Book() {
                         </Card>
                     ) : null}
 
-                    <FieldError message={errorFor('address_id')} />
+                    <FieldError message={missing.address ?? errorFor('address_id')} />
 
                     <Card className="gap-3">
                         <Label>When should they arrive?</Label>

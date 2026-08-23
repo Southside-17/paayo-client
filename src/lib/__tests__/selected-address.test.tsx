@@ -2,6 +2,7 @@ import { render, waitFor } from '@testing-library/react-native';
 import { useEffect } from 'react';
 
 import ServiceOffers from '@/app/(app)/service/[id]';
+import { AddressesProvider } from '@/lib/addresses';
 import { useSession } from '@/lib/session';
 import { router } from 'expo-router';
 
@@ -25,13 +26,12 @@ const service = {
 };
 
 /**
- * The real useDefaultAddress, deliberately not mocked.
+ * The real AddressesProvider, deliberately not stood in for.
  *
- * Every other test here stands one in, which hides the thing most likely to go
- * wrong: this screen asks a question whose answer depends on an address that
- * arrives from a second request, and asking before it lands sends no address at
- * all -- which the server answers with no provider, and the screen reports as
- * nobody serving the area.
+ * Standing it in hides the thing most likely to go wrong: this screen asks a
+ * question whose answer depends on an address that arrives from a request of its
+ * own, and asking before it lands sends no address at all -- which the server
+ * answers with no provider, and the screen reports as nobody serving the area.
  */
 it('asks with the default address, once, and not before it has one', async () => {
     const request = jest.fn(async (path: string) => {
@@ -69,7 +69,11 @@ it('asks with the default address, once, and not before it has one', async () =>
         reload: jest.fn(),
     });
 
-    render(<ServiceOffers />);
+    render(
+        <AddressesProvider>
+            <ServiceOffers />
+        </AddressesProvider>,
+    );
 
     await waitFor(() => expect(router.replace).toHaveBeenCalled());
 
