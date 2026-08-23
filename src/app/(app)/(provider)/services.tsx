@@ -1,6 +1,6 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { ScrollView, TextInput, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
 
@@ -9,6 +9,8 @@ import { HoldNotice } from '@/components/hold-notice';
 import { TradeIcon } from '@/components/trade-icon';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { KeyboardAvoiding } from '@/components/ui/keyboard-avoiding';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusPill } from '@/components/ui/status-pill';
@@ -117,131 +119,132 @@ export default function Services() {
 
     return (
         <SafeAreaView className="bg-background flex-1" edges={['top']}>
-            <ScrollView contentContainerClassName="gap-4 p-6" keyboardShouldPersistTaps="handled">
-                <ScreenHeader title="Services">
-                    <BusinessChip />
-                </ScreenHeader>
+            <KeyboardAvoiding className="flex-1">
+                <ScrollView
+                    contentContainerClassName="gap-4 p-6"
+                    keyboardShouldPersistTaps="handled"
+                >
+                    <ScreenHeader title="Services">
+                        <BusinessChip />
+                    </ScreenHeader>
 
-                <HoldNotice suspension={staff.provider.suspension} />
+                    <HoldNotice suspension={staff.provider.suspension} />
 
-                <View className="bg-muted flex-row gap-1 rounded-xl p-1">
-                    {(['offers', 'catalog'] as const).map((option) => (
-                        <Text
-                            key={option}
-                            accessibilityRole="button"
-                            accessibilityState={{ selected: showing === option }}
-                            onPress={() => setShowing(option)}
-                            className={cn(
-                                'flex-1 rounded-lg py-2 text-center text-sm font-bold capitalize',
-                                showing === option
-                                    ? 'bg-card text-foreground'
-                                    : 'text-muted-foreground',
-                            )}
-                        >
-                            {option}
-                        </Text>
-                    ))}
-                </View>
+                    <View className="bg-muted flex-row gap-1 rounded-xl p-1">
+                        {(['offers', 'catalog'] as const).map((option) => (
+                            <Text
+                                key={option}
+                                accessibilityRole="button"
+                                accessibilityState={{ selected: showing === option }}
+                                onPress={() => setShowing(option)}
+                                className={cn(
+                                    'flex-1 rounded-lg py-2 text-center text-sm font-bold capitalize',
+                                    showing === option
+                                        ? 'bg-card text-foreground'
+                                        : 'text-muted-foreground',
+                                )}
+                            >
+                                {option}
+                            </Text>
+                        ))}
+                    </View>
 
-                {failed ? (
-                    <Card className="items-center gap-2 py-8">
-                        <Text className="font-semibold">Could not reach Paayo</Text>
-                        <Text className="text-muted-foreground text-center text-sm">
-                            Check your connection. What you sell has not changed -- this screen just
-                            could not load it.
-                        </Text>
-                        <Button variant="outline" className="mt-2 self-stretch" onPress={load}>
-                            Try again
-                        </Button>
-                    </Card>
-                ) : null}
+                    {failed ? (
+                        <Card className="items-center gap-2 py-8">
+                            <Text className="font-semibold">Could not reach Paayo</Text>
+                            <Text className="text-muted-foreground text-center text-sm">
+                                Check your connection. What you sell has not changed -- this screen just
+                                could not load it.
+                            </Text>
+                            <Button variant="outline" className="mt-2 self-stretch" onPress={load}>
+                                Try again
+                            </Button>
+                        </Card>
+                    ) : null}
 
-                {!failed && offers === null
-                    ? [0, 1, 2].map((at) => (
-                          <View
-                              key={at}
-                              className="border-border bg-card gap-2 rounded-xl border p-4"
-                          >
-                              <View className="flex-row items-center justify-between gap-3">
-                                  <Skeleton className="h-4 w-32" />
-                                  <Skeleton className="h-5 w-16 rounded-full" />
+                    {!failed && offers === null
+                        ? [0, 1, 2].map((at) => (
+                              <View
+                                  key={at}
+                                  className="border-border bg-card gap-2 rounded-xl border p-4"
+                              >
+                                  <View className="flex-row items-center justify-between gap-3">
+                                      <Skeleton className="h-4 w-32" />
+                                      <Skeleton className="h-5 w-16 rounded-full" />
+                                  </View>
+                                  <Skeleton className="h-5 w-24" />
                               </View>
-                              <Skeleton className="h-5 w-24" />
-                          </View>
-                      ))
-                    : null}
+                          ))
+                        : null}
 
-                {!failed && offers !== null && showing === 'offers' ? (
-                    <Offers groups={byTrade(offers)} colours={colours} />
-                ) : null}
+                    {!failed && offers !== null && showing === 'offers' ? (
+                        <Offers groups={byTrade(offers)} colours={colours} />
+                    ) : null}
 
-                {!failed && catalog !== null && showing === 'catalog' ? (
-                    <>
-                        <View className="border-input flex-row items-center gap-2 rounded-xl border px-3 py-2.5">
-                            <TextInput
+                    {!failed && catalog !== null && showing === 'catalog' ? (
+                        <>
+                            <Input
                                 value={search}
                                 onChangeText={setSearch}
                                 placeholder={`Search ${catalog.reduce((count, trade) => count + (trade.services?.length ?? 0), 0)} services`}
-                                placeholderTextColor={colours['muted-foreground']}
-                                className="text-foreground font-sans flex-1 text-sm"
                                 autoCapitalize="none"
                                 autoCorrect={false}
                             />
-                        </View>
 
-                        {search.trim() !== '' ? (
-                            <Text className="text-muted-foreground text-sm">
-                                {found === 0
-                                    ? `Nothing matches "${search.trim()}"`
-                                    : `${found} service${found === 1 ? '' : 's'} in ${filtered.length} trade${filtered.length === 1 ? '' : 's'}`}
-                            </Text>
-                        ) : null}
-
-                        {found === 0 && search.trim() !== '' ? (
-                            <Card className="items-center gap-2 py-8">
-                                <Text className="font-semibold">{`Nothing matches "${search.trim()}"`}</Text>
-                                <Text className="text-muted-foreground text-center text-sm">
-                                    Paayo does not publish a service by that name. If your trade needs
-                                    one, tell them -- the catalog is theirs to add to.
+                            {search.trim() !== '' ? (
+                                <Text className="text-muted-foreground text-sm">
+                                    {found === 0
+                                        ? `Nothing matches "${search.trim()}"`
+                                        : `${found} service${found === 1 ? '' : 's'} in ${filtered.length} trade${filtered.length === 1 ? '' : 's'}`}
                                 </Text>
-                                <Button
-                                    variant="outline"
-                                    className="mt-2 self-stretch"
-                                    onPress={() => setSearch('')}
-                                >
-                                    Clear the search
-                                </Button>
-                            </Card>
-                        ) : null}
+                            ) : null}
 
-                        {filtered.map((trade) => (
-                            <View key={trade.id} className="gap-2">
-                                <View className="flex-row items-center gap-2 pt-1">
-                                    <TradeIcon
-                                        icon={trade.icon}
-                                        color={colours['muted-foreground']}
-                                        size={16}
-                                    />
-                                    <Text className="text-muted-foreground text-xs font-bold uppercase">
-                                        {trade.name}
+                            {found === 0 && search.trim() !== '' ? (
+                                <Card className="items-center gap-2 py-8">
+                                    <Text className="font-semibold">{`Nothing matches "${search.trim()}"`}</Text>
+                                    <Text className="text-muted-foreground text-center text-sm">
+                                        Paayo does not publish a service by that name. If your trade needs
+                                        one, tell them -- the catalog is theirs to add to.
                                     </Text>
-                                </View>
-
-                                <Card className="gap-0 py-1">
-                                    {(trade.services ?? []).map((service, at) => (
-                                        <CatalogRow
-                                            key={service.id}
-                                            service={service}
-                                            offer={sold.get(service.id)}
-                                            first={at === 0}
-                                        />
-                                    ))}
+                                    <Button
+                                        variant="outline"
+                                        className="mt-2 self-stretch"
+                                        onPress={() => setSearch('')}
+                                    >
+                                        Clear the search
+                                    </Button>
                                 </Card>
-                            </View>
-                        ))}
-                    </>
-                ) : null}
-            </ScrollView>
+                            ) : null}
+
+                            {filtered.map((trade) => (
+                                <View key={trade.id} className="gap-2">
+                                    <View className="flex-row items-center gap-2 pt-1">
+                                        <TradeIcon
+                                            icon={trade.icon}
+                                            color={colours['muted-foreground']}
+                                            size={16}
+                                        />
+                                        <Text className="text-muted-foreground text-xs font-bold uppercase">
+                                            {trade.name}
+                                        </Text>
+                                    </View>
+
+                                    <Card className="gap-0 py-1">
+                                        {(trade.services ?? []).map((service, at) => (
+                                            <CatalogRow
+                                                key={service.id}
+                                                service={service}
+                                                offer={sold.get(service.id)}
+                                                first={at === 0}
+                                            />
+                                        ))}
+                                    </Card>
+                                </View>
+                            ))}
+                        </>
+                    ) : null}
+                </ScrollView>
+            </KeyboardAvoiding>
         </SafeAreaView>
     );
 }

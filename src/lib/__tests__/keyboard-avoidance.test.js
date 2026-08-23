@@ -4,19 +4,29 @@ const { join } = require('path');
 /**
  * Every screen that can be typed into has to stay clear of the keyboard.
  *
- * This has been shipped broken three times, always the same way: a text field
+ * This has been shipped broken four times, always the same way: a text field
  * low on a screen, typed into, and hidden behind the keyboard the moment it
  * opens. It is invisible to every other kind of test -- the component renders,
  * the value updates, the request goes out -- so it is checked structurally here
  * rather than left to whoever next reviews a screen.
  *
- * `AuthScreen` counts because it wraps its own body in `KeyboardAvoiding`.
+ * The fourth time got past this guard because the field was a bare `TextInput`
+ * rather than the `Input` primitive, and the guard only looked for the import.
+ * It now looks for the element too.
+ *
+ * `AuthScreen` and `Sheet` count because they wrap their own body in
+ * `KeyboardAvoiding`. Naming a wrapper is a weaker claim than nesting inside
+ * one -- a file holding both a sheet and a loose field would pass -- but this
+ * is a tripwire, not a proof, and it is the shape the bug keeps arriving in.
  *
  * Plain JS on purpose: it reads the source tree, and `fs` has no types here
  * without adding `@types/node` for one file.
  */
 /* global __dirname */
 const ROOT = join(__dirname, '..', '..');
+
+/** The `Input` primitive, its password twin, or a `TextInput` written by hand. */
+const TYPEABLE = /from '@\/components\/ui\/(password-)?input'|<TextInput[\s/>]/;
 
 /** The primitives themselves, and the wrapper that provides the protection. */
 const EXEMPT = [
@@ -40,7 +50,7 @@ function sources(dir) {
 const typeable = sources(ROOT)
     .filter((path) => !EXEMPT.some((exempt) => path.endsWith(exempt)))
     .map((path) => ({ path: path.slice(ROOT.length + 1), body: readFileSync(path, 'utf8') }))
-    .filter(({ body }) => /from '@\/components\/ui\/(password-)?input'/.test(body));
+    .filter(({ body }) => TYPEABLE.test(body));
 
 it('finds the screens that can be typed into', () => {
     // A guard that matches nothing passes for the wrong reason.
@@ -51,6 +61,8 @@ it.each(typeable.map(({ path }) => path))('%s stays clear of the keyboard', (pat
     const { body } = typeable.find((one) => one.path === path);
 
     expect(
-        body.includes('KeyboardAvoiding') || body.includes('AuthScreen'),
+        body.includes('KeyboardAvoiding') ||
+            body.includes('AuthScreen') ||
+            body.includes('<Sheet'),
     ).toBe(true);
 });

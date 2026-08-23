@@ -1,8 +1,7 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ScrollView, TextInput, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useColorScheme } from 'nativewind';
 
 import { BackButton } from '@/components/back-button';
 import { FormMessage } from '@/components/form-message';
@@ -10,6 +9,7 @@ import { StaffList } from '@/components/staff-list';
 import { Avatar } from '@/components/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { Sheet } from '@/components/ui/sheet';
 import { SheetAction } from '@/components/ui/sheet-action';
@@ -22,7 +22,6 @@ import type { Invitation, ProviderStaff, StaffRole } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useSubmit } from '@/lib/use-submit';
 import { useWorkspace } from '@/lib/workspace';
-import palette from '@/theme/palette';
 
 const ROLES: { value: StaffRole; label: string; note: string }[] = [
     { value: 'owner', label: 'Owner', note: 'Everything' },
@@ -38,8 +37,6 @@ const RANK: Record<StaffRole, number> = { owner: 3, manager: 2, technician: 1 };
 export default function Staff() {
     const session = useSession();
     const { staff } = useWorkspace();
-    const { colorScheme } = useColorScheme();
-    const colours = palette[colorScheme ?? 'light'];
     const [people, setPeople] = useState<ProviderStaff[] | null>(null);
     const [invited, setInvited] = useState<Invitation[]>([]);
     const [picked, setPicked] = useState<ProviderStaff | null>(null);
@@ -334,15 +331,14 @@ export default function Staff() {
 
                 <View className="gap-1.5">
                     <Text className="text-xs font-semibold">Email</Text>
-                    <TextInput
+                    <Input
                         value={email}
                         onChangeText={setEmail}
                         placeholder="name@example.com"
-                        placeholderTextColor={colours['muted-foreground']}
                         autoCapitalize="none"
                         autoCorrect={false}
                         keyboardType="email-address"
-                        className="border-input text-foreground font-sans rounded-lg border px-3 py-2.5 text-sm"
+                        invalid={errorFor('email') !== null}
                     />
                     <FormMessage message={errorFor('email') ?? null} />
                 </View>
