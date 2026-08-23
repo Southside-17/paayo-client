@@ -4,20 +4,11 @@ import type { Attachment } from '@/lib/types';
 
 /**
  * How many parts are in the air at once.
- *
- * Parts go straight to the store, so they do not queue behind each other the
- * way they did when every one crossed the application first.
  */
 const LANES = 3;
 
 /**
  * How much of a part is moved between files at a time.
- *
- * A part is carved out of the source on disk rather than sliced out of the file
- * in memory. React Native holds a Blob as one contiguous allocation -- iOS keeps
- * them in an NSData dictionary, and every slice() is a subdataWithRange: copy on
- * top -- so reading a video in to send it put the whole video in RAM and got the
- * app killed part way up. Nothing here ever holds more than this much of it.
  */
 const CARVE = 1024 * 1024;
 
@@ -60,9 +51,6 @@ function nameFor(asset: Picked, mime: string): string {
 
 /**
  * Copy one part of the source onto disk of its own.
- *
- * Read and written a piece at a time, so a part being 8MB does not mean 8MB of
- * it exists at once.
  */
 function carve(source: File, part: Part, into: Directory): File {
     const slice = new File(into, `part-${part.number}`);
@@ -99,22 +87,6 @@ function carve(source: File, part: Part, into: Directory): File {
 
 /**
  * Put one part where the server said to put it.
- *
- * The bytes go from disk to the socket natively and never through JavaScript.
- * No headers of our own either: the address is signed, and a store reads an
- * Authorization header in preference to the signature in the query string and
- * then fails to verify a token it was never issued.
- *
- * Foreground, against expo-file-system's default. An iOS background session
- * waits for connectivity and gives up after its resource timeout of seven days,
- * so a part the store never answers -- a signed address naming a host the phone
- * cannot reach is the way to get there -- neither lands nor fails, and the
- * attachment sits at a progress that never becomes null. Book reads that as an
- * upload still in flight and refuses to place the booking, forever. A
- * foreground session times out and reports it, which is what the re-grant and
- * the retry tile are already there to handle. Nothing is lost by asking for
- * one: the module does not restore the JavaScript task after a relaunch, so a
- * background session could not report a part it finished while away either.
  */
 async function putPart(part: Part, body: File, onMoved: (bytes: number) => void): Promise<boolean> {
     const task = body.createUploadTask(part.url, {
@@ -154,14 +126,6 @@ async function inLanes(parts: Part[], work: (part: Part) => Promise<void>): Prom
 
 /**
  * Send one file to the store, a part at a time and several parts at once.
- *
- * The bytes never touch the application, and never all touch the phone's memory
- * either: the server says where each part goes, the parts are cut out of the
- * file on disk, and the store is asked afterwards what turned up. A part that
- * fails is retried once under a freshly signed address, which is also what
- * covers a signature that expired during a long upload.
- *
- * `onProgress` is called with a fraction of the whole file.
  */
 export async function uploadAttachment(
     send: Send,

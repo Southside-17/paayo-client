@@ -37,10 +37,6 @@ function Notice({ suspension }: { suspension: SuspensionNotice }) {
 
 /**
  * The gate a suspended account sits behind.
- *
- * An Access suspension never reaches here -- the API deletes the token and the
- * session ends -- so everything on this screen is an Activity hold, which is
- * the one that can still sign in and is held out of everything afterwards.
  */
 export default function Held() {
     const session = useSession();

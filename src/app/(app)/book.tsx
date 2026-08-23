@@ -38,9 +38,6 @@ function days(): Date[] {
 
 /**
  * The hours work is offered at.
- *
- * Fixed slots rather than a clock: a technician's day is booked in blocks, and
- * a free-typed time invites 3:47 in the morning.
  */
 const HOURS = [8, 10, 13, 15, 17];
 
@@ -56,10 +53,6 @@ type Missing = { description?: string; attachments?: string; address?: string };
 
 /**
  * Ask for the work at a time.
- *
- * Who and where are settled before this screen and are shown, not chosen. The
- * address decided which services were offered and which provider covers them,
- * so letting it change here would quietly invalidate both.
  */
 export default function Book() {
     const { listing, service, trade, provider, covered } = useLocalSearchParams<{
@@ -104,9 +97,6 @@ export default function Book() {
                 },
             });
 
-            // Whatever is underneath -- the trade, and the picker when there was
-            // one -- would lead back into booking the same work again. Clear it,
-            // land on Bookings, then show the one just placed.
             if (router.canDismiss()) {
                 router.dismissAll();
             }
@@ -136,8 +126,6 @@ export default function Book() {
             found.description = 'Say why you need them.';
         }
 
-        // Nothing to send anyone to. The server refuses this too, but only after
-        // the confirmation has been agreed to and the request has gone out.
         if (!address) {
             found.address = ready
                 ? 'Add an address with a pin before booking.'
@@ -172,9 +160,6 @@ export default function Book() {
                     contentContainerClassName="gap-5 p-6"
                     keyboardShouldPersistTaps="handled"
                 >
-                    {/* Back names the trade this came from; the eyebrow names
-                        the work. Between them the screen says what was chosen
-                        to get here. */}
                     <BackButton label={trade || service || 'Back'} />
                     <ScreenHeader eyebrow={service} title="Book" />
 

@@ -3,9 +3,6 @@ import { isSupported } from 'react-native-passkeys';
 /**
  * Read the gate with the environment a build would have been given.
  *
- * The module is reloaded per case because Expo resolves EXPO_PUBLIC_ values
- * through a shim that reads them as the module graph is built, not per call.
- *
  * @param env What to set, or delete where the value is undefined.
  */
 function supportedGiven(env: Record<string, string | undefined>): boolean {

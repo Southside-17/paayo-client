@@ -14,11 +14,6 @@ import { useSubmit } from '@/lib/use-submit';
 
 /**
  * The gate an account with no nickname sits behind.
- *
- * Signing in with a provider opens an account without asking for a name, and
- * the name the provider gave is refused when it impersonates the platform,
- * carries a banned word, or is not shaped like a name at all. Nothing is wrong
- * with the account -- it just owes one.
  */
 export default function SetNickname() {
     const session = useSession();

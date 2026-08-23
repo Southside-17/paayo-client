@@ -19,10 +19,6 @@ type Props = {
 
 /**
  * Asks before something that commits or cannot be undone.
- *
- * Ours rather than the platform's: React Native's Alert draws in the operating
- * system's own colours and typeface, which in this app reads as a dialog from
- * another application.
  */
 export function ConfirmDialog({
     open,
@@ -43,8 +39,6 @@ export function ConfirmDialog({
             statusBarTranslucent
             onRequestClose={onDismiss}
         >
-            {/* The backdrop dismisses, which is what tapping outside a dialog
-                means everywhere else on the platform. */}
             <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Dismiss"

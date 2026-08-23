@@ -12,9 +12,6 @@ export type SocialProvider = {
 
 /**
  * The providers that can open an account, in the order they are offered.
- *
- * One entry per provider and nothing else: adding Apple or Microsoft is a row
- * here plus its client ids, not an edit to every screen that lists them.
  */
 export const SOCIAL_PROVIDERS: SocialProvider[] = [
     { key: 'google', label: 'Google', brand: GOOGLE, isConfigured: googleIsConfigured },

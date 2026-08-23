@@ -18,10 +18,6 @@ const PART = 8 * 1024 * 1024;
 
 /**
  * Stand in for the file system, recording what was read, carved and put.
- *
- * The point of the implementation is that a file is never held whole, so what
- * this has to be able to show is which ranges of the source were read and how
- * much of each went where.
  */
 jest.mock('expo-file-system', () => {
     const state: {

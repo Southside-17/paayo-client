@@ -8,10 +8,6 @@ import palette from '@/theme/palette';
 
 /**
  * The business side of the app, behind the same gates the personal side is.
- *
- * The redirect is the whole guard: `staff` is looked up in the account on every
- * render, so being taken off a staff empties it and this leaves on its own,
- * without anything having to notice.
  */
 export default function ProviderLayout() {
     const { staff } = useWorkspace();

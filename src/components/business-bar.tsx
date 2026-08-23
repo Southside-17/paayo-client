@@ -10,9 +10,6 @@ import palette from '@/theme/palette';
 
 /**
  * The business being acted as, and the way back out of it.
- *
- * Every provider screen opens with this, so which side of the app you are on is
- * never a thing you have to remember.
  */
 export function BusinessBar({ from }: { from: string }) {
     const { staff } = useWorkspace();

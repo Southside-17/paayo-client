@@ -1,9 +1,5 @@
 /**
  * The five statuses a pill or a badge can carry.
- *
- * Every tone names a real token family: the base colour is the ink, the
- * `-subtle` variant behind it. Neutral has no family of its own and borrows
- * muted, which is the same pairing the console uses for an inert state.
  */
 export type Tone = 'brand' | 'success' | 'warning' | 'info' | 'neutral';
 

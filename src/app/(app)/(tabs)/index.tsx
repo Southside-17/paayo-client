@@ -65,9 +65,6 @@ export default function Home() {
                     <Avatar nickname={user.nickname} url={user.avatar_url} size={44} />
                 </ScreenHeader>
 
-                {/* The line names what was chosen, and tapping it chooses
-                    again. It used to lead to the addresses screen, which could
-                    add and edit them but never say which one work goes to. */}
                 <Pressable
                     accessibilityRole="button"
                     onPress={() => setChoosing(true)}
@@ -75,9 +72,6 @@ export default function Home() {
                 >
                     <View className="flex-1 gap-0.5">
                         <Text className="text-muted-foreground text-xs">Work happens at</Text>
-                        {/* Nothing until it is known. Saying "Add an address"
-                            first and correcting it a moment later reads as a
-                            glitch, and it is one. */}
                         {!ready ? (
                             <Skeleton className="h-5 w-28" />
                         ) : address ? (

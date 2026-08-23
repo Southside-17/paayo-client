@@ -24,10 +24,6 @@ const COUNTRY_ZOOM = 5;
 
 /**
  * A map you tap to place the pin.
- *
- * expo-maps is two components rather than one -- AppleMaps on iOS, GoogleMaps on
- * Android -- and neither renders on the other platform, so the choice is made
- * here and every screen above stays platform blind.
  */
 export function PinMap({ pin, focus, onMove, className = 'h-56' }: Props) {
     const map = useRef<AppleMaps.MapView & GoogleMaps.MapView>(null);

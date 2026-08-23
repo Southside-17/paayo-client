@@ -12,9 +12,6 @@ import palette from '@/theme/palette';
 
 /**
  * Who is reading the card.
- *
- * One booking is read from both ends, and the words are not the same from both
- * ends: the client is waiting for somebody, the business is the somebody.
  */
 export type Audience = 'client' | 'provider';
 
@@ -29,10 +26,6 @@ export type Place = {
 
 /**
  * Who is coming. Never a control.
- *
- * Coverage decides this, and a client who could change it could pick somebody
- * who does not work where the job is -- which is the whole thing the zones
- * exist to prevent.
  */
 export function WhoCard({ provider, note }: { provider: string; note?: string }) {
     return (
@@ -46,11 +39,6 @@ export function WhoCard({ provider, note }: { provider: string; note?: string })
 
 /**
  * The pin as whichever maps app the phone actually uses will take it.
- *
- * `geo:` hands Android's chooser the point, which is the whole reason to leave:
- * getting there is not this app's job, and the person already has the app they
- * navigate with. Apple has no equivalent scheme, so iOS gets the maps.apple.com
- * link, which opens the app rather than the browser.
  */
 function mapsUrl(pin: { latitude: number; longitude: number }, name: string): string {
     const at = `${pin.latitude},${pin.longitude}`;
@@ -90,8 +78,6 @@ export function WhereCard({
             <View className="flex-row items-center justify-between gap-3">
                 <Label>{business ? 'Where is the job?' : 'Where is the trouble?'}</Label>
 
-                {/* Our map is a picture. Directions belong to the app the
-                    person already navigates with. */}
                 {pin ? (
                     <Pressable
                         accessibilityRole="button"

@@ -8,9 +8,6 @@ type Props = { tone?: Tone; dot?: boolean; children: string; className?: string 
 
 /**
  * A quiet label on a row: smaller than a status pill, and silent by default.
- *
- * A badge states a fact about the thing it sits on -- default, pinned -- rather
- * than where it stands in a workflow, so it takes no dot unless asked.
  */
 export function Badge({ tone = 'neutral', dot = false, children, className }: Props) {
     const tokens = TONES[tone];

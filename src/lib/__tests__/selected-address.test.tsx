@@ -30,11 +30,6 @@ beforeEach(() => forget());
 
 /**
  * The real AddressesProvider, deliberately not stood in for.
- *
- * Standing it in hides the thing most likely to go wrong: this screen asks a
- * question whose answer depends on an address that arrives from a request of its
- * own, and asking before it lands sends no address at all -- which the server
- * answers with no provider, and the screen reports as nobody serving the area.
  */
 it('asks with the default address, once, and not before it has one', async () => {
     const request = jest.fn(async (path: string) => {

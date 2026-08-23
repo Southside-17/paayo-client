@@ -21,10 +21,6 @@ import { cn } from '@/lib/utils';
 
 /**
  * Who is coming, and only when that has to be asked.
- *
- * A provider covering the address is chosen without asking and this screen
- * hands straight over to booking. The list below is the other case: nobody
- * covers that zone for this service, so the client picks from the market.
  */
 export default function ServiceOffers() {
     const { id, name, trade, repick } = useLocalSearchParams<{
@@ -37,11 +33,6 @@ export default function ServiceOffers() {
     const session = useSession();
     const { address, ready } = useSelectedAddress();
     const addressId = address?.id;
-    // Seeded during render from what the list already learned, so a screen
-    // reached through it paints providers on the first frame rather than holding
-    // skeletons over an answer it was handed. A covered one is not seeded: this
-    // screen is about to hand over to booking, and drawing the empty case first
-    // would put "nobody offers this" on screen for a frame on its way out.
     const [offer, setOffer] = useState<ServiceOffer | null>(() => {
         const known = recall(id, addressId ?? null);
 
@@ -56,8 +47,6 @@ export default function ServiceOffers() {
     const authenticatedRequest =
         session.status === 'authenticated' ? session.authenticatedRequest : null;
 
-    // Re-picking writes to the booking that already exists; it does not open a
-    // new one, so none of the booking form is walked again.
     const send = (listing: Listing) =>
         submit(async () => {
             if (session.status !== 'authenticated' || !repick) {
@@ -91,8 +80,6 @@ export default function ServiceOffers() {
 
     useFocusEffect(
         useCallback(() => {
-            // Waiting on the address is what keeps the list from being drawn
-            // unfiltered and then shrinking.
             if (!authenticatedRequest || !ready) {
                 return;
             }
@@ -125,15 +112,10 @@ export default function ServiceOffers() {
                 return;
             }
 
-            // Nothing remembered, so this was reached without the list that
-            // would have carried it: a deep link, a search, or a pin changed
-            // since. Ask for it.
             const query = addressId ? `?address=${addressId}` : '';
 
             void authenticatedRequest<ServiceOffer>(`/services/${id}${query}`)
                 .then((answer) => {
-                    // Covered ground: there is nothing to choose, so this screen
-                    // never becomes a step the client sees.
                     if (answer.covering) {
                         book(answer.covering, name ?? answer.data.name, true);
 
@@ -143,9 +125,6 @@ export default function ServiceOffers() {
                     setOffer(answer);
                 })
                 .catch((error: unknown) => {
-                    // Never silent. A refusal that explains itself -- an address
-                    // with no pin, most often -- has to reach the screen, or
-                    // this sits on a skeleton forever and says nothing.
                     setFailure(
                         error instanceof ApiError
                             ? (error.errorFor('address') ?? error.message)
@@ -162,9 +141,6 @@ export default function ServiceOffers() {
     return (
         <SafeAreaView className="bg-background flex-1">
             <ScrollView contentContainerClassName="gap-5 p-6">
-                {/* Both names travel with the link. The row that was tapped
-                    already knew them, so nothing here settles from a
-                    placeholder once the providers arrive. */}
                 <BackButton label={choosing ? 'Booking' : (trade ?? service?.trade?.name ?? 'Back')} />
                 <ScreenHeader
                     eyebrow={choosing ? 'Choose someone else' : undefined}
@@ -226,9 +202,6 @@ export default function ServiceOffers() {
                 ) : null}
 
                 {alternatives.map((listing) => {
-                    // Shown, never removed. A provider vanishing from a list the
-                    // client has already seen reads as a bug and sends them
-                    // hunting for a name they remember.
                     const refused = declined.includes(listing.id);
 
                     return (

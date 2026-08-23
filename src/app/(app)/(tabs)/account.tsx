@@ -80,10 +80,6 @@ export default function Account() {
             <ScrollView contentContainerClassName="gap-5 p-6">
                 <ScreenHeader title="Account" />
 
-                {/* The picture has no input to sit under, so its field error
-                    belongs in the whole-form message. Without this a refused
-                    upload -- too large, wrong dimensions -- says nothing at
-                    all: useSubmit files it under the field and moves on. */}
                 <FormMessage message={message ?? errorFor('avatar') ?? null} />
 
                 <View className="flex-row items-center gap-4">

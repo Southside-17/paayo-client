@@ -18,15 +18,11 @@ import { useSubmit } from '@/lib/use-submit';
  * The addresses on the account, default first.
  */
 export default function Addresses() {
-    // Reached from Account and from Home's address line, so the screen it
-    // returns to is carried rather than assumed.
     const { from } = useLocalSearchParams<{ from?: string }>();
     const session = useSession();
     const { busy, message, submit } = useSubmit();
     const { addresses, address: selected, ready, reload } = useAddresses();
 
-    // Re-read on focus: the form is a separate screen, so returning from it is
-    // the only signal that the list has changed.
     useFocusEffect(
         useCallback(() => {
             void submit(reload);

@@ -11,11 +11,6 @@ type Props = {
 
 /**
  * The picture on an account, or the initial standing in for one.
- *
- * The address is signed by the server and fetched with no headers of its own.
- * It also carries a fresh signature every time the account is loaded, so a
- * replaced picture appears without anything having to tell the image cache to
- * look again -- which is what the version counter here used to be for.
  */
 export function Avatar({ nickname, url, size = 72 }: Props) {
     const initial = nickname.trim().charAt(0).toUpperCase() || '?';

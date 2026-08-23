@@ -97,6 +97,14 @@ The server refuses a token minted for a client it does not know, so these ids
 must appear in its `services.google.audiences`. A build without the id its
 platform needs hides the button rather than offering one that cannot work.
 
+A native client is handed a one-use authorization code, never a token, so
+`exchangeCode()` is the leg that produces something the server can verify. It
+reads the client id and the redirect back off the request rather than rebuilding
+them, so they cannot drift from what was actually sent and earn a
+`redirect_uri_mismatch`. `shouldAutoExchangeCode` is off for the same reason a
+code redeems once: the hook's own exchange resolves long after `promptAsync()`
+returns, and both running is one `invalid_grant`.
+
 Declining the sheet returns null and the screen says nothing: backing out is a
 decision, not a failure.
 

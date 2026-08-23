@@ -21,10 +21,6 @@ import { useSubmit } from '@/lib/use-submit';
 
 /**
  * Enrol a second factor, or read the recovery codes of one already on.
- *
- * The server refuses to hand over enrolment material before `POST
- * /auth/two-factor` has generated a secret, so an account without one starts
- * that call on arrival.
  */
 export default function TwoFactorSetup() {
     const session = useSession();

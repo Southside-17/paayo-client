@@ -7,13 +7,6 @@ let held: Record<string, ServiceOffer> = {};
 
 /**
  * What the trade list already learned about a service, for the picker.
- *
- * The picker needs the market and the list of providers, and the list it was
- * tapped from was answered both. Keeping them here lets that screen paint
- * providers on its first frame instead of asking again and holding skeletons.
- * Keyed on the address because coverage is decided by the pin: a selection
- * change makes every remembered answer wrong at once, so the map is dropped
- * whole rather than entry by entry.
  */
 export function remember(addressId: string | null, market: Market, services: Service[]): void {
     if (addressId !== pinned) {

@@ -46,10 +46,6 @@ export type StaffRole = 'owner' | 'manager' | 'technician';
 
 /**
  * One person's place on one business's staff.
- *
- * `permissions` is the role's list, sent rather than derived: what a role
- * carries is the server's to decide, and a copy of that table here would be one
- * more thing to keep in step.
  */
 export type Staff = {
     id: string;
@@ -61,11 +57,6 @@ export type Staff = {
 
 /**
  * What a suspended account is told about its own suspension.
- *
- * `scope` is branched on and `notice` is shown; neither can be derived from the
- * other here, so both travel. `punitive` is false for an investigation, a
- * compromised account and a legal order -- three reasons that attribute no
- * fault, and must not be worded or coloured as though they did.
  */
 export type SuspensionNotice = {
     scope: 'access' | 'activity';
@@ -182,16 +173,10 @@ export type Service = {
     trade?: Trade;
     /**
      * The provider covering the address the list was asked for, if any.
-     *
-     * Absent when no address was named, null when nobody covers it. Present so a
-     * tap knows where it is going without a screen in between.
      */
     covering?: Listing | null;
     /**
      * Everyone in the market who offers it, for when nobody covers the address.
-     *
-     * Absent on a covered row and when no address was named, so its presence is
-     * itself the answer to whether there is a choice to make.
      */
     alternatives?: Listing[];
 };
@@ -232,11 +217,6 @@ export type Attachment = {
     is_complete: boolean;
     /**
      * A signed address for the bytes, present once the upload is complete.
-     *
-     * Fetched with no headers at all: the signature is in the query string, and
-     * the store reads an Authorization header in preference to it and then
-     * fails to verify a bearer token it was never issued. It expires, so it is
-     * read from the booking each time rather than kept.
      */
     url?: string;
 };

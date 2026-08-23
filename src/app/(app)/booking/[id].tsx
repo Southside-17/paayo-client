@@ -70,9 +70,6 @@ export default function BookingDetail() {
             <ScrollView contentContainerClassName="gap-5 p-6">
                 <BackButton label="Bookings" />
 
-                {/* The price sits beside the service rather than buried in a
-                    row of details: it is the first thing anyone opening a
-                    booking looks for. */}
                 <ScreenHeader
                     eyebrow={provider ?? booking?.provider.name}
                     title={name ?? booking?.service.name ?? 'Booking'}
@@ -116,9 +113,6 @@ export default function BookingDetail() {
                     <>
                         <StatusPill tone={booking.status.tone}>{booking.status.wording}</StatusPill>
 
-                        {/* Leads with the way forward, not the setback. Warning
-                            rather than destructive: nothing failed, and it is
-                            not the client's doing. */}
                         {booking.status.needs_another_provider ? (
                             <Card className="border-warning/40 bg-warning-subtle gap-3">
                                 <Text className="font-semibold">
@@ -149,9 +143,6 @@ export default function BookingDetail() {
                             <WhoCard provider={booking.provider.name} />
                         )}
 
-                        {/* The snapshot, not the live address: this is where the
-                            work was actually asked for, whatever has been edited
-                            since. */}
                         <WhereCard
                             place={{
                                 label: booking.address.label,
@@ -171,9 +162,6 @@ export default function BookingDetail() {
                                 <View className="flex-row flex-wrap gap-2">
                                     {booking.attachments.map((attachment) => {
                                         const video = attachment.mime.startsWith('video/');
-                                        // Signed by the server and good for an
-                                        // hour. Nothing is sent alongside it:
-                                        // the signature is the permission.
                                         const uri = attachment.url;
 
                                         if (!uri) {
@@ -214,8 +202,6 @@ export default function BookingDetail() {
                     </>
                 ) : null}
 
-                {/* "Keep it" rather than "Cancel": on a dialog about
-                    cancelling, a button reading Cancel means both things. */}
                 <ConfirmDialog
                     open={asking}
                     title="Cancel this booking?"

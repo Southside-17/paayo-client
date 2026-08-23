@@ -19,9 +19,6 @@ type ValidationErrors = Record<string, string[]>;
 
 /**
  * An error whose message was written for the person to read.
- *
- * Everything else a form catches is a transport failure, which gets the generic
- * wording, so a refusal that already explains itself needs a way to say so.
  */
 export class DisplayableError extends Error {
     constructor(message: string) {
@@ -72,18 +69,6 @@ type Answer = { status: number; payload: Payload };
 
 /**
  * Send a request the way the platform still supports for file uploads.
- *
- * Expo SDK 57 replaces `globalThis.fetch` with its own implementation
- * (`install('fetch', ...)` in expo/src/winter/runtime.native.ts), and that one
- * only understands a string, a Blob, or something carrying `bytes()`. React
- * Native's own `{uri, name, type}` file part reaches its `else` and throws
- * `Unsupported FormDataPart implementation` before a socket is ever opened --
- * which useSubmit reports as a connection failure, because that is what an
- * error with no status looks like from the outside.
- *
- * XMLHttpRequest is untouched by that swap. It hands a FormData to
- * `convertRequestBody`, which turns it into the native part list the
- * networking layer wants, and that is what fetch itself used to do.
  */
 function sendMultipart(
     url: string,
@@ -136,9 +121,6 @@ async function sendJson(
 
 /**
  * Call the API and unwrap the response.
- *
- * A 204 carries no body, so it resolves to undefined and callers that expect
- * nothing type it as void.
  */
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
     const { method = 'GET', body, token } = options;

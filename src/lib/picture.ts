@@ -10,15 +10,6 @@ type Picked = { uri: string; width: number };
 
 /**
  * Shrink a picked image to something worth uploading.
- *
- * The picker's crop settles the shape, never the resolution -- allowsEditing
- * and aspect are geometry, and quality is only JPEG compression. A square crop
- * of a full-size camera photo comes back at the source's own pixels, which is
- * megabytes to draw a picture the app never renders above 72pt.
- *
- * Everything is re-saved as JPEG whatever it arrived as, so the part carries a
- * name and a type the server can match against `mimes` rather than whatever
- * the picker happened to report.
  */
 export async function preparePicture(
     asset: Picked,

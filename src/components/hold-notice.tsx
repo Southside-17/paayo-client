@@ -6,10 +6,6 @@ import type { SuspensionNotice } from '@/lib/types';
 
 /**
  * What a business is told about the sanction standing against it.
- *
- * The heading follows `punitive`, matching the console and the personal hold:
- * an investigation, a compromised account and a legal order attribute no fault,
- * and calling those a suspension accuses somebody of something.
  */
 export function HoldNotice({ suspension }: { suspension: SuspensionNotice | null }) {
     if (!suspension) {

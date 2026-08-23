@@ -67,9 +67,6 @@ export default function Job() {
         }, [authenticatedRequest, id, provider]),
     );
 
-    // A sibling of both tab groups, so `(provider)/_layout.tsx` does not cover
-    // it: a deep link here from the personal side would otherwise hold on a
-    // skeleton that never fills.
     if (!staff) {
         return <Redirect href="/" />;
     }
@@ -212,9 +209,6 @@ export default function Job() {
                                 <Text className="text-sm">{job.description}</Text>
                             </Card>
 
-                            {/* A hold replaces the controls rather than disabling
-                                them. A greyed-out button reads as temporarily
-                                unavailable; the notice says what is actually true. */}
                             {job.status.value === 'pending' && staff.provider.suspension ? (
                                 <HoldNotice suspension={staff.provider.suspension} />
                             ) : null}
@@ -249,10 +243,6 @@ export default function Job() {
                                         </View>
                                     ) : (
                                         <>
-                                            {/* Not two equal buttons. Taking work is
-                                                the ordinary answer; turning it down
-                                                is the exception and carries a note,
-                                                so it does not get equal weight. */}
                                             <Button busy={busy} onPress={() => setTaking(true)}>
                                                 Take this job
                                             </Button>
@@ -269,7 +259,6 @@ export default function Job() {
                         </>
                     ) : null}
 
-                    {/* Names the promise rather than asking whether you are sure. */}
                     <ConfirmDialog
                         open={taking}
                         title="Take this job?"
@@ -288,10 +277,6 @@ export default function Job() {
                         onDismiss={() => setTaking(false)}
                     />
 
-                    {/* Both answers commit the business, so both are asked for.
-                        This one names what the client is left with, because
-                        turning work down is the answer that cannot be taken
-                        back. */}
                     <ConfirmDialog
                         open={refusing}
                         title="Turn down this job?"

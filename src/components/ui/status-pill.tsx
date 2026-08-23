@@ -8,9 +8,6 @@ type Props = { tone: Tone; children: string; className?: string };
 
 /**
  * Where a thing stands, said in colour and a dot together.
- *
- * The dot is not decoration: colour alone fails WCAG-AA for anyone who cannot
- * separate the tones, so the shape has to carry the meaning as well.
  */
 export function StatusPill({ tone, children, className }: Props) {
     const tokens = TONES[tone];

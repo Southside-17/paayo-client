@@ -53,10 +53,6 @@ function Choice({ icon: Icon, name, note, held, active, onPress }: Props) {
 
 /**
  * Which side of the app to use.
- *
- * A held business stays on the list and stays tappable. Hiding it would be the
- * one way of not being told about it, and the notice is on the other side of
- * the tap.
  */
 export default function Switch() {
     const { from } = useLocalSearchParams<{ from?: string }>();

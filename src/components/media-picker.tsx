@@ -51,11 +51,6 @@ type Props = {
 
 /**
  * Take photos and video of the job, sending each one as it is chosen.
- *
- * Uploading on pick rather than on submit is what keeps Book instant: by the
- * time the button is pressed the bytes are already on the server, and a failure
- * shows up next to the thumbnail that caused it instead of after the person
- * thought they were finished.
  */
 export function MediaPicker({ send, items, onChange, disabled = false, invalid = false }: Props) {
     const { colorScheme } = useColorScheme();

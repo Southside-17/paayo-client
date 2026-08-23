@@ -13,9 +13,6 @@ type Props = { provider: SocialProvider; social: Social | null };
 
 /**
  * One way in, and whether this account uses it.
- *
- * Read-only. Linking and unlinking carry rules -- the last way in cannot be
- * removed -- so they stay on the one screen that knows them.
  */
 export function SocialCard({ provider, social }: Props) {
     const { colorScheme } = useColorScheme();

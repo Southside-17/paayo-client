@@ -134,9 +134,6 @@ import IconCategory from '@tabler/icons-react-native/IconCategory';
 
 /**
  * Every glyph a trade may be drawn with, keyed by what the server stores.
- *
- * Imported one file at a time and never off the barrel: Metro does not shake,
- * and the barrel carries all 6184.
  */
 export const ICONS: Record<string, Icon> = {
     'air-conditioning': IconAirConditioning,

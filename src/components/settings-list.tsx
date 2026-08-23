@@ -16,9 +16,6 @@ type Props = { rows: SettingsRow[]; className?: string };
 
 /**
  * The account's sections as one hairline-divided card of rows.
- *
- * Icons render react-native-svg, which NativeWind does not reach, so their
- * colour is read from the palette the same way every other icon here is.
  */
 export function SettingsList({ rows, className }: Props) {
     const { colorScheme } = useColorScheme();

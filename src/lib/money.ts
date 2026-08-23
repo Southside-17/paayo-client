@@ -13,9 +13,6 @@ export function peso(centavos: number): string {
 
 /**
  * Render what a listing costs, in the unit its service names.
- *
- * A quoted service carries no number at all, and a range with no ceiling reads
- * as a floor rather than a guess at one.
  */
 export function priceRange(
     min: number | null,

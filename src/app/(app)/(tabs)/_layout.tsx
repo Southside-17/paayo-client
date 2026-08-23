@@ -9,20 +9,12 @@ import palette from '@/theme/palette';
 
 /**
  * The signed-in shell: one tab bar over the client's three areas.
- *
- * React Navigation draws this bar, so it is styled with literals rather than
- * classes -- the same reason the navigation theme in `src/app/_layout.tsx` is.
- * The family has to be named here too: React Native inherits none, and the
- * labels never pass through `ui/text.tsx`.
  */
 export default function TabsLayout() {
     const { colorScheme } = useColorScheme();
     const colours = palette[colorScheme ?? 'light'];
     const session = useSession();
 
-    // Bookings turned down and waiting on a choice. Amber, not red: a decision
-    // is owed, nothing is wrong. Read off the account, which every screen that
-    // answers a booking reloads.
     const owed =
         session.status === 'authenticated' ? (session.user.bookings_needing_provider ?? 0) : 0;
 

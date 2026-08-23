@@ -16,10 +16,6 @@ type Props = {
 
 /**
  * Which of the saved addresses work should be sent to.
- *
- * Selection and nothing else: adding, editing and removing live on the
- * addresses screen, and an edit control here would put a form in front of
- * someone who came to answer a one-tap question.
  */
 export function AddressSheet({ open, addresses, selected, onSelect, onDismiss }: Props) {
     const manage = () => {
@@ -64,9 +60,6 @@ export function AddressSheet({ open, addresses, selected, onSelect, onDismiss }:
                         ))}
                     </ScrollView>
 
-                    {/* The way on rather than a way to edit. Without it someone
-                        whose only address has no pin opens a sheet where nothing
-                        can be tapped and has nowhere to go from Home. */}
                     <Pressable
                         accessibilityRole="button"
                         onPress={manage}
@@ -83,10 +76,6 @@ export function AddressSheet({ open, addresses, selected, onSelect, onDismiss }:
 
 /**
  * One address to choose, or one that cannot be chosen yet.
- *
- * Without a pin nobody can be matched to it, so it is shown and explained
- * rather than hidden -- an address that vanished from the list would read as
- * lost -- but it is not offered as an answer.
  */
 function AddressRow({
     address,

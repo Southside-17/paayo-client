@@ -79,9 +79,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
     /**
      * Work out what the stored token is still worth, without touching state.
-     *
-     * The caller applies the result, so nothing is set until the awaits have
-     * settled and the provider is known to still be mounted.
      */
     const resolve = useCallback(async (): Promise<SessionState | 'refresh'> => {
         const stored = await readToken();
@@ -101,8 +98,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
                 return 'refresh';
             }
 
-            // A network failure is not a signed-out state, but there is nothing
-            // to show until the app can reach the server, so ask for sign in.
             return { status: 'unauthenticated' };
         }
     }, []);
@@ -182,8 +177,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
      * address is new. The server answers exactly as password login does, second
      * factor included, so the caller branches the same way.
      */
-    // Null when the sheet was dismissed, which is a decision and not a failure
-    // -- the screen above says nothing, exactly as it does for Google.
     const signInWithPasskey = useCallback(async (): Promise<LoginResult | null> => {
         const answered = await passkeyAssertion();
 
@@ -259,8 +252,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         }
     }, [forget, token]);
 
-    // Returns what the server said, because a caller that re-reads the account
-    // usually wants to know the answer -- state alone is a render away.
     const reload = useCallback(async (): Promise<User | null> => {
         if (!token) {
             return null;

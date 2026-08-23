@@ -14,11 +14,6 @@ const actions = new Map<string, string>();
 
 /**
  * Stands in for the Link, recording the navigation action it was handed.
- *
- * A hoisted function declaration, because the factory below runs while this
- * module is still being required and nothing declared with const exists yet.
- * It also keeps the JSX out of the factory, where NativeWind's rewrites reach
- * for a module-scoped helper that a hoisted factory is not allowed to touch.
  */
 function MockLink({
     href,

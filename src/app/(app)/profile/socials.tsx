@@ -46,8 +46,6 @@ export default function LinkedAccounts() {
 
     const isLinked = linked?.some((social) => social.provider === 'google') ?? false;
 
-    // Unlinking the only way in is refused by the server. Say so before the tap
-    // rather than after, and point at the screen that fixes it.
     const onlyWayIn = isLinked && (linked?.length ?? 0) === 1 && !session.user.has_password;
 
     const link = () =>

@@ -14,10 +14,6 @@ import { useSubmit } from '@/lib/use-submit';
 
 /**
  * The passkeys on the account, and the two things you can do to them.
- *
- * Renders nothing where the platform cannot hold one: a device with no
- * authenticator, or a build with no domain to bind a passkey to, has nothing
- * useful to offer here and an inert card reads as a fault.
  */
 export function PasskeyCard() {
     const session = useSession();

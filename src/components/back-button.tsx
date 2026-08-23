@@ -10,9 +10,6 @@ type Props = { label: string };
 
 /**
  * The way back up a browse hierarchy, naming where it goes.
- *
- * Not "Done" -- nothing is being finished here. Done belongs on a screen you
- * complete, like editing a profile; these are screens you came through.
  */
 export function BackButton({ label }: Props) {
     const { colorScheme } = useColorScheme();

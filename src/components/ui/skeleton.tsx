@@ -7,10 +7,6 @@ type Props = { className?: string };
 
 /**
  * A placeholder shaped like the thing that has not arrived yet.
- *
- * Sized at the call site, so a skeleton stands where its content will stand
- * and nothing moves when the content lands. The pulse stops for anyone who has
- * asked the system to reduce motion.
  */
 export function Skeleton({ className }: Props) {
     // Lazy state rather than a ref: reading ref.current during render is

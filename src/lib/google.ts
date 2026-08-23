@@ -6,11 +6,6 @@ import { DisplayableError } from './api';
 
 /**
  * The OAuth clients Google issues tokens against.
- *
- * Three, because Google verifies each kind of app differently: the web client
- * by its secret, Android by package name and signing fingerprint, iOS by bundle
- * identifier. Neither mobile client has a usable secret, which is why only ids
- * are here. The server refuses a token minted for anything it does not know.
  */
 const CLIENTS = {
     androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
@@ -44,11 +39,6 @@ function refusal(result: AnsweredResult): string {
 
 /**
  * Trade the one-use authorization code for the access token the API wants.
- *
- * Google hands a native app a code and never a token, so this second leg is
- * the one that produces something the server can verify. The client id and
- * redirect are read back off the request rather than rebuilt, so they cannot
- * drift from what was actually sent and earn a redirect_uri_mismatch.
  */
 async function redeem(request: AuthRequest, code: string | undefined): Promise<string> {
     if (code === undefined) {
@@ -76,11 +66,6 @@ async function redeem(request: AuthRequest, code: string | undefined): Promise<s
 
 /**
  * Ask Google for an access token, which the API trades for a session.
- *
- * Returns null when the person backs out of the sheet -- that is a decision,
- * not a failure, and the screen should say nothing. Every other refusal throws
- * with what Google said, because a sign-in that stops silently reads as an app
- * that ignored the tap.
  */
 export function useGoogleSignIn(): { ready: boolean; requestToken: () => Promise<string | null> } {
     // shouldAutoExchangeCode is off because the hook's own exchange resolves

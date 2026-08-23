@@ -58,8 +58,6 @@ export default function EditAddress() {
     });
     const [isDefault, setIsDefault] = useState(false);
     const [pin, setPin] = useState<Pin | null>(null);
-    // Separate from the pin: this is what the map should look at, and it is set
-    // only where a jump is wanted, never when a tap moves the pin.
     const [focus, setFocus] = useState<Pin | null>(null);
     const [locationNotice, setLocationNotice] = useState<string | null>(null);
 
@@ -147,8 +145,6 @@ export default function EditAddress() {
 
             await reload();
 
-            // A new address is where work is wanted, so it is what work is sent
-            // to. An edit is not a move: it leaves the choice where it was.
             if (id === undefined) {
                 select(data);
             }

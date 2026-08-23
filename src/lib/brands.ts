@@ -1,13 +1,5 @@
 /**
  * Brand marks, copied out of Simple Icons rather than imported from it.
- *
- * `simple-icons` is a devDependency for exactly this reason: its barrel is one
- * 5MB module and Metro does not shake it, so importing a single mark would
- * carry all ~3300 into the bundle -- the same trap the lucide deep-import rule
- * exists for. `brand-icon.test.tsx` reads the package for real and fails if a
- * path here has drifted from upstream, so the copy cannot rot in silence.
- *
- * Simple Icons is CC0.
  */
 export type Brand = { title: string; path: string };
 

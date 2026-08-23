@@ -10,10 +10,6 @@ import palette from '@/theme/palette';
 
 /**
  * The way from the personal account into a business, on the Account screen.
- *
- * It names the business outright when there is only one, because that reads as
- * the thing it does rather than as a category of thing. Absent entirely for an
- * account on nobody's staff, which is most of them.
  */
 export function BusinessSwitch({ businesses }: { businesses: Staff[] }) {
     const { colorScheme } = useColorScheme();

@@ -15,10 +15,6 @@ import { useSelectedAddress } from '@/lib/use-selected-address';
 
 /**
  * Go straight where the answer already is.
- *
- * The list carries the provider covering the address, so a tap knows whether it
- * is booking or choosing. Resolving it on the next screen instead is what put a
- * provider picker on screen for an instant before replacing itself.
  */
 function open(service: Service, trade: string) {
     if (service.covering) {
@@ -57,8 +53,6 @@ export default function TradeServices() {
 
     useFocusEffect(
         useCallback(() => {
-            // Waiting on the address is what keeps the list from being drawn
-            // unfiltered and then shrinking.
             if (!authenticatedRequest || !ready) {
                 return;
             }
@@ -71,9 +65,6 @@ export default function TradeServices() {
 
             void authenticatedRequest<ServiceList>(`/services?${query.toString()}`)
                 .then(({ data, market }) => {
-                    // The rows carry who covers the address and, where nobody
-                    // does, everyone who could. Handing that on is what lets the
-                    // picker open on providers instead of asking all over again.
                     remember(addressId ?? null, market, data);
                     setServices(data);
                 })
@@ -85,9 +76,6 @@ export default function TradeServices() {
         <SafeAreaView className="bg-background flex-1">
             <ScrollView contentContainerClassName="gap-5 p-6">
                 <BackButton label="Home" />
-                {/* The name is carried from the tile that was tapped, so the
-                    title is right on the first frame rather than settling from
-                    a placeholder once the services arrive. */}
                 <ScreenHeader title={name ?? services?.[0]?.trade?.name ?? 'Services'} />
 
                 {services === null

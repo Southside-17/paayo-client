@@ -23,11 +23,6 @@ function dispatchable(address: Address): boolean {
 
 /**
  * Where work would be sent, asked once and chosen on the device.
- *
- * The selection is held as an id and the record looked up, never the other way
- * round: an address that is edited, unpinned or removed falls back to the seed
- * on its own rather than being read off a stale copy. It is deliberately not
- * persisted -- a cold start returns to the account's default.
  */
 export function AddressesProvider({ children }: { children: ReactNode }) {
     const session = useSession();
@@ -39,9 +34,6 @@ export function AddressesProvider({ children }: { children: ReactNode }) {
 
     /**
      * Ask for the list without touching state, so the caller applies it.
-     *
-     * Null says the ask failed, which is not the same answer as an account with
-     * no addresses on it.
      */
     const read = useCallback(async (): Promise<Address[] | null> => {
         if (!authenticatedRequest) {
@@ -65,9 +57,6 @@ export function AddressesProvider({ children }: { children: ReactNode }) {
         setAddresses((held) => fresh ?? held ?? []);
     }, [read]);
 
-    // Once for the whole visit rather than once per screen. Every screen that
-    // needs the address reads it here, so returning from one no longer re-asks;
-    // the screens that change an address call reload themselves.
     useEffect(() => {
         let cancelled = false;
 

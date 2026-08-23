@@ -11,10 +11,6 @@ import { useSubmit } from '@/lib/use-submit';
 
 /**
  * The gate an unconfirmed address sits behind.
- *
- * The link in the email is consumed by the server, so this screen cannot
- * confirm anything itself -- it can only send another one and re-read the
- * account once the person says they have followed it.
  */
 export default function VerifyEmail() {
     const session = useSession();
@@ -37,8 +33,6 @@ export default function VerifyEmail() {
             setSent(response.message);
         });
 
-    // The reload's answer is used rather than the state it sets: state is a
-    // render away, and the whole point of the tap is to report what came back.
     const check = () =>
         submit(async () => {
             setSent(null);
