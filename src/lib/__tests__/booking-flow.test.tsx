@@ -67,7 +67,7 @@ async function attachPhoto() {
     await waitFor(() => expect(screen.queryByText('Sending photos…')).toBeNull());
 }
 
-/** Say what needs doing, which every booking also needs. */
+/** Say why you need them, which every booking also needs. */
 function describeTheWork() {
     fireEvent.changeText(screen.getByPlaceholderText(/drips/), 'The unit drips.');
 }
@@ -262,7 +262,7 @@ it('refuses an empty description under the field rather than at the server', asy
 
     fireEvent.press(screen.getByText('Place booking'));
 
-    expect(screen.getByText('Say what needs doing.')).toBeOnTheScreen();
+    expect(screen.getByText('Say why you need them.')).toBeOnTheScreen();
     expect(screen.queryByText('Place this booking?')).toBeNull();
     expect(request).not.toHaveBeenCalledWith('/bookings', expect.anything());
 
@@ -270,7 +270,7 @@ it('refuses an empty description under the field rather than at the server', asy
     // clears rather than waiting for another press.
     describeTheWork();
 
-    expect(screen.queryByText('Say what needs doing.')).toBeNull();
+    expect(screen.queryByText('Say why you need them.')).toBeNull();
 });
 
 // Who and where are settled before this screen. Letting either change here would

@@ -133,7 +133,7 @@ export default function Book() {
         }
 
         if (description.trim() === '') {
-            found.description = 'Say what needs doing.';
+            found.description = 'Say why you need them.';
         }
 
         // Nothing to send anyone to. The server refuses this too, but only after
