@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Text } from '@/components/ui/text';
 import { ApiError } from '@/lib/api';
 import { peso, priceRange } from '@/lib/money';
+import { recall } from '@/lib/offers';
 import { useSession } from '@/lib/session';
 import type { Listing, ServiceOffer } from '@/lib/types';
 import { useSelectedAddress } from '@/lib/use-selected-address';
@@ -32,7 +33,16 @@ export default function ServiceOffers() {
     const session = useSession();
     const { address, ready } = useSelectedAddress();
     const addressId = address?.id;
-    const [offer, setOffer] = useState<ServiceOffer | null>(null);
+    // Seeded during render from what the list already learned, so a screen
+    // reached through it paints providers on the first frame rather than holding
+    // skeletons over an answer it was handed. A covered one is not seeded: this
+    // screen is about to hand over to booking, and drawing the empty case first
+    // would put "nobody offers this" on screen for a frame on its way out.
+    const [offer, setOffer] = useState<ServiceOffer | null>(() => {
+        const known = recall(id, addressId ?? null);
+
+        return known?.covering ? null : known;
+    });
     const [failure, setFailure] = useState<string | null>(null);
 
     const authenticatedRequest =
@@ -61,9 +71,24 @@ export default function ServiceOffers() {
                 return;
             }
 
-            const query = addressId ? `?address=${addressId}` : '';
-
             setFailure(null);
+
+            const known = recall(id, addressId ?? null);
+
+            if (known) {
+                if (known.covering) {
+                    book(known.covering, name ?? known.data.name, true);
+                } else {
+                    setOffer(known);
+                }
+
+                return;
+            }
+
+            // Nothing remembered, so this was reached without the list that
+            // would have carried it: a deep link, a search, or a pin changed
+            // since. Ask for it.
+            const query = addressId ? `?address=${addressId}` : '';
 
             void authenticatedRequest<ServiceOffer>(`/services/${id}${query}`)
                 .then((answer) => {

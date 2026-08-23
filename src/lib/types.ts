@@ -185,9 +185,16 @@ export type Service = {
      * tap knows where it is going without a screen in between.
      */
     covering?: Listing | null;
+    /**
+     * Everyone in the market who offers it, for when nobody covers the address.
+     *
+     * Absent on a covered row and when no address was named, so its presence is
+     * itself the answer to whether there is a choice to make.
+     */
+    alternatives?: Listing[];
 };
 
-/** What `GET /services/{id}?address=` answers alongside the service. */
+/** What a service list and `GET /services/{id}?address=` answer around a service. */
 export type ServiceOffer = {
     data: Service;
     market?: { id: string; name: string } | null;
@@ -195,6 +202,12 @@ export type ServiceOffer = {
     covering?: Listing | null;
     /** Everyone in the market who offers it. Only sent when nobody covers. */
     alternatives?: Listing[];
+};
+
+/** What `GET /services?address=` answers around the rows. */
+export type ServiceList = {
+    data: Service[];
+    market?: { id: string; name: string } | null;
 };
 
 /** One provider's offer of one service. Prices are centavos. */

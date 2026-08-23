@@ -5,6 +5,7 @@ import { Pressable, Text, View } from 'react-native';
 
 import Home from '@/app/(app)/(tabs)/index';
 import { AddressesProvider, useAddresses } from '@/lib/addresses';
+import { forget } from '@/lib/offers';
 import { useSession } from '@/lib/session';
 
 jest.mock('@/lib/session', () => ({ useSession: jest.fn() }));
@@ -82,7 +83,10 @@ function open() {
     );
 }
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+    jest.clearAllMocks();
+    forget();
+});
 
 it('sends work to the default address until another one is chosen', async () => {
     signedIn([place('a1', 'Home', true, true), place('a2', 'Office', false, true)]);

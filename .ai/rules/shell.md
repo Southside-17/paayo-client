@@ -14,6 +14,7 @@ paths:
   - src/components/hold-notice.tsx
   - src/lib/addresses.tsx
   - src/lib/use-selected-address.ts
+  - src/lib/offers.ts
   - src/components/address-sheet.tsx
 ---
 
@@ -215,6 +216,21 @@ thing: it answers which address work goes to. No add, no edit, no remove -- thos
 live on `profile/addresses`, reached from Account or from the sheet's closing
 **Manage addresses** row. That row is navigation, not an action, and it is the
 only way forward for someone whose only address has no pin.
+
+## The list carries what the picker needs, so the picker asks nothing
+`src/lib/offers.ts` is a module-scope cache, like the one in
+`src/components/media-thumb.tsx`. The category list is answered `covering` *and*
+`alternatives` *and* the market, so it remembers one `ServiceOffer` per row and
+`service/[id].tsx` seeds its state from that in a **lazy `useState`
+initialiser** -- read during render, so a preloaded picker paints providers on
+its first frame instead of holding skeletons over an answer it was handed.
+
+Keyed on the address, and the map is dropped **whole** when the selection
+changes: coverage is decided by the pin, so one change makes every remembered
+answer wrong at once. A covered row is deliberately not seeded -- that screen is
+about to `replace` into Book, and drawing the empty case first would flash
+"nobody offers this" on its way out. The fetch stays for a miss: a deep link, a
+search, or a pin changed since.
 
 ## A screen that uploads reports it, and uploads as it goes
 Media is sent when it is picked, not when the form is submitted: Book stays instant, and a failure appears next to the thumbnail that caused it instead of after the person thought they were finished. Each item carries its own progress bar and its own retry.

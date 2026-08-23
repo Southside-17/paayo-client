@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 
 import ServiceOffers from '@/app/(app)/service/[id]';
 import { AddressesProvider } from '@/lib/addresses';
+import { forget } from '@/lib/offers';
 import { useSession } from '@/lib/session';
 import { router } from 'expo-router';
 
@@ -24,6 +25,8 @@ const service = {
     description: null,
     pricing_unit: { value: 'fixed', label: 'Fixed price', suffix: '', is_quoted: false },
 };
+
+beforeEach(() => forget());
 
 /**
  * The real AddressesProvider, deliberately not stood in for.

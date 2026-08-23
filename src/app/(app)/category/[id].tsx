@@ -8,8 +8,9 @@ import { Card } from '@/components/ui/card';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Text } from '@/components/ui/text';
+import { remember } from '@/lib/offers';
 import { useSession } from '@/lib/session';
-import type { Service } from '@/lib/types';
+import type { Service, ServiceList } from '@/lib/types';
 import { useSelectedAddress } from '@/lib/use-selected-address';
 
 /**
@@ -68,8 +69,14 @@ export default function CategoryServices() {
                 query.set('address', addressId);
             }
 
-            void authenticatedRequest<{ data: Service[] }>(`/services?${query.toString()}`)
-                .then(({ data }) => setServices(data))
+            void authenticatedRequest<ServiceList>(`/services?${query.toString()}`)
+                .then(({ data, market }) => {
+                    // The rows carry who covers the address and, where nobody
+                    // does, everyone who could. Handing that on is what lets the
+                    // picker open on providers instead of asking all over again.
+                    remember(addressId ?? null, market, data);
+                    setServices(data);
+                })
                 .catch(() => setServices([]));
         }, [authenticatedRequest, addressId, ready, id]),
     );
