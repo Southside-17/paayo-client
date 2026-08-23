@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useState } from 'react';
-import { Modal, Pressable, View } from 'react-native';
+import { Modal, Pressable, ScrollView, View } from 'react-native';
 import Animated, {
     Easing,
     runOnJS,
@@ -10,6 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { KeyboardAvoiding } from '@/components/ui/keyboard-avoiding';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -35,6 +36,11 @@ const FALLBACK_HEIGHT = 640;
  * so the dim arrives as a hard-edged block riding up the screen with a visible
  * top edge. Fading one while sliding the other is the whole reason this is
  * done by hand.
+ *
+ * A sheet is pinned to the bottom edge, which is exactly where the keyboard
+ * opens, so anything typed into one is covered by default. The panel rides
+ * above the keyboard and its body scrolls; the dim stays outside that, full
+ * screen, so no undimmed strip appears while the keyboard animates.
  */
 export function Sheet({ open, onDismiss, children, label, className }: Props) {
     const dim = useSharedValue(0);
@@ -88,7 +94,7 @@ export function Sheet({ open, onDismiss, children, label, className }: Props) {
             statusBarTranslucent
             onRequestClose={onDismiss}
         >
-            <View className="flex-1 justify-end">
+            <View className="flex-1">
                 <Animated.View style={scrim} className="absolute inset-0">
                     <Pressable
                         accessibilityRole="button"
@@ -98,17 +104,31 @@ export function Sheet({ open, onDismiss, children, label, className }: Props) {
                     />
                 </Animated.View>
 
-                <Animated.View
-                    accessibilityLabel={label}
-                    style={panel}
-                    onLayout={(event) => setHeight(event.nativeEvent.layout.height)}
-                    className={cn('bg-card border-border max-h-[80%] rounded-t-2xl border-t', className)}
-                >
-                    <SafeAreaView edges={['bottom']} className="gap-3 px-5 pb-6 pt-3">
-                        <View className="bg-input h-1 w-9 self-center rounded-full" />
-                        {children}
-                    </SafeAreaView>
-                </Animated.View>
+                <KeyboardAvoiding className="flex-1 justify-end">
+                    <Animated.View
+                        accessibilityLabel={label}
+                        style={panel}
+                        onLayout={(event) => setHeight(event.nativeEvent.layout.height)}
+                        className={cn(
+                            'bg-card border-border max-h-[80%] rounded-t-2xl border-t',
+                            className,
+                        )}
+                    >
+                        <SafeAreaView edges={['bottom']} className="px-5 pb-6 pt-3">
+                            <View className="bg-input h-1 w-9 self-center rounded-full" />
+
+                            <ScrollView
+                                className="shrink"
+                                bounces={false}
+                                keyboardShouldPersistTaps="handled"
+                                showsVerticalScrollIndicator={false}
+                                contentContainerClassName="gap-3 pt-3"
+                            >
+                                {children}
+                            </ScrollView>
+                        </SafeAreaView>
+                    </Animated.View>
+                </KeyboardAvoiding>
             </View>
         </Modal>
     );
