@@ -16,7 +16,7 @@ import { StatusPill } from '@/components/ui/status-pill';
 import { Text } from '@/components/ui/text';
 import { on } from '@/lib/dates';
 import { useSession } from '@/lib/session';
-import type { Invitation, ProviderListing, ProviderStaff } from '@/lib/types';
+import type { Invitation, ProviderStaff } from '@/lib/types';
 import { useWorkspace } from '@/lib/workspace';
 import palette from '@/theme/palette';
 
@@ -34,7 +34,6 @@ export default function Business() {
     const colours = palette[colorScheme ?? 'light'];
     const [people, setPeople] = useState<ProviderStaff[] | null>(null);
     const [invited, setInvited] = useState<Invitation[]>([]);
-    const [offers, setOffers] = useState<ProviderListing[] | null>(null);
 
     const authenticatedRequest =
         session.status === 'authenticated' ? session.authenticatedRequest : null;
@@ -58,10 +57,6 @@ export default function Business() {
                     .then(({ data }) => setInvited(data))
                     .catch(() => setInvited([]));
             }
-
-            void authenticatedRequest<{ data: ProviderListing[] }>(`/providers/${provider}/listings`)
-                .then(({ data }) => setOffers(data))
-                .catch(() => setOffers([]));
         }, [authenticatedRequest, provider, mayReadStaff]),
     );
 
@@ -70,10 +65,6 @@ export default function Business() {
     }
 
     const { provider: business } = staff;
-    const paused = (offers ?? []).filter((offer) => offer.paused_at !== null).length;
-    const unpriced = (offers ?? []).filter(
-        (offer) => offer.standing.wording === 'no price',
-    ).length;
 
     return (
         <SafeAreaView className="bg-background flex-1" edges={['top']}>
@@ -90,7 +81,7 @@ export default function Business() {
                             {business.name}
                         </Text>
                         <Text className="text-muted-foreground text-sm" numberOfLines={1}>
-                            {`${business.market?.name ?? 'No market yet'} · you are the ${staff.role_label}`}
+                            {`${business.market?.name ?? 'No market yet'} · ${staff.role_label}`}
                         </Text>
                     </View>
 
@@ -162,25 +153,6 @@ export default function Business() {
                     </Text>
                 )}
 
-                {offers === null ? null : (
-                    <Link href="/services" asChild>
-                        <Pressable
-                            accessibilityRole="button"
-                            className="border-border bg-card flex-row items-center gap-3 rounded-xl border p-4"
-                        >
-                            <View className="min-w-0 flex-1 gap-0.5">
-                                <Text className="font-semibold">
-                                    {offersSummary(offers.length, paused, unpriced)}
-                                </Text>
-                                <Text className="text-muted-foreground text-xs">
-                                    What you sell and what it costs.
-                                </Text>
-                            </View>
-                            <ChevronRight color={colours['muted-foreground']} size={17} />
-                        </Pressable>
-                    </Link>
-                )}
-
                 {staff.resignation_requested_at ? (
                     <Card className="border-warning/40 bg-warning-subtle gap-1">
                         <Text className="font-semibold">
@@ -196,21 +168,4 @@ export default function Business() {
             </ScrollView>
         </SafeAreaView>
     );
-}
-
-/**
- * Say how many offers there are, and how many of them are not taking work.
- */
-function offersSummary(total: number, paused: number, unpriced: number): string {
-    const count = `${total} service${total === 1 ? '' : 's'}`;
-
-    if (paused > 0) {
-        return `${count}, ${paused} paused`;
-    }
-
-    if (unpriced > 0) {
-        return `${count}, ${unpriced} with no price`;
-    }
-
-    return count;
 }

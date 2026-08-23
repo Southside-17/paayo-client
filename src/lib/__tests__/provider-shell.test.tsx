@@ -402,6 +402,19 @@ describe('the business side', () => {
         expect(screen.getByText('registered')).toBeOnTheScreen();
     });
 
+    // Services is a tab of its own, so a card here would be a second door to one
+    // room. The role stands alone under the name -- "you are the Owner" says
+    // nothing the word Owner does not.
+    it('leaves Services to its tab, and names the role plainly', async () => {
+        acting(staffAt('s1', 'Bright Electric'));
+        signedIn(answering({}));
+
+        render(<Business />);
+
+        expect(await screen.findByText('Davao City · Owner')).toBeOnTheScreen();
+        expect(screen.queryByText(/What you sell/)).not.toBeOnTheScreen();
+    });
+
     it('warns when no market has been set, since nothing can be booked', async () => {
         acting(staffAt('s1', 'Bright Electric', { market: null, registration_verified: false }));
         signedIn(answering({}));
