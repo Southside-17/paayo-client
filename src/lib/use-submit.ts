@@ -8,6 +8,8 @@ type Submission = {
     message: string | null;
     errorFor: (field: string) => string | undefined;
     submit: (action: () => Promise<void>) => Promise<void>;
+    /** Drop whatever the server last said, ready for a fresh attempt. */
+    reset: () => void;
 };
 
 /**
@@ -50,5 +52,10 @@ export function useSubmit(): Submission {
 
     const errorFor = useCallback((field: string) => errors[field]?.[0], [errors]);
 
-    return { busy, message, errorFor, submit };
+    const reset = useCallback(() => {
+        setMessage(null);
+        setErrors({});
+    }, []);
+
+    return { busy, message, errorFor, submit, reset };
 }

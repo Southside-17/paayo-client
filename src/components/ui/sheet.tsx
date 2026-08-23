@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Modal, Pressable, ScrollView, View } from 'react-native';
 import Animated, {
     Easing,
@@ -19,6 +19,14 @@ type Props = {
     children: ReactNode;
     /** Read out when the sheet opens. */
     label?: string;
+    /**
+     * Run once the sheet has finished leaving the screen.
+     *
+     * Anything that would be seen changing -- a validation error clearing, a
+     * field emptying -- belongs here rather than in `onDismiss`, which fires
+     * while the panel is still sliding down and in full view.
+     */
+    onClosed?: () => void;
     className?: string;
 };
 
@@ -42,13 +50,26 @@ const FALLBACK_HEIGHT = 640;
  * above the keyboard and its body scrolls; the dim stays outside that, full
  * screen, so no undimmed strip appears while the keyboard animates.
  */
-export function Sheet({ open, onDismiss, children, label, className }: Props) {
+export function Sheet({ open, onDismiss, children, label, onClosed, className }: Props) {
     const dim = useSharedValue(0);
     const slide = useSharedValue(1);
     const [height, setHeight] = useState(FALLBACK_HEIGHT);
     const [settled, setSettled] = useState(!open);
+    const shown = useRef(false);
 
-    const rest = useCallback(() => setSettled(true), []);
+    // Held in a ref so an inline callback does not change identity every render
+    // and restart the animation it is waiting on. Synced before the animation
+    // effect below, so the callback that fires is always the current one.
+    const closed = useRef(onClosed);
+
+    useEffect(() => {
+        closed.current = onClosed;
+    }, [onClosed]);
+
+    const rest = useCallback(() => {
+        setSettled(true);
+        closed.current?.();
+    }, []);
 
     // Adjusted during render rather than in an effect: the exit animation needs
     // the panel still mounted after `open` has gone false, so the flag can only
@@ -59,12 +80,20 @@ export function Sheet({ open, onDismiss, children, label, className }: Props) {
 
     useEffect(() => {
         if (open) {
+            shown.current = true;
             dim.value = withTiming(1, { duration: 180 });
             slide.value = withTiming(0, { duration: 240, easing: Easing.out(Easing.cubic) });
 
             return;
         }
 
+        // A sheet that has never opened has nothing to close, and firing
+        // onClosed on mount would clear a form nobody has filled in yet.
+        if (!shown.current) {
+            return;
+        }
+
+        shown.current = false;
         dim.value = withTiming(0, { duration: 160 });
         slide.value = withTiming(
             1,

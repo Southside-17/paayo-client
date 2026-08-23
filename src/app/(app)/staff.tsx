@@ -44,7 +44,7 @@ export default function Staff() {
     const [inviting, setInviting] = useState(false);
     const [email, setEmail] = useState('');
     const [role, setRole] = useState<StaffRole>('technician');
-    const { busy, message, errorFor, submit } = useSubmit();
+    const { busy, message, errorFor, submit, reset } = useSubmit();
 
     const authenticatedRequest =
         session.status === 'authenticated' ? session.authenticatedRequest : null;
@@ -102,11 +102,7 @@ export default function Staff() {
                     <Button
                         variant="outline"
                         className="h-9 px-3"
-                        onPress={() => {
-                            setEmail('');
-                            setRole('technician');
-                            setInviting(true);
-                        }}
+                        onPress={() => setInviting(true)}
                     >
                         Invite
                     </Button>
@@ -145,7 +141,12 @@ export default function Staff() {
                 )}
             </ScrollView>
 
-            <Sheet open={picked !== null} onDismiss={() => setPicked(null)} label="This person">
+            <Sheet
+                open={picked !== null}
+                onDismiss={() => setPicked(null)}
+                onClosed={reset}
+                label="This person"
+            >
                 {picked ? (
                     <>
                         <View className="flex-row items-center gap-3">
@@ -323,7 +324,16 @@ export default function Staff() {
                 ) : null}
             </Sheet>
 
-            <Sheet open={inviting} onDismiss={() => setInviting(false)} label="Invite somebody">
+            <Sheet
+                open={inviting}
+                onDismiss={() => setInviting(false)}
+                onClosed={() => {
+                    reset();
+                    setEmail('');
+                    setRole('technician');
+                }}
+                label="Invite somebody"
+            >
                 <Text className="text-base font-bold">Invite somebody</Text>
                 <Text className="text-muted-foreground text-sm">
                     They get an email with a link. Nothing changes here until they accept it.

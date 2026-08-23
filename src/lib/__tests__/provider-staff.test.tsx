@@ -3,6 +3,7 @@ import { useEffect, type ReactNode } from 'react';
 import { View } from 'react-native';
 
 import Staff from '@/app/(app)/staff';
+import { ApiError } from '@/lib/api';
 import Standing from '@/app/(app)/(provider)/standing';
 import { useSession } from '@/lib/session';
 import type { Invitation, ProviderStaff, Staff as StaffRecord, StaffRole } from '@/lib/types';
@@ -239,6 +240,39 @@ describe('inviting somebody', () => {
                 body: { email: 'bea@example.com', role: 'technician' },
             }),
         );
+    });
+
+    // Clearing on dismiss is watched happening: the error blinks out under the
+    // field while the panel is still sliding down.
+    it('holds the refusal on screen until the sheet has gone, then drops it', async () => {
+        acting();
+        const request = jest.fn(async (path: string) => {
+            if (path.endsWith('/invitations') === false) {
+                return { data: [person()] };
+            }
+
+            throw new ApiError(422, 'Unprocessable', {
+                email: ['Somebody with that address is already on the staff.'],
+            });
+        });
+        signedIn(request as unknown as jest.Mock);
+
+        render(<Staff />);
+
+        fireEvent.press(await screen.findByText('Invite'));
+        fireEvent.changeText(screen.getByPlaceholderText('name@example.com'), 'mara@example.com');
+        fireEvent.press(screen.getByText('Send invite'));
+
+        expect(await screen.findByText(/already on the staff/)).toBeOnTheScreen();
+
+        fireEvent.press(screen.getByLabelText('Dismiss'));
+
+        await waitFor(() => expect(screen.queryByLabelText('Invite somebody')).toBeNull());
+
+        fireEvent.press(screen.getByText('Invite'));
+
+        expect(screen.queryByText(/already on the staff/)).not.toBeOnTheScreen();
+        expect(screen.getByPlaceholderText('name@example.com').props.value).toBe('');
     });
 
     it('does not offer a manager the owner role', async () => {
