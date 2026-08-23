@@ -104,7 +104,7 @@ export function Sheet({ open, onDismiss, children, label, className }: Props) {
                     onLayout={(event) => setHeight(event.nativeEvent.layout.height)}
                     className={cn('bg-card border-border max-h-[80%] rounded-t-2xl border-t', className)}
                 >
-                    <SafeAreaView edges={['bottom']} className="gap-3 px-5 pb-4 pt-3">
+                    <SafeAreaView edges={['bottom']} className="gap-3 px-5 pb-6 pt-3">
                         <View className="bg-input h-1 w-9 self-center rounded-full" />
                         {children}
                     </SafeAreaView>
