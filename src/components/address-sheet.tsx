@@ -1,7 +1,8 @@
 import { router } from 'expo-router';
-import { Modal, Pressable, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 
 import { Badge } from '@/components/ui/badge';
+import { Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import type { Address } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -24,53 +25,33 @@ export function AddressSheet({ open, addresses, selected, onSelect, onDismiss }:
     };
 
     return (
-        <Modal
-            visible={open}
-            transparent
-            animationType="slide"
-            statusBarTranslucent
-            onRequestClose={onDismiss}
-        >
+        <Sheet open={open} onDismiss={onDismiss} label="Where should work happen?">
+            <Text className="text-lg font-bold">Where should work happen?</Text>
+
+            <ScrollView contentContainerClassName="gap-2">
+                {addresses.length === 0 ? (
+                    <Text className="text-muted-foreground text-sm">No addresses saved yet.</Text>
+                ) : null}
+
+                {addresses.map((address) => (
+                    <AddressRow
+                        key={address.id}
+                        address={address}
+                        selected={address.id === selected?.id}
+                        onSelect={onSelect}
+                    />
+                ))}
+            </ScrollView>
+
             <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Dismiss"
-                onPress={onDismiss}
-                className="flex-1 justify-end bg-black/60"
+                onPress={manage}
+                className="border-border flex-row items-center justify-between border-t pt-4"
             >
-                <Pressable
-                    className="bg-card border-border gap-4 rounded-t-2xl border p-6"
-                    onPress={() => undefined}
-                >
-                    <Text className="text-lg font-bold">Where should work happen?</Text>
-
-                    <ScrollView contentContainerClassName="gap-2" className="max-h-96">
-                        {addresses.length === 0 ? (
-                            <Text className="text-muted-foreground text-sm">
-                                No addresses saved yet.
-                            </Text>
-                        ) : null}
-
-                        {addresses.map((address) => (
-                            <AddressRow
-                                key={address.id}
-                                address={address}
-                                selected={address.id === selected?.id}
-                                onSelect={onSelect}
-                            />
-                        ))}
-                    </ScrollView>
-
-                    <Pressable
-                        accessibilityRole="button"
-                        onPress={manage}
-                        className="border-border flex-row items-center justify-between border-t pt-4"
-                    >
-                        <Text className="font-medium">Manage addresses</Text>
-                        <Text className="text-brand text-sm font-semibold">Open</Text>
-                    </Pressable>
-                </Pressable>
+                <Text className="font-medium">Manage addresses</Text>
+                <Text className="text-brand text-sm font-semibold">Open</Text>
             </Pressable>
-        </Modal>
+        </Sheet>
     );
 }
 

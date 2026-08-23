@@ -99,3 +99,12 @@ jest.mock('expo-notifications', () => ({
 // Android push needs no entitlement, so the suite runs as a build that can be
 // notified on either platform. The iOS-unconfigured case reloads the module.
 process.env.EXPO_PUBLIC_PUSH_IOS = '1';
+
+// Reanimated boots worklets on import, and the worklets runtime is not
+// transformed for jest -- requiring it throws before any screen holding a
+// sheet can render. The stand-in lives in __mocks__/react-native-reanimated.js
+// rather than inline here: NativeWind's babel plugin injects its interop
+// helper into any file that creates an element, and jest refuses a mock
+// factory that reaches an out-of-scope variable. A module file has no such
+// limit, and jest picks it up for a node module without being asked.
+jest.mock('react-native-reanimated');
