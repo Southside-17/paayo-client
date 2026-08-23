@@ -43,6 +43,7 @@ export default function Register() {
                         onChangeText={setNickname}
                         autoComplete="nickname"
                         placeholder="What you go by"
+                        maxLength={12}
                         invalid={Boolean(errorFor('nickname'))}
                     />
                     <FieldError message={errorFor('nickname')} />

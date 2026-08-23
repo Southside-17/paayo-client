@@ -55,6 +55,7 @@ export default function SetNickname() {
                         autoComplete="nickname"
                         autoFocus
                         placeholder="What you go by"
+                        maxLength={12}
                         invalid={Boolean(errorFor('nickname'))}
                     />
                     <FieldError message={errorFor('nickname')} />
