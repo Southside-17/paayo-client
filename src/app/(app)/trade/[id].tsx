@@ -20,14 +20,14 @@ import { useSelectedAddress } from '@/lib/use-selected-address';
  * is booking or choosing. Resolving it on the next screen instead is what put a
  * provider picker on screen for an instant before replacing itself.
  */
-function open(service: Service, category: string) {
+function open(service: Service, trade: string) {
     if (service.covering) {
         router.push({
             pathname: '/book',
             params: {
                 listing: service.covering.id,
                 service: service.name,
-                category,
+                trade,
                 provider: service.covering.provider.name,
                 covered: '1',
             },
@@ -38,14 +38,14 @@ function open(service: Service, category: string) {
 
     router.push({
         pathname: '/service/[id]',
-        params: { id: service.id, name: service.name, category },
+        params: { id: service.id, name: service.name, trade },
     });
 }
 
 /**
  * The work offered under one trade, near the address that will be worked at.
  */
-export default function CategoryServices() {
+export default function TradeServices() {
     const { id, name } = useLocalSearchParams<{ id: string; name?: string }>();
     const session = useSession();
     const { address, ready } = useSelectedAddress();
@@ -63,7 +63,7 @@ export default function CategoryServices() {
                 return;
             }
 
-            const query = new URLSearchParams({ category: id });
+            const query = new URLSearchParams({ trade: id });
 
             if (addressId) {
                 query.set('address', addressId);
@@ -88,7 +88,7 @@ export default function CategoryServices() {
                 {/* The name is carried from the tile that was tapped, so the
                     title is right on the first frame rather than settling from
                     a placeholder once the services arrive. */}
-                <ScreenHeader title={name ?? services?.[0]?.category?.name ?? 'Services'} />
+                <ScreenHeader title={name ?? services?.[0]?.trade?.name ?? 'Services'} />
 
                 {services === null
                     ? [0, 1, 2].map((at) => (
@@ -118,7 +118,7 @@ export default function CategoryServices() {
                     <Pressable
                         key={service.id}
                         accessibilityRole="button"
-                        onPress={() => open(service, name ?? service.category?.name ?? 'Back')}
+                        onPress={() => open(service, name ?? service.trade?.name ?? 'Back')}
                         className="border-border bg-card gap-1 rounded-xl border p-4"
                     >
                         <Text className="font-semibold">{service.name}</Text>

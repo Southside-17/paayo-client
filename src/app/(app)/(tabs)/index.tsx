@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AddressSheet } from '@/components/address-sheet';
 import { Avatar } from '@/components/avatar';
-import { CategoryIcon } from '@/components/category-icon';
+import { TradeIcon } from '@/components/trade-icon';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { ScreenHeader } from '@/components/ui/screen-header';
@@ -14,7 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Text } from '@/components/ui/text';
 import { useAddresses } from '@/lib/addresses';
 import { useSession } from '@/lib/session';
-import type { Category } from '@/lib/types';
+import type { Trade } from '@/lib/types';
 import palette from '@/theme/palette';
 
 /** The greeting the header opens with, by the reader's own clock. */
@@ -33,7 +33,7 @@ export default function Home() {
     const session = useSession();
     const { colorScheme } = useColorScheme();
     const colours = palette[colorScheme ?? 'light'];
-    const [categories, setCategories] = useState<Category[] | null>(null);
+    const [trades, setTrades] = useState<Trade[] | null>(null);
     const [choosing, setChoosing] = useState(false);
     const { addresses, address, ready, select } = useAddresses();
 
@@ -46,9 +46,9 @@ export default function Home() {
                 return;
             }
 
-            void authenticatedRequest<{ data: Category[] }>('/categories')
-                .then(({ data }) => setCategories(data))
-                .catch(() => setCategories([]));
+            void authenticatedRequest<{ data: Trade[] }>('/trades')
+                .then(({ data }) => setTrades(data))
+                .catch(() => setTrades([]));
         }, [authenticatedRequest]),
     );
 
@@ -110,7 +110,7 @@ export default function Home() {
                 <View className="gap-3">
                     <Text className="font-semibold">What do you need done?</Text>
 
-                    {categories === null ? (
+                    {trades === null ? (
                         <View className="flex-row flex-wrap gap-3">
                             {[0, 1, 2].map((at) => (
                                 <View
@@ -124,7 +124,7 @@ export default function Home() {
                         </View>
                     ) : null}
 
-                    {categories?.length === 0 ? (
+                    {trades?.length === 0 ? (
                         <Card className="gap-2">
                             <Text className="font-semibold">Nothing on offer yet</Text>
                             <Text className="text-muted-foreground text-sm">
@@ -135,12 +135,12 @@ export default function Home() {
                     ) : null}
 
                     <View className="flex-row flex-wrap gap-3">
-                        {categories?.map((category) => (
+                        {trades?.map((trade) => (
                             <Link
-                                key={category.id}
+                                key={trade.id}
                                 href={{
-                                    pathname: '/category/[id]',
-                                    params: { id: category.id, name: category.name },
+                                    pathname: '/trade/[id]',
+                                    params: { id: trade.id, name: trade.name },
                                 }}
                                 asChild
                             >
@@ -149,14 +149,14 @@ export default function Home() {
                                     className="border-border bg-card grow basis-[30%] items-center gap-2 rounded-xl border px-2 py-4"
                                 >
                                     <View className="bg-brand-subtle size-11 items-center justify-center rounded-xl">
-                                        <CategoryIcon
-                                            icon={category.icon}
+                                        <TradeIcon
+                                            icon={trade.icon}
                                             color={colours.brand}
                                             size={21}
                                         />
                                     </View>
                                     <Text className="text-center text-xs font-semibold">
-                                        {category.name}
+                                        {trade.name}
                                     </Text>
                                 </Pressable>
                             </Link>

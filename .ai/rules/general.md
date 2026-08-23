@@ -119,9 +119,9 @@ no `className` prop is registered on them. Feed the `color` prop from
 
 ## Two icon sets, and they do different jobs
 **Lucide** draws the interface -- chevrons, the tab bar, the settings rows, the
-eye on a password field. **Tabler** draws service categories and nothing else.
+eye on a password field. **Tabler** draws service trades and nothing else.
 It is here because Lucide has no aircon glyph at all, which is the first
-category in the catalog; Tabler carries `IconAirConditioning`, `IconFridge`,
+trade in the catalog; Tabler carries `IconAirConditioning`, `IconFridge`,
 `IconLadder`, `IconTools` and the rest of the trades. Both are 24px 2px-stroke,
 so they sit together.
 

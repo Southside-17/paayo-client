@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react-native';
 import { useEffect } from 'react';
 
-import CategoryServices from '@/app/(app)/category/[id]';
+import TradeServices from '@/app/(app)/trade/[id]';
 import ServiceOffers from '@/app/(app)/service/[id]';
 import { forget } from '@/lib/offers';
 import { useSession } from '@/lib/session';
@@ -87,13 +87,13 @@ it('opens the picker on providers without asking again', async () => {
         market: { id: 'm1', name: 'Davao City' },
     }));
 
-    render(<CategoryServices />);
+    render(<TradeServices />);
 
     await waitFor(() => expect(screen.getByText('Freon Recharge')).toBeOnTheScreen());
 
     const asked = request.mock.calls.length;
 
-    params = { id: 's1', name: 'Freon Recharge', category: 'Air Condition' };
+    params = { id: 's1', name: 'Freon Recharge', trade: 'Air Condition' };
 
     render(<ServiceOffers />);
 
@@ -104,7 +104,7 @@ it('opens the picker on providers without asking again', async () => {
 });
 
 it('asks for itself when it was not reached through a list', async () => {
-    params = { id: 's1', name: 'Freon Recharge', category: 'Air Condition' };
+    params = { id: 's1', name: 'Freon Recharge', trade: 'Air Condition' };
 
     const request = answering(() => ({
         data: uncovered,
@@ -129,7 +129,7 @@ it('forgets what it knew when work moves to another address', async () => {
         market: { id: 'm1', name: 'Davao City' },
     }));
 
-    render(<CategoryServices />);
+    render(<TradeServices />);
 
     await waitFor(() => expect(screen.getByText('Freon Recharge')).toBeOnTheScreen());
 
@@ -138,7 +138,7 @@ it('forgets what it knew when work moves to another address', async () => {
         ready: true,
     });
 
-    params = { id: 's1', name: 'Freon Recharge', category: 'Air Condition' };
+    params = { id: 's1', name: 'Freon Recharge', trade: 'Air Condition' };
 
     render(<ServiceOffers />);
 
@@ -155,11 +155,11 @@ it('remembers nothing to choose from for a row that has an answer', async () => 
         market: { id: 'm1', name: 'Davao City' },
     }));
 
-    render(<CategoryServices />);
+    render(<TradeServices />);
 
     await waitFor(() => expect(screen.getByText('Aircon Cleaning')).toBeOnTheScreen());
 
-    params = { id: 's2', name: 'Aircon Cleaning', category: 'Air Condition' };
+    params = { id: 's2', name: 'Aircon Cleaning', trade: 'Air Condition' };
 
     render(<ServiceOffers />);
 

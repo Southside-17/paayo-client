@@ -164,7 +164,7 @@ export type PricingUnit = {
 };
 
 /** A trade. `icon` is a curated Tabler name and may be null. */
-export type Category = {
+export type Trade = {
     id: string;
     name: string;
     slug: string;
@@ -177,7 +177,7 @@ export type Service = {
     name: string;
     description: string | null;
     pricing_unit: PricingUnit;
-    category?: Category;
+    trade?: Trade;
     /**
      * The provider covering the address the list was asked for, if any.
      *

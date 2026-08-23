@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { View } from 'react-native';
 
-import CategoryServices from '@/app/(app)/category/[id]';
+import TradeServices from '@/app/(app)/trade/[id]';
 import ServiceOffers from '@/app/(app)/service/[id]';
 import Home from '@/app/(app)/(tabs)/index';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -88,7 +88,7 @@ it('holds the shape of the list while the services are on their way', () => {
     params = { id: 'c1', name: 'Air Condition' };
     pending();
 
-    inApp(<CategoryServices />);
+    inApp(<TradeServices />);
 
     expect(screen.UNSAFE_getAllByType(Skeleton).length).toBeGreaterThan(0);
 });
@@ -99,7 +99,7 @@ it('opens with the name of the trade that was tapped', () => {
     params = { id: 'c1', name: 'Air Condition' };
     pending();
 
-    inApp(<CategoryServices />);
+    inApp(<TradeServices />);
 
     expect(screen.getByText('Air Condition')).toBeOnTheScreen();
 });
@@ -112,11 +112,11 @@ it('drops the skeleton once the services arrive', async () => {
             name: 'Cleaning',
             description: 'Strip and wash the unit.',
             pricing_unit: { value: 'per-unit', label: 'Per unit', suffix: ' per unit', is_quoted: false },
-            category: { id: 'c1', name: 'Air Condition', slug: 'air-condition', icon: 'air-conditioning' },
+            trade: { id: 'c1', name: 'Air Condition', slug: 'air-condition', icon: 'air-conditioning' },
         },
     ]);
 
-    inApp(<CategoryServices />);
+    inApp(<TradeServices />);
 
     await waitFor(() => expect(screen.getByText('Cleaning')).toBeOnTheScreen());
     expect(screen.UNSAFE_queryAllByType(Skeleton)).toHaveLength(0);
@@ -125,7 +125,7 @@ it('drops the skeleton once the services arrive', async () => {
 // The provider list is one screen further down and had the same fault: it
 // opened saying "Service" and renamed itself once the offers landed.
 it('opens the provider list with the service that was tapped', () => {
-    params = { id: 's1', name: 'Cleaning', category: 'Air Condition' };
+    params = { id: 's1', name: 'Cleaning', trade: 'Air Condition' };
     pending();
 
     inApp(<ServiceOffers />);

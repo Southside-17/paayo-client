@@ -25,10 +25,10 @@ import { useSelectedAddress } from '@/lib/use-selected-address';
  * covers that zone for this service, so the client picks from the market.
  */
 export default function ServiceOffers() {
-    const { id, name, category } = useLocalSearchParams<{
+    const { id, name, trade } = useLocalSearchParams<{
         id: string;
         name?: string;
-        category?: string;
+        trade?: string;
     }>();
     const session = useSession();
     const { address, ready } = useSelectedAddress();
@@ -55,12 +55,12 @@ export default function ServiceOffers() {
                 params: {
                     listing: listing.id,
                     service,
-                    category: category ?? '',
+                    trade: trade ?? '',
                     provider: listing.provider.name,
                     covered: covered ? '1' : '',
                 },
             }),
-        [category],
+        [trade],
     );
 
     useFocusEffect(
@@ -125,7 +125,7 @@ export default function ServiceOffers() {
                 {/* Both names travel with the link. The row that was tapped
                     already knew them, so nothing here settles from a
                     placeholder once the providers arrive. */}
-                <BackButton label={category ?? service?.category?.name ?? 'Back'} />
+                <BackButton label={trade ?? service?.trade?.name ?? 'Back'} />
                 <ScreenHeader title={name ?? service?.name ?? 'Service'} />
 
                 {failure !== null ? <FormMessage message={failure} /> : null}

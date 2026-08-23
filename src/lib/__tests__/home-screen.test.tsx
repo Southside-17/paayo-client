@@ -53,13 +53,13 @@ const address = {
     line: '12 Kalayaan, Poblacion, Makati',
 };
 
-const category = { id: 'c1', name: 'Air Condition', slug: 'air-condition', icon: 'air-conditioning' };
+const trade = { id: 'c1', name: 'Air Condition', slug: 'air-condition', icon: 'air-conditioning' };
 
-function signedIn(payloads: { categories?: unknown[]; addresses?: unknown[] }) {
+function signedIn(payloads: { trades?: unknown[]; addresses?: unknown[] }) {
     const authenticatedRequest = jest.fn((path: string) =>
         Promise.resolve({
-            data: path.startsWith('/categories')
-                ? (payloads.categories ?? [])
+            data: path.startsWith('/trades')
+                ? (payloads.trades ?? [])
                 : (payloads.addresses ?? []),
         }),
     );
@@ -88,7 +88,7 @@ it('opens with a greeting and the nickname', async () => {
 });
 
 it('draws a tile for every trade on offer', async () => {
-    signedIn({ categories: [category, { ...category, id: 'c2', name: 'Plumbing', icon: 'droplet' }] });
+    signedIn({ trades: [trade, { ...trade, id: 'c2', name: 'Plumbing', icon: 'droplet' }] });
 
     inApp(<Home />);
 

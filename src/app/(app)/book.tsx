@@ -62,10 +62,10 @@ type Missing = { description?: string; attachments?: string; address?: string };
  * so letting it change here would quietly invalidate both.
  */
 export default function Book() {
-    const { listing, service, category, provider, covered } = useLocalSearchParams<{
+    const { listing, service, trade, provider, covered } = useLocalSearchParams<{
         listing: string;
         service?: string;
-        category?: string;
+        trade?: string;
         provider?: string;
         /** '1' when coverage chose them, absent when the client did. */
         covered?: string;
@@ -175,7 +175,7 @@ export default function Book() {
                     {/* Back names the trade this came from; the eyebrow names
                         the work. Between them the screen says what was chosen
                         to get here. */}
-                    <BackButton label={category || service || 'Back'} />
+                    <BackButton label={trade || service || 'Back'} />
                     <ScreenHeader eyebrow={service} title="Book" />
 
                     <FormMessage message={message ?? errorFor('listing_id') ?? null} />

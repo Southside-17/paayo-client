@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { useEffect } from 'react';
 
-import CategoryServices from '@/app/(app)/category/[id]';
+import TradeServices from '@/app/(app)/trade/[id]';
 import { useSession } from '@/lib/session';
 import { useSelectedAddress } from '@/lib/use-selected-address';
 import { router } from 'expo-router';
@@ -57,7 +57,7 @@ it('goes straight to booking when the list already names a provider', async () =
         provider: { id: 'p1', name: 'Kool Breeze Aircon Services', slug: 'kool-breeze' },
     });
 
-    render(<CategoryServices />);
+    render(<TradeServices />);
 
     await waitFor(() => expect(screen.getByText('Cleaning')).toBeOnTheScreen());
 
@@ -68,7 +68,7 @@ it('goes straight to booking when the list already names a provider', async () =
         params: {
             listing: 'l1',
             service: 'Cleaning',
-            category: 'Air Condition',
+            trade: 'Air Condition',
             provider: 'Kool Breeze Aircon Services',
             covered: '1',
         },
@@ -78,7 +78,7 @@ it('goes straight to booking when the list already names a provider', async () =
 it('goes to the picker when nobody covers the address', async () => {
     listed(null);
 
-    render(<CategoryServices />);
+    render(<TradeServices />);
 
     await waitFor(() => expect(screen.getByText('Cleaning')).toBeOnTheScreen());
 
@@ -86,6 +86,6 @@ it('goes to the picker when nobody covers the address', async () => {
 
     expect(router.push).toHaveBeenCalledWith({
         pathname: '/service/[id]',
-        params: { id: 's1', name: 'Cleaning', category: 'Air Condition' },
+        params: { id: 's1', name: 'Cleaning', trade: 'Air Condition' },
     });
 });

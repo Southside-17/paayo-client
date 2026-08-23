@@ -125,7 +125,7 @@ lands; give it its own longest-side rather than reusing `AVATAR_SIZE`.
 tabs, labelled with the screen it returns to: **Home**, the trade, the service,
 **Bookings**, **Account**, **Addresses**, **Security**. Nothing carries a
 top-right *Done* or *Cancel* any more -- those were copied onto browse screens
-from the settings screens, and Done means finished, which browsing a category
+from the settings screens, and Done means finished, which browsing a trade
 never is.
 
 The label is a prop and not inferred, because a screen reached from two places
@@ -135,8 +135,8 @@ Home's address line, so the caller passes `from`.
 ## Names travel with the link, they do not settle after it
 A row that is tapped already knows what it is called, so it passes the name
 along and the next screen's title is right on the first frame. Home sends a
-category's `name`; the category screen sends a service's `name` and its
-`category`; the bookings list sends the service and provider names.
+trade's `name`; the trade screen sends a service's `name` and its
+`trade`; the bookings list sends the service and provider names.
 
 Without this a screen opens on a placeholder -- "Services", "Service",
 "Booking" -- and renames itself when the fetch lands, which reads as a glitch.
@@ -174,7 +174,7 @@ The backdrop dismisses, matching every other dialog on the platform.
 ## The provider list is a fallback, never a step
 Where a provider covers the address, `service/[id].tsx` resolves and `router.replace`s straight to Book — the client never sees a list, and Book shows who is coming as a card with no picker, no "choose another", no override. The list is only drawn when nobody covers that zone, and it opens with a banner naming the service and the market, because a list appearing where an answer was expected reads as a downgrade unless it explains itself.
 
-`replace` rather than `push`, so back from Book returns to the category rather than to a screen the client was never meant to stop on.
+`replace` rather than `push`, so back from Book returns to the trade rather than to a screen the client was never meant to stop on.
 
 ## Where work goes is a selection, and the default is only its seed
 `src/lib/addresses.tsx` holds the **address id**, never the record, and reads it
@@ -206,7 +206,7 @@ that vanished from the list would read as lost.
 The list is asked for **once for the whole visit**, from `AddressesProvider`
 mounted around the last `<Stack>` in `(app)/_layout.tsx` -- past every gate, so a
 held or unverified account never asks. It was four requests for one booking:
-Home, the category screen, the picker and Book each read it on every focus, and
+Home, the trade screen, the picker and Book each read it on every focus, and
 every `router.back()` re-fired the lot. Screens that change an address call
 `reload()`; nothing else re-asks.
 
@@ -219,7 +219,7 @@ only way forward for someone whose only address has no pin.
 
 ## The list carries what the picker needs, so the picker asks nothing
 `src/lib/offers.ts` is a module-scope cache, like the one in
-`src/components/media-thumb.tsx`. The category list is answered `covering` *and*
+`src/components/media-thumb.tsx`. The trade list is answered `covering` *and*
 `alternatives` *and* the market, so it remembers one `ServiceOffer` per row and
 `service/[id].tsx` seeds its state from that in a **lazy `useState`
 initialiser** -- read during render, so a preloaded picker paints providers on

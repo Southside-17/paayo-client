@@ -10,7 +10,7 @@ import { router } from 'expo-router';
 jest.mock('@/lib/session', () => ({ useSession: jest.fn() }));
 jest.mock('expo-router', () => ({
     useFocusEffect: MockUseFocusEffect,
-    useLocalSearchParams: () => ({ id: 's1', name: 'Cleaning', category: 'Air Condition' }),
+    useLocalSearchParams: () => ({ id: 's1', name: 'Cleaning', trade: 'Air Condition' }),
     router: { replace: jest.fn(), back: jest.fn(), push: jest.fn() },
 }));
 

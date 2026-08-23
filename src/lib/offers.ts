@@ -6,7 +6,7 @@ let pinned: string | null = null;
 let held: Record<string, ServiceOffer> = {};
 
 /**
- * What the category list already learned about a service, for the picker.
+ * What the trade list already learned about a service, for the picker.
  *
  * The picker needs the market and the list of providers, and the list it was
  * tapped from was answered both. Keeping them here lets that screen paint
