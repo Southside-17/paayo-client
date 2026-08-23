@@ -4,6 +4,7 @@ import House from 'lucide-react-native/icons/house';
 import ListChecks from 'lucide-react-native/icons/list-checks';
 import { useColorScheme } from 'nativewind';
 
+import { useSession } from '@/lib/session';
 import palette from '@/theme/palette';
 
 /**
@@ -17,6 +18,13 @@ import palette from '@/theme/palette';
 export default function TabsLayout() {
     const { colorScheme } = useColorScheme();
     const colours = palette[colorScheme ?? 'light'];
+    const session = useSession();
+
+    // Bookings turned down and waiting on a choice. Amber, not red: a decision
+    // is owed, nothing is wrong. Read off the account, which every screen that
+    // answers a booking reloads.
+    const owed =
+        session.status === 'authenticated' ? (session.user.bookings_needing_provider ?? 0) : 0;
 
     return (
         <Tabs
@@ -43,6 +51,13 @@ export default function TabsLayout() {
                 options={{
                     title: 'Bookings',
                     tabBarIcon: ({ color, size }) => <ListChecks color={color} size={size} />,
+                    tabBarBadge: owed > 0 ? owed : undefined,
+                    tabBarBadgeStyle: {
+                        backgroundColor: colours.brand,
+                        color: colours.background,
+                        fontFamily: 'Urbanist',
+                        fontSize: 11,
+                    },
                 }}
             />
             <Tabs.Screen

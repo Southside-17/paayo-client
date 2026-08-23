@@ -1,13 +1,18 @@
-import { Redirect, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { Redirect, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BackButton } from '@/components/back-button';
 import { WhenCard, WhereCard } from '@/components/booking-facts';
+import { FormMessage } from '@/components/form-message';
+import { HoldNotice } from '@/components/hold-notice';
 import { MediaThumb } from '@/components/media-thumb';
 import { MediaViewer, type Viewable } from '@/components/media-viewer';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -16,7 +21,19 @@ import { Text } from '@/components/ui/text';
 import { peso, priceRange } from '@/lib/money';
 import { useSession } from '@/lib/session';
 import type { Booking } from '@/lib/types';
+import { useSubmit } from '@/lib/use-submit';
 import { useWorkspace } from '@/lib/workspace';
+
+/** The day and hour a visit is set for, short enough to sit in a header. */
+function visitAt(scheduled: string): string {
+    return new Date(scheduled).toLocaleString('en-PH', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        hour: 'numeric',
+        minute: '2-digit',
+    });
+}
 
 /**
  * One job, as the business sees it: who asked, where, when and what for.
@@ -25,8 +42,12 @@ export default function Job() {
     const { id, name } = useLocalSearchParams<{ id: string; name?: string }>();
     const session = useSession();
     const { staff } = useWorkspace();
+    const { busy, message, errorFor, submit } = useSubmit();
     const [job, setJob] = useState<Booking | null>(null);
     const [viewing, setViewing] = useState<Viewable | null>(null);
+    const [taking, setTaking] = useState(false);
+    const [turningDown, setTurningDown] = useState(false);
+    const [note, setNote] = useState('');
 
     const authenticatedRequest =
         session.status === 'authenticated' ? session.authenticatedRequest : null;
@@ -51,6 +72,22 @@ export default function Job() {
         return <Redirect href="/" />;
     }
 
+    const answer = (path: 'acceptance' | 'refusal', body?: Record<string, unknown>) =>
+        submit(async () => {
+            if (session.status !== 'authenticated') {
+                return;
+            }
+
+            const { data } = await session.authenticatedRequest<{ data: Booking }>(
+                `/providers/${staff.provider.id}/bookings/${id}/${path}`,
+                { method: 'POST', body: body ?? {} },
+            );
+
+            setJob(data);
+            setTurningDown(false);
+            router.back();
+        });
+
     return (
         <SafeAreaView className="bg-background flex-1">
             <ScrollView contentContainerClassName="gap-5 p-6">
@@ -65,6 +102,9 @@ export default function Job() {
                             <Text className="text-brand text-right text-lg font-bold">
                                 {priceRange(job.price_min, job.price_max, job.service.pricing_unit)}
                             </Text>
+                            <Text className="text-muted-foreground text-right text-[11px]">
+                                {visitAt(job.scheduled_at)}
+                            </Text>
                             {job.surcharge ? (
                                 <Text className="text-muted-foreground text-right text-[11px]">
                                     plus {peso(job.surcharge)} trip charge
@@ -73,6 +113,8 @@ export default function Job() {
                         </View>
                     ) : null}
                 </ScreenHeader>
+
+                <FormMessage message={message ?? errorFor('status') ?? null} />
 
                 {job === null ? (
                     <>
@@ -159,16 +201,85 @@ export default function Job() {
                             <Text className="text-sm">{job.description}</Text>
                         </Card>
 
-                        {/* Said plainly rather than drawn as a disabled button:
-                            accepting is not built, and a greyed-out control
-                            reads as something that is temporarily unavailable. */}
-                        {job.status.is_open ? (
-                            <Text className="text-muted-foreground text-center text-sm">
-                                Taking and turning down work is not here yet.
-                            </Text>
+                        {/* A hold replaces the controls rather than disabling
+                            them. A greyed-out button reads as temporarily
+                            unavailable; the notice says what is actually true. */}
+                        {job.status.value === 'pending' && staff.provider.suspension ? (
+                            <HoldNotice suspension={staff.provider.suspension} />
+                        ) : null}
+
+                        {job.status.value === 'pending' && !staff.provider.suspension ? (
+                            <View className="gap-3">
+                                {turningDown ? (
+                                    <View className="gap-2">
+                                        <Label>Why not? (only we see this)</Label>
+                                        <Input
+                                            value={note}
+                                            onChangeText={setNote}
+                                            multiline
+                                            textAlignVertical="top"
+                                            className="h-20 py-3"
+                                            placeholder="Fully booked, too far, wrong job."
+                                            invalid={Boolean(errorFor('note'))}
+                                        />
+                                        <Button
+                                            variant="outline"
+                                            busy={busy}
+                                            onPress={() =>
+                                                void answer('refusal', {
+                                                    note: note.trim() || null,
+                                                })
+                                            }
+                                        >
+                                            Turn it down
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            onPress={() => setTurningDown(false)}
+                                        >
+                                            Keep it
+                                        </Button>
+                                    </View>
+                                ) : (
+                                    <>
+                                        {/* Not two equal buttons. Taking work is
+                                            the ordinary answer; turning it down
+                                            is the exception and carries a note,
+                                            so it does not get equal weight. */}
+                                        <Button busy={busy} onPress={() => setTaking(true)}>
+                                            Take this job
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            onPress={() => setTurningDown(true)}
+                                        >
+                                            Can&apos;t take it
+                                        </Button>
+                                    </>
+                                )}
+                            </View>
                         ) : null}
                     </>
                 ) : null}
+
+                {/* Names the promise rather than asking whether you are sure. */}
+                <ConfirmDialog
+                    open={taking}
+                    title="Take this job?"
+                    body={
+                        job
+                            ? `You are saying you will be at ${job.address.line ?? 'the address'} on ${visitAt(job.scheduled_at)}. ${job.client?.nickname ?? 'The client'} will see that you accepted.`
+                            : ''
+                    }
+                    confirm="Take the job"
+                    dismiss="Not yet"
+                    busy={busy}
+                    onConfirm={() => {
+                        setTaking(false);
+                        void answer('acceptance');
+                    }}
+                    onDismiss={() => setTaking(false)}
+                />
 
                 <MediaViewer item={viewing} onClose={() => setViewing(null)} />
             </ScrollView>

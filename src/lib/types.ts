@@ -26,6 +26,8 @@ export type User = {
     suspension: SuspensionNotice | null;
     /** Every business this account may act as. Empty for an ordinary client. */
     staffs: Staff[];
+    /** How many bookings are waiting on this person to choose somebody else. */
+    bookings_needing_provider: number;
     created_at: string;
 };
 
@@ -244,7 +246,17 @@ export type BookingStatus = {
     label: string;
     wording: string;
     tone: Tone;
+    /** Whether it can still be cancelled -- not whether anyone has answered. */
     is_open: boolean;
+    /** Turned down, and waiting on the client to pick again. */
+    needs_another_provider: boolean;
+};
+
+/** A provider that turned a booking down. The note they gave is not sent. */
+export type Decline = {
+    listing_id: string;
+    provider_name: string;
+    declined_at: string;
 };
 
 export type Booking = {
@@ -252,7 +264,9 @@ export type Booking = {
     status: BookingStatus;
     description: string;
     scheduled_at: string;
+    accepted_at: string | null;
     cancelled_at: string | null;
+    declines: Decline[];
     price_min: number | null;
     price_max: number | null;
     address: {

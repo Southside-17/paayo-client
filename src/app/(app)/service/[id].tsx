@@ -14,8 +14,10 @@ import { ApiError } from '@/lib/api';
 import { peso, priceRange } from '@/lib/money';
 import { recall } from '@/lib/offers';
 import { useSession } from '@/lib/session';
-import type { Listing, ServiceOffer } from '@/lib/types';
+import type { Booking, Listing, ServiceOffer } from '@/lib/types';
 import { useSelectedAddress } from '@/lib/use-selected-address';
+import { useSubmit } from '@/lib/use-submit';
+import { cn } from '@/lib/utils';
 
 /**
  * Who is coming, and only when that has to be asked.
@@ -25,10 +27,12 @@ import { useSelectedAddress } from '@/lib/use-selected-address';
  * covers that zone for this service, so the client picks from the market.
  */
 export default function ServiceOffers() {
-    const { id, name, trade } = useLocalSearchParams<{
+    const { id, name, trade, repick } = useLocalSearchParams<{
         id: string;
         name?: string;
         trade?: string;
+        /** A booking that was turned down, when this is the client re-picking. */
+        repick?: string;
     }>();
     const session = useSession();
     const { address, ready } = useSelectedAddress();
@@ -44,9 +48,31 @@ export default function ServiceOffers() {
         return known?.covering ? null : known;
     });
     const [failure, setFailure] = useState<string | null>(null);
+    const [booking, setBooking] = useState<Booking | null>(null);
+    const { busy, submit } = useSubmit();
+    const choosing = Boolean(repick);
+    const declined = booking?.declines.map((one) => one.listing_id) ?? [];
 
     const authenticatedRequest =
         session.status === 'authenticated' ? session.authenticatedRequest : null;
+
+    // Re-picking writes to the booking that already exists; it does not open a
+    // new one, so none of the booking form is walked again.
+    const send = (listing: Listing) =>
+        submit(async () => {
+            if (session.status !== 'authenticated' || !repick) {
+                return;
+            }
+
+            await session.authenticatedRequest<{ data: Booking }>(
+                `/bookings/${repick}/provider`,
+                { method: 'PUT', body: { listing_id: listing.id } },
+            );
+
+            await session.reload();
+
+            router.back();
+        });
 
     const book = useCallback(
         (listing: Listing, service: string, covered: boolean) =>
@@ -72,6 +98,20 @@ export default function ServiceOffers() {
             }
 
             setFailure(null);
+
+            if (choosing) {
+                void authenticatedRequest<{ data: Booking }>(`/bookings/${repick}`)
+                    .then(({ data }) => setBooking(data))
+                    .catch(() => setBooking(null));
+
+                void authenticatedRequest<ServiceOffer>(
+                    `/services/${id}?choosing=1${addressId ? `&address=${addressId}` : ''}`,
+                )
+                    .then(setOffer)
+                    .catch(() => setFailure('Could not reach Paayo. Try again.'));
+
+                return;
+            }
 
             const known = recall(id, addressId ?? null);
 
@@ -113,7 +153,7 @@ export default function ServiceOffers() {
                     );
                     setOffer(null);
                 });
-        }, [authenticatedRequest, addressId, ready, id, name, book]),
+        }, [authenticatedRequest, addressId, ready, id, name, book, choosing, repick]),
     );
 
     const service = offer?.data ?? null;
@@ -125,8 +165,11 @@ export default function ServiceOffers() {
                 {/* Both names travel with the link. The row that was tapped
                     already knew them, so nothing here settles from a
                     placeholder once the providers arrive. */}
-                <BackButton label={trade ?? service?.trade?.name ?? 'Back'} />
-                <ScreenHeader title={name ?? service?.name ?? 'Service'} />
+                <BackButton label={choosing ? 'Booking' : (trade ?? service?.trade?.name ?? 'Back')} />
+                <ScreenHeader
+                    eyebrow={choosing ? 'Choose someone else' : undefined}
+                    title={name ?? service?.name ?? 'Service'}
+                />
 
                 {failure !== null ? <FormMessage message={failure} /> : null}
 
@@ -142,7 +185,17 @@ export default function ServiceOffers() {
                     </>
                 ) : null}
 
-                {offer && alternatives.length > 0 ? (
+                {offer && choosing && alternatives.length > 0 ? (
+                    <Card className="gap-2">
+                        <Text className="font-semibold">Everyone else who can come</Text>
+                        <Text className="text-muted-foreground text-sm">
+                            Your photos, address and description stay exactly as they are.
+                            Only who is coming changes.
+                        </Text>
+                    </Card>
+                ) : null}
+
+                {offer && !choosing && alternatives.length > 0 ? (
                     <Card className="border-warning/40 bg-warning-subtle gap-2">
                         <Text className="font-semibold">
                             {`No one covers your area for ${name ?? service?.name ?? 'this'}`}
@@ -172,15 +225,31 @@ export default function ServiceOffers() {
                     </Card>
                 ) : null}
 
-                {alternatives.map((listing) => (
+                {alternatives.map((listing) => {
+                    // Shown, never removed. A provider vanishing from a list the
+                    // client has already seen reads as a bug and sends them
+                    // hunting for a name they remember.
+                    const refused = declined.includes(listing.id);
+
+                    return (
                     <Pressable
                         key={listing.id}
                         accessibilityRole="button"
-                        onPress={() => book(listing, name ?? service?.name ?? 'Service', false)}
+                        disabled={refused || busy}
+                        onPress={() =>
+                            choosing
+                                ? void send(listing)
+                                : book(listing, name ?? service?.name ?? 'Service', false)
+                        }
                     >
-                        <Card className="gap-3">
+                        <Card className={cn('gap-3', refused && 'opacity-50')}>
                             <View className="gap-1">
-                                <Text className="font-semibold">{listing.provider.name}</Text>
+                                <View className="flex-row items-center gap-2">
+                                    <Text className="flex-1 font-semibold">
+                                        {listing.provider.name}
+                                    </Text>
+                                    {refused ? <Badge>turned this down</Badge> : null}
+                                </View>
                                 {listing.description ? (
                                     <Text className="text-muted-foreground text-sm">
                                         {listing.description}
@@ -204,7 +273,8 @@ export default function ServiceOffers() {
                             </View>
                         </Card>
                     </Pressable>
-                ))}
+                    );
+                })}
             </ScrollView>
         </SafeAreaView>
     );

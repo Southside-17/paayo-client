@@ -1,4 +1,4 @@
-import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -116,7 +116,38 @@ export default function BookingDetail() {
                     <>
                         <StatusPill tone={booking.status.tone}>{booking.status.wording}</StatusPill>
 
-                        <WhoCard provider={booking.provider.name} />
+                        {/* Leads with the way forward, not the setback. Warning
+                            rather than destructive: nothing failed, and it is
+                            not the client's doing. */}
+                        {booking.status.needs_another_provider ? (
+                            <Card className="border-warning/40 bg-warning-subtle gap-3">
+                                <Text className="font-semibold">
+                                    {`${booking.declines.at(-1)?.provider_name ?? 'They'} can't take this`}
+                                </Text>
+                                <Text className="text-muted-foreground text-sm">
+                                    Pick somebody else and the work goes to them. Your photos
+                                    and details stay as they are.
+                                </Text>
+                                <Button
+                                    onPress={() =>
+                                        router.push({
+                                            pathname: '/service/[id]',
+                                            params: {
+                                                id: booking.service.id,
+                                                name: booking.service.name,
+                                                repick: booking.id,
+                                            },
+                                        })
+                                    }
+                                >
+                                    Choose someone else
+                                </Button>
+                            </Card>
+                        ) : null}
+
+                        {booking.status.needs_another_provider ? null : (
+                            <WhoCard provider={booking.provider.name} />
+                        )}
 
                         {/* The snapshot, not the live address: this is where the
                             work was actually asked for, whatever has been edited

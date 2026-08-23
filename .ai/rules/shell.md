@@ -287,3 +287,57 @@ lives at `(app)/job/[id].tsx`, a sibling of both groups, the same shape
 Accepting and declining is not built. Job detail says so in a sentence rather
 than drawing a disabled button, because a greyed-out control reads as something
 that is temporarily unavailable rather than as something that does not exist.
+
+## Answering a job is not a symmetric choice, so the buttons are not either
+Two equal side-by-side buttons is the obvious shape and the wrong one. Taking
+work is the ordinary answer and commits the business to showing up; turning it
+down is the exception and carries a note. Equal weight makes the expensive
+mistake exactly as cheap as the common action.
+
+`job/[id].tsx` gives **Take this job** the primary full-width button and
+**Can't take it** a ghost beneath it. Declining swaps the pair for a note field
+and its own confirm rather than opening a dialog — `ConfirmDialog` holds no
+input, and typing a reason is itself the deliberate step.
+
+The accept dialog names the promise instead of asking whether you are sure:
+*"You are saying you will be at 12 Mabini Street on Tue 1 Sep at 9AM. Mara will
+see that you accepted."* The confirming button says what happens — **Take the
+job** — which is the rule confirmations already follow here.
+
+The header carries the visit time beside the price. A provider deciding is
+answering *is this worth my Tuesday morning*, and those two facts are the
+decision; the service name is context and `WhenCard` sits below the fold.
+
+## A hold replaces the controls, it does not disable them
+Under a provider suspension `job/[id].tsx` draws `HoldNotice` where Accept and
+Decline would be. A greyed-out button reads as temporarily unavailable, which is
+the wrong thing to say about a sanction — the notice says what is actually true.
+
+## Being turned down leads with the way out
+Never `destructive`. Nothing failed and it is not the client's doing, so the
+declined card is `warning` and opens with **Choose someone else** rather than
+with the refusal. The one fact that has to be said out loud is that *your photos
+and details stay as they are* — it is the whole reason a re-pick exists instead
+of cancel-and-book-again, and nobody will assume it.
+
+`WhoCard` is hidden while a booking is declined: naming a provider as coming
+when none is, is worse than an empty space.
+
+## The re-pick shows the decliner, it does not vanish them
+`service/[id].tsx` takes a `repick` param instead of a second list screen, asks
+`/services/{id}?choosing=1` so the whole market comes back whether or not
+somebody covers the pin, and `PUT`s to `bookings/{id}/provider` rather than
+pushing Book — none of the booking form is walked again.
+
+The provider that declined stays on the list, dimmed and badged **turned this
+down**, unselectable. Removing them reads as a bug and sends the client hunting
+for a name they saw a moment ago.
+
+## The Bookings badge is amber, and counts what is owed
+`tabBarBadge` reads `user.bookings_needing_provider`, so it counts bookings
+waiting on a decision rather than unread ones — nothing tracks "seen", and an
+accepted booking asks nothing of the client so it earns no badge. Brand amber,
+not destructive red: a decision is waiting, nothing is wrong. React Navigation
+takes literals, so `tabBarBadgeStyle` reads `palette.js` the way
+`tabBarLabelStyle` already does, and the count is read defensively — an older
+server omits the field, and `NaN` on the tab bar is worse than no badge.

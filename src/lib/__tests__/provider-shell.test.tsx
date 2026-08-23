@@ -80,10 +80,13 @@ const job: Booking = {
         wording: 'awaiting a provider',
         tone: 'info',
         is_open: true,
+        needs_another_provider: false,
     },
     description: 'The unit drips.',
     scheduled_at: '2026-09-01T02:00:00.000000Z',
+    accepted_at: null,
     cancelled_at: null,
+    declines: [],
     price_min: 150_000,
     price_max: null,
     address: { label: 'Home', line: '12 Mabini Street, Poblacion' },
@@ -330,17 +333,85 @@ describe('the business side', () => {
         );
     });
 
-    // Said in a sentence rather than drawn as a disabled button: a greyed-out
-    // control reads as something that is temporarily unavailable.
-    it('says taking work is not built rather than offering a dead button', async () => {
+    // Not two equal buttons: taking work is the ordinary answer and turning it
+    // down is the exception, so they do not get the same weight.
+    it('leads with taking the job and keeps turning it down quieter', async () => {
         acting(staffAt('s1', 'Bright Electric'));
         signedIn(jest.fn().mockResolvedValue({ data: job }));
 
         render(<Job />);
 
+        expect(await screen.findByText('Take this job')).toBeOnTheScreen();
+        expect(screen.getByText("Can't take it")).toBeOnTheScreen();
+    });
+
+    it('names the promise before it is made, rather than asking if you are sure', async () => {
+        acting(staffAt('s1', 'Bright Electric'));
+        signedIn(jest.fn().mockResolvedValue({ data: job }));
+
+        render(<Job />);
+
+        fireEvent.press(await screen.findByText('Take this job'));
+
+        // The address is on the screen twice by then -- the Where card and the
+        // dialog -- so the sentence is matched whole rather than by its parts.
         expect(
-            await screen.findByText('Taking and turning down work is not here yet.'),
+            screen.getByText(/You are saying you will be at 12 Mabini Street, Poblacion/),
         ).toBeOnTheScreen();
+        expect(screen.getByText(/Mara will see that you accepted/)).toBeOnTheScreen();
+        expect(screen.getByText('Take the job')).toBeOnTheScreen();
+    });
+
+    it('sends the acceptance to the business being acted as', async () => {
+        acting(staffAt('s1', 'Bright Electric'));
+        const authenticatedRequest = jest.fn().mockResolvedValue({ data: job });
+        signedIn(authenticatedRequest);
+
+        render(<Job />);
+
+        fireEvent.press(await screen.findByText('Take this job'));
+        fireEvent.press(screen.getByText('Take the job'));
+
+        await waitFor(() =>
+            expect(authenticatedRequest).toHaveBeenCalledWith(
+                '/providers/p-s1/bookings/b1/acceptance',
+                { method: 'POST', body: {} },
+            ),
+        );
+    });
+
+    it('asks why before turning work down, and keeps that note between us', async () => {
+        acting(staffAt('s1', 'Bright Electric'));
+        const authenticatedRequest = jest.fn().mockResolvedValue({ data: job });
+        signedIn(authenticatedRequest);
+
+        render(<Job />);
+
+        fireEvent.press(await screen.findByText("Can't take it"));
+        fireEvent.changeText(
+            screen.getByPlaceholderText('Fully booked, too far, wrong job.'),
+            '  Fully booked.  ',
+        );
+        fireEvent.press(screen.getByText('Turn it down'));
+
+        await waitFor(() =>
+            expect(authenticatedRequest).toHaveBeenCalledWith(
+                '/providers/p-s1/bookings/b1/refusal',
+                { method: 'POST', body: { note: 'Fully booked.' } },
+            ),
+        );
+    });
+
+    // The notice says what is true; a disabled button reads as temporary.
+    it('replaces both controls with the notice under a hold', async () => {
+        acting(staffAt('s1', 'Held Cooling', { suspension: held }));
+        signedIn(jest.fn().mockResolvedValue({ data: job }));
+
+        render(<Job />);
+
+        expect(await screen.findByText('This business is suspended')).toBeOnTheScreen();
+        expect(screen.queryByText('Take this job')).not.toBeOnTheScreen();
+        expect(screen.queryByText("Can't take it")).not.toBeOnTheScreen();
     });
 
     it('offers the way back to personal', () => {
