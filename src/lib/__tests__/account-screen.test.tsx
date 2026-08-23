@@ -8,8 +8,17 @@ import { ApiError } from '@/lib/api';
 import { useSession } from '@/lib/session';
 
 jest.mock('@/lib/session', () => ({ useSession: jest.fn() }));
+// The header chip reads the workspace. An account on no staff never draws it,
+// which is the state every test here is in.
+jest.mock('@/lib/workspace', () => ({
+    useWorkspace: () => ({ staff: null, businesses: [], enter: jest.fn(), leave: jest.fn() }),
+}));
 jest.mock('expo-router', () => ({ Link: MockLink }));
-jest.mock('expo-image-picker', () => ({ launchImageLibraryAsync: jest.fn() }));
+jest.mock('expo-image-picker', () => ({
+    launchImageLibraryAsync: jest.fn(),
+    launchCameraAsync: jest.fn(),
+    requestCameraPermissionsAsync: jest.fn(async () => ({ granted: true })),
+}));
 jest.mock('@/lib/picture', () => ({
     AVATAR_SIZE: 512,
     preparePicture: jest.fn(async () => ({
@@ -99,7 +108,9 @@ it('shows why an upload was refused, though no input owns the field', async () =
 
     render(<Account />);
 
-    fireEvent.press(screen.getByText('Add a picture'));
+    // The badge on the picture opens the sheet; the sheet does the choosing.
+    fireEvent.press(screen.getByLabelText('Change your picture'));
+    fireEvent.press(screen.getByText('Choose from library'));
 
     await waitFor(() =>
         expect(

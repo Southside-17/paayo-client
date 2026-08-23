@@ -1,14 +1,18 @@
 import * as ImagePicker from 'expo-image-picker';
+import Camera from 'lucide-react-native/icons/camera';
 import Link2 from 'lucide-react-native/icons/link-2';
 import MapPin from 'lucide-react-native/icons/map-pin';
 import Pencil from 'lucide-react-native/icons/pencil';
 import ShieldCheck from 'lucide-react-native/icons/shield-check';
-import { ScrollView, View } from 'react-native';
+import { useColorScheme } from 'nativewind';
+import { useState } from 'react';
+import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/avatar';
-import { BusinessSwitch } from '@/components/business-switch';
+import { BusinessChip } from '@/components/business-chip';
 import { FormMessage } from '@/components/form-message';
+import { PictureSheet } from '@/components/picture-sheet';
 import { SettingsList, type SettingsRow } from '@/components/settings-list';
 import { Button } from '@/components/ui/button';
 import { ScreenHeader } from '@/components/ui/screen-header';
@@ -18,6 +22,7 @@ import { AVATAR_SIZE, preparePicture } from '@/lib/picture';
 import { useSession } from '@/lib/session';
 import type { MessageResponse } from '@/lib/types';
 import { useSubmit } from '@/lib/use-submit';
+import palette from '@/theme/palette';
 
 /**
  * One word each. "Provider" is deliberately not among them: in this codebase it
@@ -35,15 +40,35 @@ const ROWS: SettingsRow[] = [
  */
 export default function Account() {
     const session = useSession();
+    const { colorScheme } = useColorScheme();
+    const colours = palette[colorScheme ?? 'light'];
     const { busy, message, errorFor, submit } = useSubmit();
+    const [picking, setPicking] = useState(false);
+
     if (session.status !== 'authenticated') {
         return null;
     }
 
     const { user } = session;
 
-    const choosePicture = () =>
-        submit(async () => {
+    const upload = async (asset: { uri: string; width: number }) => {
+        const part = await preparePicture(asset, AVATAR_SIZE, 'avatar.jpg');
+        const body = new FormData();
+
+        body.append('avatar', part as unknown as Blob);
+
+        await session.authenticatedRequest<MessageResponse>('/profile/avatar', {
+            method: 'POST',
+            body,
+        });
+
+        setPicking(false);
+
+        await session.reload();
+    };
+
+    const fromLibrary = () =>
+        void submit(async () => {
             const picked = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ['images'],
                 allowsEditing: true,
@@ -55,22 +80,35 @@ export default function Account() {
                 return;
             }
 
-            const part = await preparePicture(picked.assets[0], AVATAR_SIZE, 'avatar.jpg');
-            const body = new FormData();
-
-            body.append('avatar', part as unknown as Blob);
-
-            await session.authenticatedRequest<MessageResponse>('/profile/avatar', {
-                method: 'POST',
-                body,
-            });
-
-            await session.reload();
+            await upload(picked.assets[0]);
         });
 
-    const removePicture = () =>
-        submit(async () => {
+    const fromCamera = () =>
+        void submit(async () => {
+            const allowed = await ImagePicker.requestCameraPermissionsAsync();
+
+            if (!allowed.granted) {
+                throw new Error('camera-denied');
+            }
+
+            const taken = await ImagePicker.launchCameraAsync({
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.85,
+            });
+
+            if (taken.canceled) {
+                return;
+            }
+
+            await upload(taken.assets[0]);
+        });
+
+    const remove = () =>
+        void submit(async () => {
             await session.authenticatedRequest<void>('/profile/avatar', { method: 'DELETE' });
+
+            setPicking(false);
 
             await session.reload();
         });
@@ -78,36 +116,44 @@ export default function Account() {
     return (
         <SafeAreaView className="bg-background flex-1" edges={['top']}>
             <ScrollView contentContainerClassName="gap-5 p-6">
-                <ScreenHeader title="Account" />
+                <ScreenHeader title="Account">
+                    <BusinessChip />
+                </ScreenHeader>
 
                 <FormMessage message={message ?? errorFor('avatar') ?? null} />
 
                 <View className="flex-row items-center gap-4">
-                    <Avatar nickname={user.nickname} url={user.avatar_url} size={64} />
+                    <View>
+                        <Avatar nickname={user.nickname} url={user.avatar_url} size={64} />
 
-                    <View className="flex-1 gap-1">
-                        <Text className="text-lg font-semibold">{user.nickname}</Text>
-                        {user.fullname ? (
-                            <Text className="text-muted-foreground text-sm">{user.fullname}</Text>
-                        ) : null}
-                        <Text className="text-muted-foreground text-sm">{user.email}</Text>
-                        <StatusPill tone={user.identification_verified ? 'success' : 'neutral'}>
-                            {user.identification_verified ? 'verified' : 'not verified'}
-                        </StatusPill>
+                        <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel="Change your picture"
+                            hitSlop={12}
+                            onPress={() => setPicking(true)}
+                            className="bg-foreground border-card absolute -bottom-0.5 -right-0.5 size-7 items-center justify-center rounded-full border-2"
+                        >
+                            <Camera color={colours.background} size={13} />
+                        </Pressable>
                     </View>
-                </View>
 
-                <BusinessSwitch businesses={user.staffs ?? []} />
+                    <View className="min-w-0 flex-1 gap-1">
+                        <Text className="text-lg font-semibold" numberOfLines={1}>
+                            {user.nickname}
+                        </Text>
+                        {user.fullname ? (
+                            <Text className="text-muted-foreground text-sm" numberOfLines={1}>
+                                {user.fullname}
+                            </Text>
+                        ) : null}
+                        <Text className="text-muted-foreground text-sm" numberOfLines={1}>
+                            {user.email}
+                        </Text>
+                    </View>
 
-                <View className="flex-row gap-2">
-                    <Button variant="outline" onPress={choosePicture} busy={busy}>
-                        {user.avatar ? 'Change picture' : 'Add a picture'}
-                    </Button>
-                    {user.avatar ? (
-                        <Button variant="ghost" onPress={removePicture} busy={busy}>
-                            Remove
-                        </Button>
-                    ) : null}
+                    <StatusPill tone={user.identification_verified ? 'success' : 'neutral'}>
+                        {user.identification_verified ? 'verified' : 'not verified'}
+                    </StatusPill>
                 </View>
 
                 <SettingsList rows={ROWS} />
@@ -116,6 +162,16 @@ export default function Account() {
                     Log out
                 </Button>
             </ScrollView>
+
+            <PictureSheet
+                open={picking}
+                has={user.avatar}
+                busy={busy}
+                onLibrary={fromLibrary}
+                onCamera={fromCamera}
+                onRemove={remove}
+                onDismiss={() => setPicking(false)}
+            />
         </SafeAreaView>
     );
 }
