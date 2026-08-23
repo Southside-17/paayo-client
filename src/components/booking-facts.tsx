@@ -63,19 +63,18 @@ function mapsUrl(pin: { latitude: number; longitude: number }, name: string): st
 
 /**
  * Where the work happens. Also never a control.
- *
- * The address is settled before a service is even chosen, because it is what
- * decided which services and which provider were offered. Changing it here
- * would quietly invalidate both.
  */
 export function WhereCard({
     place,
     map = true,
     audience = 'client',
+    approximate = false,
 }: {
     place: Place;
     map?: boolean;
     audience?: Audience;
+    /** The pin is the coarse one the server sends before a job is taken. */
+    approximate?: boolean;
 }) {
     const { colorScheme } = useColorScheme();
     const colours = palette[colorScheme ?? 'light'];
@@ -133,6 +132,12 @@ export function WhereCard({
             ) : null}
 
             {map && pin ? <PinMap pin={pin} focus={pin} className="mt-1 h-40" /> : null}
+
+            {map && pin && approximate ? (
+                <Text className="text-muted-foreground text-sm">
+                    The pin is approximate until you take the job.
+                </Text>
+            ) : null}
 
             {map && !pin ? (
                 <Text className="text-warning text-sm">

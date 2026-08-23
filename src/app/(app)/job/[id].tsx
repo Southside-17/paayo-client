@@ -152,15 +152,16 @@ export default function Job() {
                                     </Text>
                                 ) : (
                                     <Text className="text-muted-foreground text-sm">
-                                        No phone number on this account.
+                                        {job.accepted_at
+                                            ? 'No phone number on this account.'
+                                            : 'Their number is shared once you take the job.'}
                                     </Text>
                                 )}
                             </Card>
 
-                            {/* Both cards are read from the client's end too,
-                                so they are told which end this is. */}
                             <WhereCard
                                 audience="provider"
+                                approximate={!job.accepted_at}
                                 place={{
                                     label: job.address.label,
                                     line: job.address.line,

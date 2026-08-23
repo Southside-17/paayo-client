@@ -321,6 +321,34 @@ describe('the business side', () => {
         expect(screen.getByText('The unit drips.')).toBeOnTheScreen();
     });
 
+    it('says the number and the pin arrive with the job, before it is taken', async () => {
+        acting(staffAt('s1', 'Bright Electric'));
+        signedIn(
+            jest.fn().mockResolvedValue({
+                data: { ...job, client: { id: 'u9', nickname: 'Mara', phone: null } },
+            }),
+        );
+
+        render(<Job />);
+
+        expect(await screen.findByText(/number is shared once you take the job/)).toBeOnTheScreen();
+        expect(screen.getByText(/pin is approximate until you take the job/)).toBeOnTheScreen();
+    });
+
+    it('drops both notices once the job has been taken', async () => {
+        acting(staffAt('s1', 'Bright Electric'));
+        signedIn(
+            jest.fn().mockResolvedValue({
+                data: { ...job, accepted_at: '2026-08-02T00:00:00.000000Z' },
+            }),
+        );
+
+        render(<Job />);
+
+        expect(await screen.findByText('09171234567')).toBeOnTheScreen();
+        expect(screen.queryByText(/pin is approximate/)).not.toBeOnTheScreen();
+    });
+
     it('reads one job off the business being acted as', async () => {
         acting(staffAt('s1', 'Bright Electric'));
         const authenticatedRequest = jest.fn().mockResolvedValue({ data: job });
