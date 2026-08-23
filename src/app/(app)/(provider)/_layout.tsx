@@ -62,7 +62,6 @@ export default function ProviderLayout() {
                 }}
             />
             <Tabs.Screen name="standing" options={{ href: null }} />
-            <Tabs.Screen name="staff" options={{ href: null }} />
         </Tabs>
     );
 }

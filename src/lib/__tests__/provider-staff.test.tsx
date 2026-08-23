@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { useEffect, type ReactNode } from 'react';
 import { View } from 'react-native';
 
-import Staff from '@/app/(app)/(provider)/staff';
+import Staff from '@/app/(app)/staff';
 import Standing from '@/app/(app)/(provider)/standing';
 import { useSession } from '@/lib/session';
 import type { Invitation, ProviderStaff, Staff as StaffRecord, StaffRole } from '@/lib/types';
