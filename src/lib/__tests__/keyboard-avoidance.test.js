@@ -28,10 +28,18 @@ const ROOT = join(__dirname, '..', '..');
 /** The `Input` primitive, its password twin, or a `TextInput` written by hand. */
 const TYPEABLE = /from '@\/components\/ui\/(password-)?input'|<TextInput[\s/>]/;
 
-/** The primitives themselves, and the wrapper that provides the protection. */
+/**
+ * The primitives themselves, and the wrapper that provides the protection.
+ *
+ * A primitive holds a field but never decides where on a screen it sits, so it
+ * cannot be the thing that keeps clear of the keyboard -- the screen using it
+ * is. Only add a file here if it is a leaf that renders one field and nothing
+ * that positions it.
+ */
 const EXEMPT = [
     join('components', 'ui', 'input.tsx'),
     join('components', 'ui', 'password-input.tsx'),
+    join('components', 'peso-input.tsx'),
     join('components', 'auth-screen.tsx'),
 ];
 
