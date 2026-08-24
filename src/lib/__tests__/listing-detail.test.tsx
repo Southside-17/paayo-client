@@ -98,7 +98,7 @@ it('shows what a provider charges before anybody picks a date', async () => {
 
     await waitFor(() => expect(screen.getByText('Kool Breeze')).toBeOnTheScreen());
 
-    expect(screen.getByText('What do you need?')).toBeOnTheScreen();
+    expect(screen.getByText('Which of these do you need?')).toBeOnTheScreen();
     expect(screen.getByText('Window type')).toBeOnTheScreen();
     expect(screen.getByText('Split type')).toBeOnTheScreen();
 });
@@ -132,14 +132,14 @@ it('asks for no count until a line has been picked', async () => {
 // Describing the symptom and letting the professional scope the job is the
 // ordinary way trade work is bought. Knowing what to order is the exception, so
 // it is opt-in rather than assumed.
-it('starts by letting them look, on a card of any size', async () => {
+it('starts by letting them assess it, on a card of any size', async () => {
     signedIn(offering([line('Whole unit', 80_000)]));
 
     render(<ListingDetail />);
 
-    await waitFor(() => expect(screen.getByText('Let them look first')).toBeOnTheScreen());
+    await waitFor(() => expect(screen.getByText('Let them assess it')).toBeOnTheScreen());
 
-    expect(screen.getByLabelText('Let them look first')).toBeSelected();
+    expect(screen.getByLabelText('Let them assess it')).toBeSelected();
     expect(screen.queryByLabelText('How many Whole unit')).not.toBeOnTheScreen();
 });
 
@@ -157,7 +157,7 @@ it('clears a picked line when it is tapped again', async () => {
     fireEvent.press(screen.getByText('Whole unit'));
 
     expect(screen.queryByLabelText('How many Whole unit')).not.toBeOnTheScreen();
-    expect(screen.getByLabelText('Let them look first')).toBeSelected();
+    expect(screen.getByLabelText('Let them assess it')).toBeSelected();
 });
 
 // Tubero Davao Plumbing: a faucet AND a toilet is one plumber visit, not two
@@ -200,7 +200,7 @@ it('replaces the pick instead of adding to it when only one is allowed', async (
     expect(screen.queryByLabelText('How many Window type')).not.toBeOnTheScreen();
 });
 
-it('goes back to letting them look after a line was picked', async () => {
+it('goes back to letting them assess it after a line was picked', async () => {
     signedIn(offering([line('Window type', 80_000), line('Split type', 100_000)]));
 
     render(<ListingDetail />);
@@ -208,11 +208,11 @@ it('goes back to letting them look after a line was picked', async () => {
     await waitFor(() => expect(screen.getByText('Split type')).toBeOnTheScreen());
 
     fireEvent.press(screen.getByText('Split type'));
-    expect(screen.getByLabelText('Let them look first')).not.toBeSelected();
+    expect(screen.getByLabelText('Let them assess it')).not.toBeSelected();
 
-    fireEvent.press(screen.getByLabelText('Let them look first'));
+    fireEvent.press(screen.getByLabelText('Let them assess it'));
 
-    expect(screen.getByLabelText('Let them look first')).toBeSelected();
+    expect(screen.getByLabelText('Let them assess it')).toBeSelected();
     expect(screen.queryByLabelText('How many Split type')).not.toBeOnTheScreen();
 });
 
@@ -258,7 +258,7 @@ it('shows no card at all when the work is priced on request', async () => {
         expect(screen.getByText('They price this after seeing it')).toBeOnTheScreen(),
     );
 
-    expect(screen.queryByText('What do you need?')).not.toBeOnTheScreen();
+    expect(screen.queryByText('Which of these do you need?')).not.toBeOnTheScreen();
     expect(screen.getByText('What is it doing?')).toBeOnTheScreen();
 });
 

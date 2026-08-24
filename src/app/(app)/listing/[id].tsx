@@ -247,11 +247,11 @@ export default function ListingDetail() {
 
                             {!onRequest && offered.length > 0 ? (
                                 <Card className="gap-3">
-                                    <Label>What do you need?</Label>
+                                    <Label>Which of these do you need?</Label>
 
                                     <Pressable
                                         accessibilityRole="button"
-                                        accessibilityLabel="Let them look first"
+                                        accessibilityLabel="Let them assess it"
                                         accessibilityState={{ selected: unsure }}
                                         onPress={() => setPicked({})}
                                         className={cn(
@@ -264,7 +264,7 @@ export default function ListingDetail() {
                                         <Text
                                             className={cn('font-medium', unsure && 'text-brand')}
                                         >
-                                            Let them look first
+                                            Let them assess it
                                         </Text>
                                         <Text className="text-muted-foreground text-sm">
                                             They will price it when they see the job.
