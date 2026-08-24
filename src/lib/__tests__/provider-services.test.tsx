@@ -8,7 +8,10 @@ import { useWorkspace } from '@/lib/workspace';
 
 jest.mock('@/lib/session', () => ({ useSession: jest.fn() }));
 jest.mock('@/lib/workspace', () => ({ useWorkspace: jest.fn() }));
-jest.mock('expo-router', () => ({ useFocusEffect: MockUseFocusEffect }));
+jest.mock('expo-router', () => ({
+    useFocusEffect: MockUseFocusEffect,
+    router: { push: jest.fn() },
+}));
 
 function MockUseFocusEffect(callback: () => void) {
     useEffect(callback, [callback]);
@@ -21,7 +24,7 @@ function service(id: string, name: string): Service {
 }
 
 function trade(id: string, name: string, services: Service[]): Trade {
-    return { id, name, slug: name.toLowerCase(), icon: null, services };
+    return { id, name, slug: name.toLowerCase(), icon: null, units: [], services };
 }
 
 function offering(id: string, named: Service, tradeOf: Trade, over: Partial<ProviderListing> = {}) {
@@ -30,6 +33,8 @@ function offering(id: string, named: Service, tradeOf: Trade, over: Partial<Prov
         description: null,
         pricing_method: FIXED,
         rates: [],
+        allows_many_lines: false,
+        intake: [],
         price_min: 150_000,
         price_max: null,
         paused_at: null,
@@ -118,7 +123,7 @@ describe('what a business sells', () => {
                     standing: {
                         wording: 'paused',
                         tone: 'warning',
-                        reason: 'Not taking work right now. Paayo can start it again.',
+                        reason: 'Not taking work right now. Start it again when you are ready.',
                     },
                 }),
             ]),
@@ -128,7 +133,7 @@ describe('what a business sells', () => {
 
         expect(await screen.findByText('paused')).toBeOnTheScreen();
         expect(
-            screen.getByText('Not taking work right now. Paayo can start it again.'),
+            screen.getByText('Not taking work right now. Start it again when you are ready.'),
         ).toBeOnTheScreen();
     });
 
@@ -213,4 +218,55 @@ describe('when it cannot be loaded', () => {
         expect(screen.getByText(/What you sell has not changed/)).toBeOnTheScreen();
         expect(screen.getByText('Try again')).toBeOnTheScreen();
     });
+});
+
+// A business could see a band and nothing else -- not its own lines, not its
+// own questions, and nothing to tap.
+it('says how many prices and questions an offer carries', async () => {
+    acting();
+    signedIn(answering([
+        offering('l1', service('sv1', 'Cleaning'), aircon, {
+            rates: [
+                {
+                    label: 'Window type',
+                    amount: 80_000,
+                    unit: 'unit',
+                    estimated_minutes: null,
+                    maximum_minutes: null,
+                    is_active: true,
+                },
+                {
+                    label: 'Split type',
+                    amount: 100_000,
+                    unit: 'unit',
+                    estimated_minutes: null,
+                    maximum_minutes: null,
+                    is_active: true,
+                },
+            ],
+            intake: ['Which floor is the unit on?'],
+        }),
+    ]));
+
+    render(<Services />);
+
+    expect(await screen.findByText('2 prices · 1 question')).toBeOnTheScreen();
+});
+
+it('opens an offer to be edited', async () => {
+    acting();
+    signedIn(answering([offering('l1', service('sv1', 'Cleaning'), aircon)]));
+
+    render(<Services />);
+
+    fireEvent.press(await screen.findByLabelText('Edit Cleaning'));
+
+    const { router } = jest.requireMock('expo-router') as { router: { push: jest.Mock } };
+
+    expect(router.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+            pathname: '/offer/[id]',
+            params: { id: 'l1', name: 'Cleaning' },
+        }),
+    );
 });

@@ -1,6 +1,6 @@
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
 
@@ -281,7 +281,18 @@ function Offers({ groups, colours }: { groups: Group[]; colours: Record<string, 
                     </View>
 
                     {group.offers.map((offer) => (
-                        <Card key={offer.id} className="gap-2">
+                        <Pressable
+                            key={offer.id}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Edit ${offer.service.name}`}
+                            onPress={() =>
+                                router.push({
+                                    pathname: '/offer/[id]',
+                                    params: { id: offer.id, name: offer.service.name },
+                                })
+                            }
+                        >
+                        <Card className="gap-2">
                             <View className="flex-row items-start justify-between gap-3">
                                 <Text className="flex-1 font-semibold">{offer.service.name}</Text>
                                 <StatusPill tone={offer.standing.tone}>
@@ -289,13 +300,29 @@ function Offers({ groups, colours }: { groups: Group[]; colours: Record<string, 
                                 </StatusPill>
                             </View>
 
-                            <Text className="text-lg font-bold">
-                                {priceRange(
-                                    offer.price_min,
-                                    offer.price_max,
-                                    offer.pricing_method,
-                                )}
-                            </Text>
+                            <View className="flex-row items-baseline gap-2">
+                                <Text className="flex-1 text-lg font-bold">
+                                    {priceRange(
+                                        offer.price_min,
+                                        offer.price_max,
+                                        offer.pricing_method,
+                                    )}
+                                </Text>
+                                <Text className="text-muted-foreground text-xs">
+                                    {[
+                                        offer.rates.length === 1
+                                            ? '1 price'
+                                            : `${offer.rates.length} prices`,
+                                        offer.intake.length > 0
+                                            ? offer.intake.length === 1
+                                                ? '1 question'
+                                                : `${offer.intake.length} questions`
+                                            : null,
+                                    ]
+                                        .filter(Boolean)
+                                        .join(' · ')}
+                                </Text>
+                            </View>
 
                             {offer.description ? (
                                 <Text className="text-muted-foreground text-sm">
@@ -309,6 +336,7 @@ function Offers({ groups, colours }: { groups: Group[]; colours: Record<string, 
                                 </Text>
                             )}
                         </Card>
+                        </Pressable>
                     ))}
                 </View>
             ))}
