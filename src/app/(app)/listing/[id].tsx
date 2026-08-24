@@ -175,6 +175,22 @@ export default function ListingDetail() {
             return;
         }
 
+        // Nothing published means nothing to book against: the client asks for a
+        // price first, and books once they have one.
+        if (onRequest) {
+            router.push({
+                pathname: '/enquiry/new',
+                params: {
+                    listing: listing.id,
+                    service: service ?? '',
+                    trade: trade ?? '',
+                    provider: listing.provider.name,
+                },
+            });
+
+            return;
+        }
+
         router.push({
             pathname: '/book',
             params: {
@@ -404,7 +420,9 @@ export default function ListingDetail() {
                                         })}
                                     </Text>
                                 </View>
-                                <Button onPress={proceed}>Continue</Button>
+                                <Button onPress={proceed}>
+                                    {onRequest ? 'Ask for a price' : 'Continue'}
+                                </Button>
                             </View>
                         </>
                     ) : null}
