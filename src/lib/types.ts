@@ -193,6 +193,8 @@ export type PricingMethod = {
 };
 
 /** One line of a provider's rate card. `amount` is centavos. */
+export type BookedLine = RateLine & { quantity: number | null };
+
 export type RateLine = {
     label: string;
     amount: number;
@@ -249,6 +251,10 @@ export type Listing = {
     description: string | null;
     pricing_method: PricingMethod;
     rates: RateLine[];
+    /** Whether the card is a menu to order from or a set of alternatives. */
+    allows_many_lines: boolean;
+    /** What this provider asks before taking the work. Every answer optional. */
+    intake: string[];
     price_min: number | null;
     price_max: number | null;
     provider: { id: string; name: string; slug: string };
@@ -344,6 +350,11 @@ export type Booking = {
     pin_radius: number | null;
     surcharge: number | null;
     pricing_method: PricingMethod;
+    /** The lines the client picked, copied off the card as it stood. */
+    lines: BookedLine[];
+    /** Every line summed, when all of them can be. Null for hourly work. */
+    expected_total: number | null;
+    intake: { question: string; answer: string | null }[];
     service: { id: string; name: string };
     provider: { id: string; name: string };
     /** Who asked. Sent only to the business the work was booked against. */

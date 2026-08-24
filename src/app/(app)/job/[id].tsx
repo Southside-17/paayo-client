@@ -20,7 +20,7 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusPill } from '@/components/ui/status-pill';
 import { Text } from '@/components/ui/text';
-import { peso, priceRange } from '@/lib/money';
+import { peso, priceRange, rateLine, workings } from '@/lib/money';
 import { useSession } from '@/lib/session';
 import type { Booking } from '@/lib/types';
 import { useSubmit } from '@/lib/use-submit';
@@ -105,8 +105,25 @@ export default function Job() {
                         {job ? (
                             <View className="max-w-[45%] items-end">
                                 <Text className="text-brand text-right text-lg font-bold">
-                                    {priceRange(job.price_min, job.price_max, job.pricing_method)}
+                                    {job.expected_total !== null
+                                        ? peso(job.expected_total)
+                                        : priceRange(
+                                              job.price_min,
+                                              job.price_max,
+                                              job.pricing_method,
+                                          )}
                                 </Text>
+                                {job.lines.length === 1 ? (
+                                    <Text className="text-muted-foreground text-right text-[11px]">
+                                        {workings(job.lines[0], job.lines[0].quantity) ??
+                                            job.lines[0].label}
+                                    </Text>
+                                ) : null}
+                                {job.lines.length > 1 ? (
+                                    <Text className="text-muted-foreground text-right text-[11px]">
+                                        {`${job.lines.length} lines`}
+                                    </Text>
+                                ) : null}
                                 <Text className="text-muted-foreground text-right text-[11px]">
                                     {visitAt(job.scheduled_at)}
                                 </Text>
@@ -209,6 +226,45 @@ export default function Job() {
                                 <Label>Why do they need you?</Label>
                                 <Text className="text-sm">{job.description}</Text>
                             </Card>
+
+                            {job.lines.length > 0 ? (
+                                <Card className="gap-2">
+                                    <Label>What they asked for</Label>
+                                    {job.lines.map((line) => (
+                                        <View
+                                            key={line.label}
+                                            className="flex-row items-baseline gap-2"
+                                        >
+                                            <Text className="flex-1 text-sm">{line.label}</Text>
+                                            <Text className="text-sm font-medium">
+                                                {workings(line, line.quantity) ?? rateLine(line)}
+                                            </Text>
+                                        </View>
+                                    ))}
+                                    {job.expected_total !== null ? (
+                                        <View className="border-border flex-row items-baseline gap-2 border-t pt-2">
+                                            <Text className="flex-1 text-sm font-medium">Total</Text>
+                                            <Text className="font-bold">
+                                                {peso(job.expected_total)}
+                                            </Text>
+                                        </View>
+                                    ) : null}
+                                </Card>
+                            ) : null}
+
+                            {job.intake.length > 0 ? (
+                                <Card className="gap-3">
+                                    <Label>What they told you</Label>
+                                    {job.intake.map((asked) => (
+                                        <View key={asked.question} className="gap-0.5">
+                                            <Text className="text-muted-foreground text-sm">
+                                                {asked.question}
+                                            </Text>
+                                            <Text className="text-sm">{asked.answer}</Text>
+                                        </View>
+                                    ))}
+                                </Card>
+                            ) : null}
 
                             {job.status.value === 'pending' && staff.provider.suspension ? (
                                 <HoldNotice suspension={staff.provider.suspension} />

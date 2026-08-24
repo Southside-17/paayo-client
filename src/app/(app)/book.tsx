@@ -18,6 +18,8 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Text } from '@/components/ui/text';
 import { when } from '@/lib/bookings';
+import { basket, rateLine, workings } from '@/lib/money';
+import { recallCarried } from '@/lib/offers';
 import { useSession } from '@/lib/session';
 import type { Booking } from '@/lib/types';
 import { useSelectedAddress } from '@/lib/use-selected-address';
@@ -55,14 +57,17 @@ type Missing = { description?: string; attachments?: string; address?: string };
  * Ask for the work at a time.
  */
 export default function Book() {
-    const { listing, service, trade, provider, covered } = useLocalSearchParams<{
-        listing: string;
-        service?: string;
-        trade?: string;
-        provider?: string;
-        /** '1' when coverage chose them, absent when the client did. */
-        covered?: string;
-    }>();
+    const { listing, service, trade, provider, covered, carried } =
+        useLocalSearchParams<{
+            listing: string;
+            service?: string;
+            trade?: string;
+            provider?: string;
+            /** '1' when coverage chose them, absent when the client did. */
+            covered?: string;
+            /** Key to what the listing screen gathered; see offers.carry(). */
+            carried?: string;
+        }>();
     const session = useSession();
     const { address, ready } = useSelectedAddress();
     const { busy, message, errorFor, submit } = useSubmit();
@@ -72,6 +77,12 @@ export default function Book() {
     const [media, setMedia] = useState<MediaItem[]>([]);
     const [missing, setMissing] = useState<Missing>({});
     const [asking, setAsking] = useState(false);
+    const held = carried ? recallCarried(carried) : null;
+    const chosen = held?.lines ?? [];
+    const lines = chosen.map((line) => ({ rate: line.label, quantity: line.quantity }));
+    const intake = Object.entries(held?.answers ?? {})
+        .filter(([, answer]) => answer.trim() !== '')
+        .map(([question, answer]) => ({ question, answer }));
 
     if (session.status !== 'authenticated') {
         return null;
@@ -94,6 +105,8 @@ export default function Book() {
                     scheduled_at: scheduledAt().toISOString(),
                     description,
                     attachments: readyIds(media),
+                    lines,
+                    intake,
                 },
             });
 
@@ -174,6 +187,30 @@ export default function Book() {
                                     : 'They work elsewhere in your area and may add a travel charge when they accept.'
                             }
                         />
+                    ) : null}
+
+                    {chosen.length > 0 ? (
+                        <Card className="gap-2">
+                            {chosen.map((line) => (
+                                <View
+                                    key={line.label}
+                                    className="flex-row items-baseline gap-2"
+                                >
+                                    <Text className="flex-1 text-sm">{line.label}</Text>
+                                    <Text className="text-sm font-medium">
+                                        {workings(line, line.quantity) ?? rateLine(line)}
+                                    </Text>
+                                </View>
+                            ))}
+                            <View className="border-border flex-row items-baseline gap-2 border-t pt-2">
+                                <Text className="flex-1 font-medium">
+                                    {basket(chosen) ? 'Agreed before work starts' : 'They will confirm'}
+                                </Text>
+                                <Text className="text-lg font-bold">
+                                    {basket(chosen) ?? ''}
+                                </Text>
+                            </View>
+                        </Card>
                     ) : null}
 
                     {!ready ? (

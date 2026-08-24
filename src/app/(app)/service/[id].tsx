@@ -66,16 +66,16 @@ export default function ServiceOffers() {
     const book = useCallback(
         (listing: Listing, service: string, covered: boolean) =>
             router.replace({
-                pathname: '/book',
+                pathname: '/listing/[id]',
                 params: {
-                    listing: listing.id,
+                    id: listing.id,
+                    serviceId: id,
                     service,
                     trade: trade ?? '',
-                    provider: listing.provider.name,
                     covered: covered ? '1' : '',
                 },
             }),
-        [trade],
+        [trade, id],
     );
 
     useFocusEffect(

@@ -115,6 +115,9 @@ const booking = {
     longitude: 121.02,
     service: { id: 's1', name: 'Cleaning' },
     pricing_method: { value: 'per_job', label: 'Per job', is_on_request: false },
+    lines: [],
+    expected_total: null,
+    intake: [],
     provider: { id: 'p1', name: 'FixRight Manila' },
     created_at: '2026-08-01T00:00:00.000000Z',
 };

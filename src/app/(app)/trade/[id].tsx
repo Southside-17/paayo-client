@@ -14,17 +14,21 @@ import type { Service, ServiceList } from '@/lib/types';
 import { useSelectedAddress } from '@/lib/use-selected-address';
 
 /**
- * Go straight where the answer already is.
+ * Go straight to the offer when coverage has already picked one.
+ *
+ * Straight to the price, not straight to the date picker: who is coming is only
+ * half the answer, and skipping the rate card is what made a booking possible
+ * without ever seeing a figure.
  */
 function open(service: Service, trade: string) {
     if (service.covering) {
         router.push({
-            pathname: '/book',
+            pathname: '/listing/[id]',
             params: {
-                listing: service.covering.id,
+                id: service.covering.id,
+                serviceId: service.id,
                 service: service.name,
                 trade,
-                provider: service.covering.provider.name,
                 covered: '1',
             },
         });

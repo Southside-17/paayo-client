@@ -1,4 +1,4 @@
-import type { PricingMethod, RateLine } from '@/lib/types';
+import type { BookedLine, PricingMethod, RateLine } from '@/lib/types';
 
 /** Render centavos as pesos, without the centavos when they are zero. */
 export function peso(centavos: number): string {
@@ -47,4 +47,74 @@ export function rateLine(line: RateLine): string {
     return line.unit === 'hour'
         ? `${peso(line.amount)}/hr`
         : `${peso(line.amount)} per ${line.unit}`;
+}
+
+/**
+ * Render what a picked line comes to, mirroring Booking::expectedTotal().
+ *
+ * Null for an hourly line and for a count nobody has given: that total does not
+ * exist yet, and showing a number for it would be a guess dressed as a price.
+ */
+export function figure(line: RateLine | null, quantity: number | null): string | null {
+    if (line === null || line.unit === 'hour') {
+        return null;
+    }
+
+    if (line.unit === null) {
+        return peso(line.amount);
+    }
+
+    return quantity === null ? null : peso(line.amount * quantity);
+}
+
+/**
+ * Render the arithmetic behind a figure, so the number is checkable.
+ *
+ * The whole reason this screen exists is that a band asks to be trusted; the
+ * multiplication is what makes the total answerable instead.
+ */
+export function workings(line: RateLine | null, quantity: number | null): string | null {
+    if (line === null || line.unit === null || line.unit === 'hour') {
+        return null;
+    }
+
+    if (quantity === null) {
+        return `${peso(line.amount)} per ${line.unit} · they measure on site`;
+    }
+
+    return `${peso(line.amount)} × ${quantity} ${line.unit}`;
+}
+
+/**
+ * Render what a whole set of picked lines comes to.
+ *
+ * One line nobody can total makes the whole figure unknowable, mirroring
+ * BookedLines::total() -- a partial sum shown as the price would be a lie.
+ */
+export function basket(lines: BookedLine[]): string | null {
+    if (lines.length === 0) {
+        return null;
+    }
+
+    let total = 0;
+
+    for (const line of lines) {
+        if (line.unit === 'hour') {
+            return null;
+        }
+
+        if (line.unit === null) {
+            total += line.amount;
+
+            continue;
+        }
+
+        if (line.quantity === null) {
+            return null;
+        }
+
+        total += line.amount * line.quantity;
+    }
+
+    return peso(total);
 }

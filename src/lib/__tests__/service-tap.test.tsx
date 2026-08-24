@@ -46,7 +46,9 @@ beforeEach(() => jest.clearAllMocks());
 // The list already carries the answer, so the tap goes where it belongs. Working
 // it out on the next screen is what showed a provider picker for an instant
 // before it replaced itself.
-it('goes straight to booking when the list already names a provider', async () => {
+// Straight to the price, not straight to the date picker. Skipping the rate
+// card is what let a booking be placed without ever seeing a figure.
+it('goes straight to the offer price when the list already names a provider', async () => {
     listed({
         id: 'l1',
         description: null,
@@ -62,12 +64,12 @@ it('goes straight to booking when the list already names a provider', async () =
     fireEvent.press(screen.getByText('Cleaning'));
 
     expect(router.push).toHaveBeenCalledWith({
-        pathname: '/book',
+        pathname: '/listing/[id]',
         params: {
-            listing: 'l1',
+            id: 'l1',
+            serviceId: 's1',
             service: 'Cleaning',
             trade: 'Air Condition',
-            provider: 'Kool Breeze Aircon Services',
             covered: '1',
         },
     });

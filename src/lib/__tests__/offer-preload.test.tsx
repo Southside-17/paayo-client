@@ -170,8 +170,8 @@ it('remembers nothing to choose from for a row that has an answer', async () => 
     await waitFor(() =>
         expect(router.replace).toHaveBeenCalledWith(
             expect.objectContaining({
-                pathname: '/book',
-                params: expect.objectContaining({ listing: 'l1', covered: '1' }),
+                pathname: '/listing/[id]',
+                params: expect.objectContaining({ id: 'l1', covered: '1' }),
             }),
         ),
     );

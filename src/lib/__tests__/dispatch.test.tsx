@@ -68,10 +68,9 @@ it('hands straight to booking when a provider covers the address', async () => {
 
     expect(router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
-            pathname: '/book',
+            pathname: '/listing/[id]',
             params: expect.objectContaining({
-                listing: 'l1',
-                provider: 'Kool Breeze Aircon Services',
+                id: 'l1',
                 covered: '1',
             }),
         }),

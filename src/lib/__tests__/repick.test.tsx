@@ -85,6 +85,9 @@ const declined: Booking = {
 
     },
     pricing_method: { value: 'per_job', label: 'Per job', is_on_request: false },
+    lines: [],
+    expected_total: null,
+    intake: [],
     provider: { id: 'p1', name: 'Tubero Davao Plumbing' },
     attachments: [],
     created_at: '2026-08-01T00:00:00.000000Z',
@@ -96,6 +99,8 @@ function listing(id: string, provider: string): Listing {
         description: null,
         pricing_method: { value: 'per_job', label: 'Per job', is_on_request: false },
         rates: [],
+        allows_many_lines: false,
+        intake: [],
         price_min: 200_000,
         price_max: null,
         provider: { id: `p-${id}`, name: provider, slug: provider.toLowerCase() },

@@ -16,7 +16,7 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusPill } from '@/components/ui/status-pill';
 import { Text } from '@/components/ui/text';
-import { peso, priceRange } from '@/lib/money';
+import { peso, priceRange, rateLine, workings } from '@/lib/money';
 import { useSession } from '@/lib/session';
 import type { Booking } from '@/lib/types';
 import { useSubmit } from '@/lib/use-submit';
@@ -77,12 +77,25 @@ export default function BookingDetail() {
                     {booking ? (
                         <View className="max-w-[45%] items-end">
                             <Text className="text-brand text-right text-lg font-bold">
-                                {priceRange(
-                                    booking.price_min,
-                                    booking.price_max,
-                                    booking.pricing_method,
-                                )}
+                                {booking.expected_total !== null
+                                    ? peso(booking.expected_total)
+                                    : priceRange(
+                                          booking.price_min,
+                                          booking.price_max,
+                                          booking.pricing_method,
+                                      )}
                             </Text>
+                            {booking.lines.length === 1 ? (
+                                <Text className="text-muted-foreground text-right text-[11px]">
+                                    {workings(booking.lines[0], booking.lines[0].quantity) ??
+                                        booking.lines[0].label}
+                                </Text>
+                            ) : null}
+                            {booking.lines.length > 1 ? (
+                                <Text className="text-muted-foreground text-right text-[11px]">
+                                    {`${booking.lines.length} lines`}
+                                </Text>
+                            ) : null}
                             {booking.surcharge ? (
                                 <Text className="text-muted-foreground text-right text-[11px]">
                                     plus {peso(booking.surcharge)} trip charge
@@ -193,6 +206,45 @@ export default function BookingDetail() {
                             <Label>Why do you need them?</Label>
                             <Text className="text-sm">{booking.description}</Text>
                         </Card>
+
+                        {booking.lines.length > 0 ? (
+                            <Card className="gap-2">
+                                <Label>What you asked for</Label>
+                                {booking.lines.map((line) => (
+                                    <View
+                                        key={line.label}
+                                        className="flex-row items-baseline gap-2"
+                                    >
+                                        <Text className="flex-1 text-sm">{line.label}</Text>
+                                        <Text className="text-sm font-medium">
+                                            {workings(line, line.quantity) ?? rateLine(line)}
+                                        </Text>
+                                    </View>
+                                ))}
+                                {booking.expected_total !== null ? (
+                                    <View className="border-border flex-row items-baseline gap-2 border-t pt-2">
+                                        <Text className="flex-1 text-sm font-medium">Total</Text>
+                                        <Text className="font-bold">
+                                            {peso(booking.expected_total)}
+                                        </Text>
+                                    </View>
+                                ) : null}
+                            </Card>
+                        ) : null}
+
+                        {booking.intake.length > 0 ? (
+                            <Card className="gap-3">
+                                <Label>What you told them</Label>
+                                {booking.intake.map((asked) => (
+                                    <View key={asked.question} className="gap-0.5">
+                                        <Text className="text-muted-foreground text-sm">
+                                            {asked.question}
+                                        </Text>
+                                        <Text className="text-sm">{asked.answer}</Text>
+                                    </View>
+                                ))}
+                            </Card>
+                        ) : null}
 
                         {booking.status.is_open ? (
                             <Button variant="outline" onPress={() => setAsking(true)} busy={busy}>

@@ -1,9 +1,16 @@
-import type { Service, ServiceOffer } from '@/lib/types';
+import type { BookedLine, Listing, Service, ServiceOffer } from '@/lib/types';
 
 type Market = { id: string; name: string } | null | undefined;
 
 let pinned: string | null = null;
 let held: Record<string, ServiceOffer> = {};
+let carried: Record<string, Carried> = {};
+
+type Carried = {
+    listing: Listing;
+    answers: Record<string, string>;
+    lines: BookedLine[];
+};
 
 /**
  * What the trade list already learned about a service, for the picker.
@@ -37,4 +44,27 @@ export function recall(serviceId: string, addressId: string | null): ServiceOffe
 export function forget(): void {
     pinned = null;
     held = {};
+    carried = {};
+}
+
+/**
+ * Hold what the listing screen gathered, for the booking screen to pick up.
+ *
+ * Ten answers at 500 characters will not fit in a query param, and serialising
+ * a whole Listing through the router is the thing `remember()` exists to avoid,
+ * so both travel in module state under a key instead.
+ */
+export function carry(
+    listing: Listing,
+    answers: Record<string, string>,
+    lines: BookedLine[],
+): string {
+    carried[listing.id] = { listing, answers, lines };
+
+    return listing.id;
+}
+
+/** What the listing screen gathered under this key, if it is still held. */
+export function recallCarried(key: string): Carried | null {
+    return carried[key] ?? null;
 }
