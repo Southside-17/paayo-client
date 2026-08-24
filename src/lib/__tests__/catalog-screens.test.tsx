@@ -112,7 +112,13 @@ it('drops the skeleton once the services arrive', async () => {
             name: 'Cleaning',
             description: 'Strip and wash the unit.',
             
-            trade: { id: 'c1', name: 'Air Condition', slug: 'air-condition', icon: 'air-conditioning' },
+            trade: {
+                id: 'c1',
+                name: 'Air Condition',
+                slug: 'air-condition',
+                icon: 'air-conditioning',
+                units: [],
+            },
         },
     ]);
 

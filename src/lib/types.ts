@@ -211,6 +211,8 @@ export type Trade = {
     name: string;
     slug: string;
     icon: string | null;
+    /** What this trade counts in, suggested beside a rate line's unit field. */
+    units: string[];
     services?: Service[];
 };
 
@@ -279,6 +281,10 @@ export type ProviderListing = {
     description: string | null;
     pricing_method: PricingMethod;
     rates: RateLine[];
+    /** Whether the card is a menu to order from or a set of alternatives. */
+    allows_many_lines: boolean;
+    /** What this business asks a client before taking the work. */
+    intake: string[];
     price_min: number | null;
     price_max: number | null;
     paused_at: string | null;
@@ -366,3 +372,11 @@ export type Booking = {
 export function isTwoFactorChallenge(result: LoginResult): result is TwoFactorChallenge {
     return 'two_factor' in result && result.two_factor;
 }
+
+/** A trade and the services under it a business could still offer. */
+export type OfferableTrade = {
+    id: string;
+    name: string;
+    is_active: boolean;
+    services: { id: string; name: string; is_active: boolean }[];
+};
