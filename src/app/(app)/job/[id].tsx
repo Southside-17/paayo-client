@@ -10,6 +10,8 @@ import { HandoverNotice } from '@/components/handover-notice';
 import { HoldNotice } from '@/components/hold-notice';
 import { MediaThumb } from '@/components/media-thumb';
 import { MediaViewer, type Viewable } from '@/components/media-viewer';
+import { PriceSheet, type PricedLine } from '@/components/price-sheet';
+import { QuotationCard } from '@/components/quotation-card';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -49,6 +51,7 @@ export default function Job() {
     const [viewing, setViewing] = useState<Viewable | null>(null);
     const [taking, setTaking] = useState(false);
     const [turningDown, setTurningDown] = useState(false);
+    const [pricing, setPricing] = useState(false);
     const [refusing, setRefusing] = useState(false);
     const [note, setNote] = useState('');
 
@@ -71,6 +74,43 @@ export default function Job() {
     if (!staff) {
         return <Redirect href="/" />;
     }
+
+    const price = (lines: PricedLine[], why: string | null) =>
+        submit(async () => {
+            if (session.status !== 'authenticated' || !provider) {
+                return;
+            }
+
+            await session.authenticatedRequest(
+                `/providers/${provider}/bookings/${id}/quotation`,
+                { method: 'POST', body: { lines, note: why } },
+            );
+
+            const { data } = await session.authenticatedRequest<{ data: Booking }>(
+                `/providers/${provider}/bookings/${id}`,
+            );
+
+            setJob(data);
+            setPricing(false);
+        });
+
+    const withdrawPrice = () =>
+        submit(async () => {
+            if (session.status !== 'authenticated' || !provider) {
+                return;
+            }
+
+            await session.authenticatedRequest(
+                `/providers/${provider}/bookings/${id}/quotation`,
+                { method: 'DELETE' },
+            );
+
+            const { data } = await session.authenticatedRequest<{ data: Booking }>(
+                `/providers/${provider}/bookings/${id}`,
+            );
+
+            setJob(data);
+        });
 
     const answer = (path: 'acceptance' | 'refusal', body?: Record<string, unknown>) =>
         submit(async () => {
@@ -266,6 +306,27 @@ export default function Job() {
                                 </Card>
                             ) : null}
 
+                            {job.quotation ? (
+                                <QuotationCard quotation={job.quotation} />
+                            ) : null}
+
+                            {job.status.value === 'quoted' ? (
+                                <Card className="gap-2">
+                                    <Text className="font-semibold">Waiting on the client</Text>
+                                    <Text className="text-muted-foreground text-sm">
+                                        They have your price. The job is theirs to accept, and
+                                        nothing is agreed until they do.
+                                    </Text>
+                                    <Button
+                                        variant="ghost"
+                                        disabled={busy}
+                                        onPress={() => void withdrawPrice()}
+                                    >
+                                        Pull this price back
+                                    </Button>
+                                </Card>
+                            ) : null}
+
                             {job.status.value === 'pending' && staff.provider.suspension ? (
                                 <HoldNotice suspension={staff.provider.suspension} />
                             ) : null}
@@ -303,6 +364,16 @@ export default function Job() {
                                             <Button busy={busy} onPress={() => setTaking(true)}>
                                                 Take this job
                                             </Button>
+                                            {/* Pakyawan: the job is larger than the
+                                                published rate covers, so it is priced
+                                                as one job instead of taken at a rate
+                                                that cannot hold it. */}
+                                            <Button
+                                                variant="outline"
+                                                onPress={() => setPricing(true)}
+                                            >
+                                                Price it as one job
+                                            </Button>
                                             <Button
                                                 variant="ghost"
                                                 onPress={() => setTurningDown(true)}
@@ -315,6 +386,16 @@ export default function Job() {
                             ) : null}
                         </>
                     ) : null}
+
+                    <PriceSheet
+                        open={pricing}
+                        title="Price this as one job"
+                        revising={job?.quotation !== null && job?.quotation !== undefined}
+                        busy={busy}
+                        errorFor={errorFor}
+                        onSend={(lines, why) => void price(lines, why)}
+                        onDismiss={() => setPricing(false)}
+                    />
 
                     <ConfirmDialog
                         open={taking}
