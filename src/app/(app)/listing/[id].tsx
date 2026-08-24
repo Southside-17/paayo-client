@@ -40,20 +40,6 @@ function span(line: RateLine): string | null {
 }
 
 /**
- * Pick the line for a card that offers exactly one, so its count can be asked.
- *
- * With one line there is nothing to choose between, but the count and the
- * figure still depend on something being chosen.
- */
-function onlyLine(listing: Listing): Record<string, string> {
-    const offered = listing.rates.filter((line) => line.is_active);
-
-    return offered.length === 1 && !listing.pricing_method.is_on_request
-        ? { [offered[0].label]: '' }
-        : {};
-}
-
-/**
  * Say why there is no figure yet, rather than leaving the line blank.
  *
  * An empty caption under a price band reads as something failing to load; each
@@ -75,15 +61,9 @@ function footnote({
     }
 
     if (unsure) {
-        return 'They will confirm the price when they see it.';
-    }
-
-    if (!priced) {
-        return 'They will give you a figure before any work starts.';
-    }
-
-    if (booked.length === 0) {
-        return 'Pick what you need to see a figure.';
+        return priced
+            ? 'Or pick from their prices above to see a figure.'
+            : 'They will give you a figure before any work starts.';
     }
 
     if (booked.some((line) => line.unit === 'hour')) {
@@ -115,7 +95,6 @@ export default function ListingDetail() {
     const [listing, setListing] = useState<Listing | null>(null);
     const [failure, setFailure] = useState<string | null>(null);
     const [picked, setPicked] = useState<Record<string, string>>({});
-    const [unsure, setUnsure] = useState(false);
     const [answers, setAnswers] = useState<Record<string, string>>({});
 
     const authenticatedRequest =
@@ -135,8 +114,6 @@ export default function ListingDetail() {
 
             if (found) {
                 setListing(found);
-                setPicked(onlyLine(found));
-                setUnsure(false);
 
                 return;
             }
@@ -157,8 +134,6 @@ export default function ListingDetail() {
                     }
 
                     setListing(match);
-                    setPicked(onlyLine(match));
-                    setUnsure(false);
                 })
                 .catch(() => setFailure('Could not reach Paayo. Try again.'));
         }, [authenticatedRequest, addressId, ready, id, serviceId]),
@@ -176,13 +151,14 @@ export default function ListingDetail() {
     const asksCount = (line: RateLine) => line.unit !== null && line.unit !== 'hour';
     const booked = chosen.map((line) => ({ ...line, quantity: countOf(line.label) }));
     const total = basket(booked);
+    // Picking nothing IS letting them look: no separate flag to keep in step.
+    const unsure = booked.length === 0;
 
     /**
      * Tapping a picked line clears it. On a single-pick card, tapping another
      * replaces it -- there is never a state a client cannot get out of.
      */
     const toggle = (label: string) => {
-        setUnsure(false);
         setPicked((held) => {
             if (label in held) {
                 const { [label]: gone, ...rest } = held;
@@ -271,11 +247,29 @@ export default function ListingDetail() {
 
                             {!onRequest && offered.length > 0 ? (
                                 <Card className="gap-3">
-                                    <Label>
-                                        {offered.length > 1
-                                            ? 'What do they charge for?'
-                                            : 'What they charge'}
-                                    </Label>
+                                    <Label>What do you need?</Label>
+
+                                    <Pressable
+                                        accessibilityRole="button"
+                                        accessibilityLabel="Let them look first"
+                                        accessibilityState={{ selected: unsure }}
+                                        onPress={() => setPicked({})}
+                                        className={cn(
+                                            'rounded-lg border p-3',
+                                            unsure
+                                                ? 'border-brand bg-brand-subtle'
+                                                : 'border-border bg-card',
+                                        )}
+                                    >
+                                        <Text
+                                            className={cn('font-medium', unsure && 'text-brand')}
+                                        >
+                                            Let them look first
+                                        </Text>
+                                        <Text className="text-muted-foreground text-sm">
+                                            They will price it when they see the job.
+                                        </Text>
+                                    </Pressable>
 
                                     {offered.map((line) => {
                                         const active = line.label in picked;
@@ -346,34 +340,10 @@ export default function ListingDetail() {
                                         );
                                     })}
 
-                                    <Pressable
-                                        accessibilityRole="button"
-                                        accessibilityState={{ selected: unsure }}
-                                        onPress={() => {
-                                            setUnsure(true);
-                                            setPicked({});
-                                        }}
-                                        className={cn(
-                                            'rounded-lg border border-dashed p-3',
-                                            unsure
-                                                ? 'border-brand bg-brand-subtle'
-                                                : 'border-border bg-card',
-                                        )}
-                                    >
-                                        <Text
-                                            className={cn('font-medium', unsure && 'text-brand')}
-                                        >
-                                            I&apos;m not sure
-                                        </Text>
-                                        <Text className="text-muted-foreground text-sm">
-                                            They will tell you when they see it.
-                                        </Text>
-                                    </Pressable>
-
                                     <Text className="text-muted-foreground text-sm">
                                         {many
-                                            ? 'Pick as many as you need. Tap one again to remove it.'
-                                            : 'Pick the one that fits. Tap it again to clear it.'}
+                                            ? 'Pick as many as you know you need. Tap one again to remove it.'
+                                            : 'Pick one if you know which. Tap it again to clear it.'}
                                     </Text>
                                 </Card>
                             ) : null}

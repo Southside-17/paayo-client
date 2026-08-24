@@ -98,7 +98,7 @@ it('shows what a provider charges before anybody picks a date', async () => {
 
     await waitFor(() => expect(screen.getByText('Kool Breeze')).toBeOnTheScreen());
 
-    expect(screen.getByText('What do they charge for?')).toBeOnTheScreen();
+    expect(screen.getByText('What do you need?')).toBeOnTheScreen();
     expect(screen.getByText('Window type')).toBeOnTheScreen();
     expect(screen.getByText('Split type')).toBeOnTheScreen();
 });
@@ -129,31 +129,35 @@ it('asks for no count until a line has been picked', async () => {
     expect(screen.queryByLabelText('How many Split type')).not.toBeOnTheScreen();
 });
 
-it('picks the only line on a one-line card, because there is nothing to choose', async () => {
+// Describing the symptom and letting the professional scope the job is the
+// ordinary way trade work is bought. Knowing what to order is the exception, so
+// it is opt-in rather than assumed.
+it('starts by letting them look, on a card of any size', async () => {
     signedIn(offering([line('Whole unit', 80_000)]));
 
     render(<ListingDetail />);
 
-    await waitFor(() => expect(screen.getByText('What they charge')).toBeOnTheScreen());
+    await waitFor(() => expect(screen.getByText('Let them look first')).toBeOnTheScreen());
 
-    expect(screen.getByLabelText('How many Whole unit')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Let them look first')).toBeSelected();
+    expect(screen.queryByLabelText('How many Whole unit')).not.toBeOnTheScreen();
 });
 
-// There must never be a state a client cannot get out of. The auto-picked line
-// on a one-line card was the case with no way back.
+// There must never be a state a client cannot get out of.
 it('clears a picked line when it is tapped again', async () => {
     signedIn(offering([line('Whole unit', 80_000)]));
 
     render(<ListingDetail />);
 
-    await waitFor(() =>
-        expect(screen.getByLabelText('How many Whole unit')).toBeOnTheScreen(),
-    );
+    await waitFor(() => expect(screen.getByText('Whole unit')).toBeOnTheScreen());
+
+    fireEvent.press(screen.getByText('Whole unit'));
+    expect(screen.getByLabelText('How many Whole unit')).toBeOnTheScreen();
 
     fireEvent.press(screen.getByText('Whole unit'));
 
     expect(screen.queryByLabelText('How many Whole unit')).not.toBeOnTheScreen();
-    expect(screen.getByText('Pick what you need to see a figure.')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Let them look first')).toBeSelected();
 });
 
 // Tubero Davao Plumbing: a faucet AND a toilet is one plumber visit, not two
@@ -196,18 +200,38 @@ it('replaces the pick instead of adding to it when only one is allowed', async (
     expect(screen.queryByLabelText('How many Window type')).not.toBeOnTheScreen();
 });
 
-it('lets somebody say they cannot tell the lines apart', async () => {
+it('goes back to letting them look after a line was picked', async () => {
     signedIn(offering([line('Window type', 80_000), line('Split type', 100_000)]));
 
     render(<ListingDetail />);
 
-    await waitFor(() => expect(screen.getByText("I'm not sure")).toBeOnTheScreen());
+    await waitFor(() => expect(screen.getByText('Split type')).toBeOnTheScreen());
 
-    fireEvent.press(screen.getByText("I'm not sure"));
+    fireEvent.press(screen.getByText('Split type'));
+    expect(screen.getByLabelText('Let them look first')).not.toBeSelected();
 
-    expect(
-        screen.getByText('They will confirm the price when they see it.'),
-    ).toBeOnTheScreen();
+    fireEvent.press(screen.getByLabelText('Let them look first'));
+
+    expect(screen.getByLabelText('Let them look first')).toBeSelected();
+    expect(screen.queryByLabelText('How many Split type')).not.toBeOnTheScreen();
+});
+
+// Coming back from the booking form re-focuses this screen. Re-running the load
+// used to reset the picks, which showed as the selection clearing itself.
+it('keeps what was picked when the screen is focused again', async () => {
+    signedIn(offering([line('Window type', 80_000), line('Split type', 100_000)]));
+
+    const { rerender } = render(<ListingDetail />);
+
+    await waitFor(() => expect(screen.getByText('Split type')).toBeOnTheScreen());
+
+    fireEvent.press(screen.getByText('Split type'));
+    fireEvent.changeText(screen.getByLabelText('How many Split type'), '2');
+
+    rerender(<ListingDetail />);
+
+    await waitFor(() => expect(screen.getByText('₱2,000')).toBeOnTheScreen());
+    expect(screen.getByLabelText('How many Split type')).toBeOnTheScreen();
 });
 
 it('asks for no count on an hourly line, and reads its span back', async () => {
@@ -216,6 +240,8 @@ it('asks for no count on an hourly line, and reads its span back', async () => {
     render(<ListingDetail />);
 
     await waitFor(() => expect(screen.getByText('Troubleshooting')).toBeOnTheScreen());
+
+    fireEvent.press(screen.getByText('Troubleshooting'));
 
     expect(screen.queryByLabelText('How many Troubleshooting')).not.toBeOnTheScreen();
     expect(
@@ -232,7 +258,7 @@ it('shows no card at all when the work is priced on request', async () => {
         expect(screen.getByText('They price this after seeing it')).toBeOnTheScreen(),
     );
 
-    expect(screen.queryByText('What do they charge for?')).not.toBeOnTheScreen();
+    expect(screen.queryByText('What do you need?')).not.toBeOnTheScreen();
     expect(screen.getByText('What is it doing?')).toBeOnTheScreen();
 });
 
