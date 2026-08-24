@@ -312,7 +312,14 @@ export type BookingStatus = {
     tone: Tone;
     /** Whether it can still be cancelled -- not whether anyone has answered. */
     is_open: boolean;
-    /** Turned down, and waiting on the client to pick again. */
+    /**
+     * Priced, and waiting on the client.
+     *
+     * The asymmetry the quoted route introduces: on a published price the
+     * provider's yes completes the agreement, on a quoted one the client's does.
+     */
+    is_awaiting_client: boolean;
+    /** Turned down, and waiting on the client to ask somebody else. */
     needs_another_provider: boolean;
 };
 
@@ -322,11 +329,82 @@ export type BookingFilter = {
     label: string;
 };
 
-/** A provider that turned a booking down. The note they gave is not sent. */
-export type Decline = {
-    listing_id: string;
-    provider_name: string;
-    declined_at: string;
+/** Why work is quoted rather than picked off a published card. */
+export type QuotationBasis = {
+    value: 'on_request' | 'beyond_ceiling';
+    label: string;
+    reason: string;
+};
+
+export type QuotationStatus = {
+    value: string;
+    label: string;
+    wording: string;
+    tone: Tone;
+    is_awaiting_answer: boolean;
+    is_agreed: boolean;
+};
+
+/**
+ * A provider's priced answer to work nobody published a price for.
+ *
+ * `total` is null when the lines agree a *rate* rather than a figure -- an
+ * hourly quote has no total until the hours are counted, and a partial sum
+ * where the agreed price goes reads worse than no figure.
+ */
+export type Quotation = {
+    id: string;
+    status: QuotationStatus;
+    basis: QuotationBasis;
+    lines: BookedLine[];
+    total: number | null;
+    /** Required on a price that replaces an earlier one, and shown to the client. */
+    note: string | null;
+    expires_at: string;
+    days_left: number;
+    has_lapsed: boolean;
+    is_answerable: boolean;
+    replaces_id: string | null;
+    answered_at: string | null;
+    provider: { id: string; name: string };
+    created_at: string;
+};
+
+export type EnquiryStatus = {
+    value: string;
+    label: string;
+    wording: string;
+    tone: Tone;
+    is_open: boolean;
+    is_awaiting_answer: boolean;
+    needs_another_provider: boolean;
+};
+
+/**
+ * A price asked without committing to anything.
+ *
+ * No `scheduled_at` and no price band, which is the whole difference from a
+ * booking. An enquiry never becomes a booking -- accepting its quotation
+ * writes one.
+ */
+export type Enquiry = {
+    id: string;
+    status: EnquiryStatus;
+    description: string;
+    intake: { question: string; answer: string | null }[];
+    refused_at: string | null;
+    withdrawn_at: string | null;
+    address: Booking['address'];
+    latitude: number | null;
+    longitude: number | null;
+    pin_radius: number | null;
+    pricing_method: PricingMethod;
+    service: { id: string; name: string };
+    provider: { id: string; name: string };
+    client?: { id: string; nickname: string; phone: string | null };
+    quotation?: Quotation | null;
+    attachments?: Attachment[];
+    created_at: string;
 };
 
 export type Booking = {
@@ -336,7 +414,10 @@ export type Booking = {
     scheduled_at: string;
     accepted_at: string | null;
     cancelled_at: string | null;
-    declines: Decline[];
+    refused_at: string | null;
+    /** The figure both sides are held to, once there is an agreement. */
+    agreed_total: number | null;
+    quotation?: Quotation | null;
     price_min: number | null;
     price_max: number | null;
     /**

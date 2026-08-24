@@ -23,12 +23,16 @@ import { cn } from '@/lib/utils';
  * Who is coming, and only when that has to be asked.
  */
 export default function ServiceOffers() {
-    const { id, name, trade, repick } = useLocalSearchParams<{
+    const { id, name, trade, replaces } = useLocalSearchParams<{
         id: string;
         name?: string;
         trade?: string;
-        /** A booking that was turned down, when this is the client re-picking. */
-        repick?: string;
+        /**
+         * A booking that was turned down, when this is the client asking
+         * somebody else. The answer is a **new** booking: a booking is answered
+         * once, so nothing repoints the refused one.
+         */
+        replaces?: string;
     }>();
     const session = useSession();
     const { address, ready } = useSelectedAddress();
@@ -41,21 +45,23 @@ export default function ServiceOffers() {
     const [failure, setFailure] = useState<string | null>(null);
     const [booking, setBooking] = useState<Booking | null>(null);
     const { busy, submit } = useSubmit();
-    const choosing = Boolean(repick);
-    const declined = booking?.declines.map((one) => one.listing_id) ?? [];
+    const choosing = Boolean(replaces);
+    // The one provider who cannot be asked again. There is no list, because a
+    // booking is refused once and each attempt is its own row.
+    const refusedBy = booking?.provider.id ?? null;
 
     const authenticatedRequest =
         session.status === 'authenticated' ? session.authenticatedRequest : null;
 
     const send = (listing: Listing) =>
         submit(async () => {
-            if (session.status !== 'authenticated' || !repick) {
+            if (session.status !== 'authenticated' || !replaces) {
                 return;
             }
 
             await session.authenticatedRequest<{ data: Booking }>(
-                `/bookings/${repick}/provider`,
-                { method: 'PUT', body: { listing_id: listing.id } },
+                `/bookings/${replaces}/replacement`,
+                { method: 'POST', body: { listing_id: listing.id } },
             );
 
             await session.reload();
@@ -87,7 +93,7 @@ export default function ServiceOffers() {
             setFailure(null);
 
             if (choosing) {
-                void authenticatedRequest<{ data: Booking }>(`/bookings/${repick}`)
+                void authenticatedRequest<{ data: Booking }>(`/bookings/${replaces}`)
                     .then(({ data }) => setBooking(data))
                     .catch(() => setBooking(null));
 
@@ -132,7 +138,7 @@ export default function ServiceOffers() {
                     );
                     setOffer(null);
                 });
-        }, [authenticatedRequest, addressId, ready, id, name, book, choosing, repick]),
+        }, [authenticatedRequest, addressId, ready, id, name, book, choosing, replaces]),
     );
 
     const service = offer?.data ?? null;
@@ -202,7 +208,7 @@ export default function ServiceOffers() {
                 ) : null}
 
                 {alternatives.map((listing) => {
-                    const refused = declined.includes(listing.id);
+                    const refused = listing.provider.id === refusedBy;
 
                     return (
                     <Pressable

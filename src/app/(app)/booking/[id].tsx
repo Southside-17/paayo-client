@@ -129,11 +129,11 @@ export default function BookingDetail() {
                         {booking.status.needs_another_provider ? (
                             <Card className="border-warning/40 bg-warning-subtle gap-3">
                                 <Text className="font-semibold">
-                                    {`${booking.declines.at(-1)?.provider_name ?? 'They'} can't take this`}
+                                    {`${booking.provider.name} can't take this`}
                                 </Text>
                                 <Text className="text-muted-foreground text-sm">
-                                    Pick somebody else and the work goes to them. Your photos
-                                    and details stay as they are.
+                                    Ask somebody else and this becomes a new booking. Your
+                                    photos, address and time carry over.
                                 </Text>
                                 <Button
                                     onPress={() =>
@@ -142,12 +142,12 @@ export default function BookingDetail() {
                                             params: {
                                                 id: booking.service.id,
                                                 name: booking.service.name,
-                                                repick: booking.id,
+                                                replaces: booking.id,
                                             },
                                         })
                                     }
                                 >
-                                    Choose someone else
+                                    Ask someone else
                                 </Button>
                             </Card>
                         ) : null}
