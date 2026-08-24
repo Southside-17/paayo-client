@@ -14,10 +14,10 @@ function MockUseFocusEffect(callback: () => void) {
     useEffect(callback, [callback]);
 }
 
-const FIXED = { value: 'fixed', label: 'Fixed price', suffix: '', is_quoted: false };
+const FIXED = { value: 'per_job', label: 'Per job', is_on_request: false };
 
 function service(id: string, name: string): Service {
-    return { id, name, description: null, pricing_unit: FIXED };
+    return { id, name, description: null };
 }
 
 function trade(id: string, name: string, services: Service[]): Trade {
@@ -28,6 +28,8 @@ function offering(id: string, named: Service, tradeOf: Trade, over: Partial<Prov
     return {
         id,
         description: null,
+        pricing_method: FIXED,
+        rates: [],
         price_min: 150_000,
         price_max: null,
         paused_at: null,

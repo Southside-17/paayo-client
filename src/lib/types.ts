@@ -180,12 +180,27 @@ export type QrCode = {
     secret_key: string;
 };
 
-/** How a service's price reads. The server owns the wording, not the client. */
-export type PricingUnit = {
+/**
+ * How a provider charges for one service. The server owns the wording.
+ *
+ * This belongs to the listing, not the service: two providers of one service
+ * may charge in completely different shapes.
+ */
+export type PricingMethod = {
     value: string;
     label: string;
-    suffix: string;
-    is_quoted: boolean;
+    is_on_request: boolean;
+};
+
+/** One line of a provider's rate card. `amount` is centavos. */
+export type RateLine = {
+    label: string;
+    amount: number;
+    /** What the line is charged per. Null means one price for the whole job. */
+    unit: string | null;
+    estimated_minutes: number | null;
+    maximum_minutes: number | null;
+    is_active: boolean;
 };
 
 /** A trade. `icon` is a curated Tabler name and may be null. */
@@ -201,7 +216,6 @@ export type Service = {
     id: string;
     name: string;
     description: string | null;
-    pricing_unit: PricingUnit;
     trade?: Trade;
     /**
      * The provider covering the address the list was asked for, if any.
@@ -233,6 +247,8 @@ export type ServiceList = {
 export type Listing = {
     id: string;
     description: string | null;
+    pricing_method: PricingMethod;
+    rates: RateLine[];
     price_min: number | null;
     price_max: number | null;
     provider: { id: string; name: string; slug: string };
@@ -255,6 +271,8 @@ export type ListingStanding = {
 export type ProviderListing = {
     id: string;
     description: string | null;
+    pricing_method: PricingMethod;
+    rates: RateLine[];
     price_min: number | null;
     price_max: number | null;
     paused_at: string | null;
@@ -325,7 +343,8 @@ export type Booking = {
     /** Metres the real address can be from the pin. Null once the pin is exact. */
     pin_radius: number | null;
     surcharge: number | null;
-    service: { id: string; name: string; pricing_unit: PricingUnit };
+    pricing_method: PricingMethod;
+    service: { id: string; name: string };
     provider: { id: string; name: string };
     /** Who asked. Sent only to the business the work was booked against. */
     client?: { id: string; nickname: string; phone: string | null };

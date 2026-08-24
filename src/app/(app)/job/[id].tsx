@@ -105,7 +105,7 @@ export default function Job() {
                         {job ? (
                             <View className="max-w-[45%] items-end">
                                 <Text className="text-brand text-right text-lg font-bold">
-                                    {priceRange(job.price_min, job.price_max, job.service.pricing_unit)}
+                                    {priceRange(job.price_min, job.price_max, job.pricing_method)}
                                 </Text>
                                 <Text className="text-muted-foreground text-right text-[11px]">
                                     {visitAt(job.scheduled_at)}

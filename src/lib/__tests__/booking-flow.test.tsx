@@ -113,7 +113,8 @@ const booking = {
     address: { label: 'Home', line: '12 Kalayaan, Makati' },
     latitude: 14.55,
     longitude: 121.02,
-    service: { id: 's1', name: 'Cleaning', pricing_unit: { value: 'fixed', label: 'Fixed price', suffix: '', is_quoted: false } },
+    service: { id: 's1', name: 'Cleaning' },
+    pricing_method: { value: 'per_job', label: 'Per job', is_on_request: false },
     provider: { id: 'p1', name: 'FixRight Manila' },
     created_at: '2026-08-01T00:00:00.000000Z',
 };

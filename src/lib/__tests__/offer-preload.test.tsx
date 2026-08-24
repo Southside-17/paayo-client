@@ -25,11 +25,13 @@ function MockParams() {
     return params;
 }
 
-const unit = { value: 'fixed', label: 'Fixed price', suffix: '', is_quoted: false };
+const method = { value: 'per_job', label: 'Per job', is_on_request: false };
 
 const listing = (id: string, provider: string, price: number) => ({
     id,
     description: null,
+    pricing_method: method,
+    rates: [],
     price_min: price,
     price_max: null,
     provider: { id: `p-${id}`, name: provider, slug: id },
@@ -40,7 +42,6 @@ const uncovered = {
     id: 's1',
     name: 'Freon Recharge',
     description: null,
-    pricing_unit: unit,
     covering: null,
     alternatives: [listing('l2', 'Matina Cooling Works', 90_000)],
 };
@@ -50,7 +51,6 @@ const covered = {
     id: 's2',
     name: 'Aircon Cleaning',
     description: null,
-    pricing_unit: unit,
     covering: listing('l1', 'Kool Breeze Aircon Services', 80_000),
 };
 

@@ -232,13 +232,11 @@ export default function ServiceOffers() {
 
                             <View className="flex-row items-center gap-2">
                                 <Text className="text-lg font-bold">
-                                    {service
-                                        ? priceRange(
-                                              listing.price_min,
-                                              listing.price_max,
-                                              service.pricing_unit,
-                                          )
-                                        : ''}
+                                    {priceRange(
+                                        listing.price_min,
+                                        listing.price_max,
+                                        listing.pricing_method,
+                                    )}
                                 </Text>
                                 {listing.surcharge ? (
                                     <Badge tone="warning">{`+${peso(listing.surcharge)} trip`}</Badge>

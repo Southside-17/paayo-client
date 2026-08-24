@@ -19,7 +19,6 @@ function MockUseFocusEffect(callback: () => void) {
     useEffect(callback, [callback]);
 }
 
-const unit = { value: 'fixed', label: 'Fixed price', suffix: '', is_quoted: false };
 
 function listed(covering: object | null) {
     (useSession as jest.Mock).mockReturnValue({
@@ -30,7 +29,6 @@ function listed(covering: object | null) {
                     id: 's1',
                     name: 'Cleaning',
                     description: null,
-                    pricing_unit: unit,
                     covering,
                 },
             ],

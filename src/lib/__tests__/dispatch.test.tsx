@@ -24,12 +24,13 @@ const service = {
     id: 's1',
     name: 'Cleaning',
     description: 'Strip, wash and reassemble the unit.',
-    pricing_unit: { value: 'fixed', label: 'Fixed price', suffix: '', is_quoted: false },
 };
 
 const listing = (id: string, provider: string) => ({
     id,
     description: null,
+    pricing_method: { value: 'per_job', label: 'Per job', is_on_request: false },
+    rates: [],
     price_min: 80_000,
     price_max: null,
     provider: { id: `p-${id}`, name: provider, slug: provider.toLowerCase() },

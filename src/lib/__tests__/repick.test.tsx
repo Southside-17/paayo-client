@@ -82,8 +82,9 @@ const declined: Booking = {
     service: {
         id: 's1',
         name: 'Leak Repair',
-        pricing_unit: { value: 'unit', label: 'per unit', suffix: '/unit', is_quoted: false },
+
     },
+    pricing_method: { value: 'per_job', label: 'Per job', is_on_request: false },
     provider: { id: 'p1', name: 'Tubero Davao Plumbing' },
     attachments: [],
     created_at: '2026-08-01T00:00:00.000000Z',
@@ -93,6 +94,8 @@ function listing(id: string, provider: string): Listing {
     return {
         id,
         description: null,
+        pricing_method: { value: 'per_job', label: 'Per job', is_on_request: false },
+        rates: [],
         price_min: 200_000,
         price_max: null,
         provider: { id: `p-${id}`, name: provider, slug: provider.toLowerCase() },
@@ -156,7 +159,7 @@ describe('choosing again', () => {
         return jest.fn().mockImplementation((path: string) =>
             path.startsWith('/bookings/')
                 ? Promise.resolve({ data: declined })
-                : Promise.resolve({ data: { id: 's1', name: 'Leak Repair', pricing_unit: declined.service.pricing_unit }, alternatives: listings, market: { id: 'm1', name: 'Davao City' } }),
+                : Promise.resolve({ data: { id: 's1', name: 'Leak Repair', }, alternatives: listings, market: { id: 'm1', name: 'Davao City' } }),
         );
     }
 

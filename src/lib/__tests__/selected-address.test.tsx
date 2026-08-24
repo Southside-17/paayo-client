@@ -23,7 +23,7 @@ const service = {
     id: 's1',
     name: 'Cleaning',
     description: null,
-    pricing_unit: { value: 'fixed', label: 'Fixed price', suffix: '', is_quoted: false },
+    
 };
 
 beforeEach(() => forget());

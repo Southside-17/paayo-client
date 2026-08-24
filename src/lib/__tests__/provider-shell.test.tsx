@@ -137,11 +137,8 @@ const job: Booking = {
     longitude: 125.61,
     pin_radius: 300,
     surcharge: null,
-    service: {
-        id: 's1',
-        name: 'Aircon cleaning',
-        pricing_unit: { value: 'unit', label: 'per unit', suffix: '/unit', is_quoted: false },
-    },
+    pricing_method: { value: 'per_job', label: 'Per job', is_on_request: false },
+    service: { id: 's1', name: 'Aircon cleaning' },
     provider: { id: 'p-s1', name: 'Bright Electric' },
     client: { id: 'u9', nickname: 'Mara', phone: '09171234567' },
     created_at: '2026-08-01T00:00:00.000000Z',

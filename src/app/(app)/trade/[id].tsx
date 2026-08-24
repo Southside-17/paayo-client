@@ -115,9 +115,6 @@ export default function TradeServices() {
                                 {service.description}
                             </Text>
                         ) : null}
-                        <Text className="text-brand text-xs font-medium">
-                            {service.pricing_unit.label}
-                        </Text>
                     </Pressable>
                 ))}
             </ScrollView>

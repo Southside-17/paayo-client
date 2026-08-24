@@ -111,7 +111,7 @@ it('drops the skeleton once the services arrive', async () => {
             id: 's1',
             name: 'Cleaning',
             description: 'Strip and wash the unit.',
-            pricing_unit: { value: 'per-unit', label: 'Per unit', suffix: ' per unit', is_quoted: false },
+            
             trade: { id: 'c1', name: 'Air Condition', slug: 'air-condition', icon: 'air-conditioning' },
         },
     ]);

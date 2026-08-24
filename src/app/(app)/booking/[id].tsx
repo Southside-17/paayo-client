@@ -80,7 +80,7 @@ export default function BookingDetail() {
                                 {priceRange(
                                     booking.price_min,
                                     booking.price_max,
-                                    booking.service.pricing_unit,
+                                    booking.pricing_method,
                                 )}
                             </Text>
                             {booking.surcharge ? (

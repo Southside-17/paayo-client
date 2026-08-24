@@ -293,7 +293,7 @@ function Offers({ groups, colours }: { groups: Group[]; colours: Record<string, 
                                 {priceRange(
                                     offer.price_min,
                                     offer.price_max,
-                                    offer.service.pricing_unit,
+                                    offer.pricing_method,
                                 )}
                             </Text>
 
@@ -330,7 +330,7 @@ function CatalogRow({
 }) {
     const note = offer
         ? offer.standing.wording === 'live'
-            ? `You sell this · ${priceRange(offer.price_min, offer.price_max, service.pricing_unit).toLowerCase()}`
+            ? `You sell this · ${priceRange(offer.price_min, offer.price_max, offer.pricing_method).toLowerCase()}`
             : `You sell this · ${offer.standing.wording}`
         : 'Not sold here';
 
