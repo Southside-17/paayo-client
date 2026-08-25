@@ -1,4 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
+import BadgeCheck from 'lucide-react-native/icons/badge-check';
 import Camera from 'lucide-react-native/icons/camera';
 import Link2 from 'lucide-react-native/icons/link-2';
 import MapPin from 'lucide-react-native/icons/map-pin';
@@ -33,6 +34,7 @@ const ROWS: SettingsRow[] = [
     { icon: Pencil, label: 'Profile', note: 'Nickname, email, phone', href: '/profile/edit' },
     { icon: MapPin, label: 'Address', note: 'Where you want work done', href: '/profile/addresses' },
     { icon: Link2, label: 'Sign-in', note: 'Google and the other ways in', href: '/profile/socials' },
+    { icon: BadgeCheck, label: 'Identity', note: 'Verify who you are', href: '/profile/identification' },
     { icon: ShieldCheck, label: 'Security', note: 'Password, passkeys, two factor', href: '/security' },
     { icon: Trash2, label: 'Close account', note: 'What goes, and what has to stay', href: '/profile/delete' },
 ];

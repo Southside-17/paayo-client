@@ -155,8 +155,25 @@ export type Identification = {
     status_label: string;
     rejection_reason: string | null;
     reviewed_at: string | null;
+    /** Whether the face photographed with the claim still has bytes behind it. */
+    selfie: boolean;
+    selfie_url?: string;
     created_at: string;
     documents: Document[];
+};
+
+/** An identity document Paayo accepts, and what it asks for alongside. */
+export type DocumentType = {
+    value: string;
+    label: string;
+    requires_issuer: boolean;
+    requires_expiry: boolean;
+};
+
+export type IdentificationIndex = {
+    data: Identification[];
+    types: DocumentType[];
+    minimum_age: number;
 };
 
 export type TokenResponse = {
