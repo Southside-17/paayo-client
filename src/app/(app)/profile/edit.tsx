@@ -105,7 +105,7 @@ export default function EditProfile() {
                         ) : null}
 
                         <View>
-                            <Label>Email address</Label>
+                            <Label>Email</Label>
                             <Input
                                 value={email}
                                 onChangeText={setEmail}
