@@ -55,7 +55,7 @@ it('drops the pin where the map was tapped', () => {
     tap(7.0731, 125.6128);
 
     expect(screen.getByTestId('map').props.markers).toEqual([
-        { coordinates: { latitude: 7.0731, longitude: 125.6128 } },
+        { id: 'place', coordinates: { latitude: 7.0731, longitude: 125.6128 } },
     ]);
 });
 
@@ -195,6 +195,32 @@ it('draws a marker and no circle once the radius is gone', () => {
 
     const map = screen.getByTestId('map');
 
-    expect(map.props.markers).toEqual([{ coordinates: pin }]);
+    expect(map.props.markers).toEqual([{ id: 'place', coordinates: pin }]);
     expect(map.props.circles).toEqual([]);
+});
+
+// The slot for live tracking, which is deliberately not built. Passing null must
+// leave the map exactly as it is today, so landing the dot later is one prop.
+it('draws nothing extra while there is no crew to draw', () => {
+    const pin = { latitude: 7.0731, longitude: 125.6128 };
+
+    draw(<PinMap pin={pin} focus={pin} crew={null} />);
+
+    expect(screen.getByTestId('map').props.polylines).toEqual([]);
+    expect(screen.getByTestId('map').props.markers).toEqual([{ id: 'place', coordinates: pin }]);
+});
+
+it('joins the crew to the address once there is a crew pin', () => {
+    const pin = { latitude: 7.0731, longitude: 125.6128 };
+    const crew = { latitude: 7.08, longitude: 125.62 };
+
+    draw(<PinMap pin={pin} focus={pin} crew={crew} />);
+
+    const map = screen.getByTestId('map');
+
+    expect(map.props.markers).toEqual([
+        { id: 'place', coordinates: pin },
+        { id: 'crew', coordinates: crew },
+    ]);
+    expect(map.props.polylines[0].coordinates).toEqual([crew, pin]);
 });

@@ -1,4 +1,4 @@
-import { Redirect, Stack, Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
 import ClipboardList from 'lucide-react-native/icons/clipboard-list';
 import Store from 'lucide-react-native/icons/store';
 import Wrench from 'lucide-react-native/icons/wrench';
@@ -10,9 +10,12 @@ import palette from '@/theme/palette';
 /**
  * The business side of the app, behind the same gates the personal side is.
  *
- * A technician carries no permissions, so there is nothing to put in a tab bar
- * -- one tab is a title with furniture around it. They get a plain stack over
- * the single screen that names the business.
+ * Every tab is gated on its own permission rather than the layout branching on
+ * one of them. It used to fall back to a bare Stack for anybody without
+ * `booking:view`, which left a technician with no screens at all -- and now
+ * that they hold `job:work` they have the one screen the role exists for.
+ * `href: null` keeps a tab routable but off the bar, so a link into it still
+ * works for whoever may read it.
  */
 export default function ProviderLayout() {
     const { staff } = useWorkspace();
@@ -23,9 +26,11 @@ export default function ProviderLayout() {
         return <Redirect href="/" />;
     }
 
-    if (!staff.permissions.includes('booking:view')) {
-        return <Stack screenOptions={{ headerShown: false }} />;
-    }
+    // Business is on the bar for everybody: asking to leave is deliberately not
+    // a permission, so every role has at least that one screen and there is no
+    // roster left that gets no tab bar at all.
+    const mayWork = staff.permissions.includes('job:work');
+    const mayReadListings = staff.permissions.includes('listing:view');
 
     return (
         <Tabs
@@ -44,6 +49,7 @@ export default function ProviderLayout() {
                 name="jobs"
                 options={{
                     title: 'Jobs',
+                    href: mayWork ? undefined : null,
                     tabBarIcon: ({ color, size }) => <ClipboardList color={color} size={size} />,
                 }}
             />
@@ -51,6 +57,7 @@ export default function ProviderLayout() {
                 name="services"
                 options={{
                     title: 'Services',
+                    href: mayReadListings ? undefined : null,
                     tabBarIcon: ({ color, size }) => <Wrench color={color} size={size} />,
                 }}
             />

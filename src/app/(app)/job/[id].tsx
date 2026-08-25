@@ -8,6 +8,8 @@ import { WhenCard, WhereCard } from '@/components/booking-facts';
 import { FormMessage } from '@/components/form-message';
 import { HandoverNotice } from '@/components/handover-notice';
 import { HoldNotice } from '@/components/hold-notice';
+import { JobProgress } from '@/components/job-progress';
+import { JobTimeline } from '@/components/job-timeline';
 import { MediaThumb } from '@/components/media-thumb';
 import { MediaViewer, type Viewable } from '@/components/media-viewer';
 import { PriceSheet, type PricedLine } from '@/components/price-sheet';
@@ -22,9 +24,10 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusPill } from '@/components/ui/status-pill';
 import { Text } from '@/components/ui/text';
+import { accounting, nextStep } from '@/lib/jobs';
 import { peso, priceRange, rateLine, workings } from '@/lib/money';
 import { useSession } from '@/lib/session';
-import type { Booking } from '@/lib/types';
+import type { Booking, ProviderStaff } from '@/lib/types';
 import { useSubmit } from '@/lib/use-submit';
 import { useWorkspace } from '@/lib/workspace';
 
@@ -43,12 +46,21 @@ function visitAt(scheduled: string): string {
  * One job, as the business sees it: who asked, where, when and what for.
  */
 export default function Job() {
-    const { id, name } = useLocalSearchParams<{ id: string; name?: string }>();
+    const {
+        id,
+        name,
+        job: jobParam,
+    } = useLocalSearchParams<{ id: string; name?: string; job?: string }>();
     const session = useSession();
     const { staff } = useWorkspace();
     const { busy, message, errorFor, submit } = useSubmit();
     const [job, setJob] = useState<Booking | null>(null);
     const [viewing, setViewing] = useState<Viewable | null>(null);
+    // Seeded from the link and then read off every answer, because accepting is
+    // what brings a work order into existence.
+    const [work, setWork] = useState<string | null>(jobParam ?? null);
+    const [crew, setCrew] = useState<ProviderStaff[] | null>(null);
+    const [stepping, setStepping] = useState(false);
     const [taking, setTaking] = useState(false);
     const [turningDown, setTurningDown] = useState(false);
     const [pricing, setPricing] = useState(false);
@@ -65,10 +77,20 @@ export default function Job() {
                 return;
             }
 
-            void authenticatedRequest<{ data: Booking }>(`/providers/${provider}/bookings/${id}`)
-                .then(({ data }) => setJob(data))
+            // The job route, whenever there is a job. A technician deliberately
+            // holds no booking:view, and everyone who can be on a job holds
+            // job:work -- so this is the read that works for both.
+            const path = work === null
+                ? `/providers/${provider}/bookings/${id}`
+                : `/providers/${provider}/jobs/${work}`;
+
+            void authenticatedRequest<{ data: Booking }>(path)
+                .then(({ data }) => {
+                    setJob(data);
+                    setWork((held) => data.job?.id ?? held);
+                })
                 .catch(() => setJob(null));
-        }, [authenticatedRequest, id, provider]),
+        }, [authenticatedRequest, id, provider, work]),
     );
 
     if (!staff) {
@@ -110,6 +132,69 @@ export default function Job() {
             );
 
             setJob(data);
+        });
+
+    const mayAssign = staff.permissions.includes('job:assign');
+    const work_order = job?.job ?? null;
+    const step = work_order === null ? null : nextStep(work_order);
+    const lead = work_order?.crew?.find((member) => member.is_lead) ?? null;
+    const onIt = work_order?.crew?.[0] ?? null;
+
+    /** Take the next step on the job, whatever it happens to be. */
+    const advance = (path: 'departure' | 'arrival' | 'start') =>
+        submit(async () => {
+            if (session.status !== 'authenticated' || !provider || work === null) {
+                return;
+            }
+
+            const { data } = await session.authenticatedRequest<{ data: Booking }>(
+                `/providers/${provider}/jobs/${work}/${path}`,
+                { method: 'POST', body: {} },
+            );
+
+            setJob(data);
+        });
+
+    const put = (staffId: string, isLead: boolean) =>
+        submit(async () => {
+            if (session.status !== 'authenticated' || !provider || work === null) {
+                return;
+            }
+
+            const { data } = await session.authenticatedRequest<{ data: Booking }>(
+                `/providers/${provider}/jobs/${work}/assignments`,
+                { method: 'POST', body: { staff_id: staffId, is_lead: isLead } },
+            );
+
+            setJob(data);
+        });
+
+    const take = (assignment: string) =>
+        submit(async () => {
+            if (session.status !== 'authenticated' || !provider || work === null) {
+                return;
+            }
+
+            const { data } = await session.authenticatedRequest<{ data: Booking }>(
+                `/providers/${provider}/jobs/${work}/assignments/${assignment}`,
+                { method: 'DELETE' },
+            );
+
+            setJob(data);
+        });
+
+    /** The staff a dispatcher can put on this job, asked for only when they can. */
+    const openPicker = () =>
+        submit(async () => {
+            if (session.status !== 'authenticated' || !provider) {
+                return;
+            }
+
+            const { data } = await session.authenticatedRequest<{ data: ProviderStaff[] }>(
+                `/providers/${provider}/staffs`,
+            );
+
+            setCrew(data);
         });
 
     const answer = (path: 'acceptance' | 'refusal', body?: Record<string, unknown>) =>
@@ -197,6 +282,100 @@ export default function Job() {
                             <StatusPill tone={job.status.tone}>{job.status.wording}</StatusPill>
 
                             <HandoverNotice job={job} />
+
+                            {work_order ? (
+                                <JobProgress
+                                    job={work_order}
+                                    audience="provider"
+                                    crew={lead?.nickname ?? onIt?.nickname ?? null}
+                                />
+                            ) : null}
+
+                            {work_order ? (
+                                <Card className="gap-2">
+                                    <Label>Who is going?</Label>
+
+                                    {work_order.crew?.length ? (
+                                        work_order.crew.map((member) => (
+                                            <View
+                                                key={member.id}
+                                                className="flex-row items-center gap-2"
+                                            >
+                                                <Text className="flex-1 text-sm font-medium">
+                                                    {member.nickname}
+                                                </Text>
+                                                {member.is_lead ? (
+                                                    <StatusPill tone="brand">lead</StatusPill>
+                                                ) : null}
+                                                {mayAssign && !work_order.status.is_finished ? (
+                                                    <Text
+                                                        accessibilityRole="button"
+                                                        className="text-muted-foreground text-xs"
+                                                        onPress={() => void take(member.id)}
+                                                    >
+                                                        Take off
+                                                    </Text>
+                                                ) : null}
+                                            </View>
+                                        ))
+                                    ) : (
+                                        <Text className="text-muted-foreground text-sm">
+                                            Nobody is on this yet.
+                                        </Text>
+                                    )}
+
+                                    {mayAssign && !work_order.status.is_finished ? (
+                                        <Button
+                                            variant="outline"
+                                            busy={busy}
+                                            onPress={() => void openPicker()}
+                                        >
+                                            {work_order.crew?.length
+                                                ? 'Put somebody else on it'
+                                                : 'Put somebody on it'}
+                                        </Button>
+                                    ) : null}
+
+                                    {crew !== null ? (
+                                        <View className="gap-2">
+                                            {crew
+                                                .filter(
+                                                    (member) =>
+                                                        !work_order.crew?.some(
+                                                            (on) => on.staff_id === member.id,
+                                                        ),
+                                                )
+                                                .map((member) => (
+                                                    <View
+                                                        key={member.id}
+                                                        className="border-border flex-row items-center gap-2 rounded-lg border p-3"
+                                                    >
+                                                        <View className="flex-1">
+                                                            <Text className="text-sm font-medium">
+                                                                {member.user.nickname}
+                                                            </Text>
+                                                            <Text className="text-muted-foreground text-xs">
+                                                                {member.role_label}
+                                                            </Text>
+                                                        </View>
+                                                        <Text
+                                                            accessibilityRole="button"
+                                                            className="text-brand text-xs font-semibold"
+                                                            onPress={() =>
+                                                                void put(member.id, lead === null)
+                                                            }
+                                                        >
+                                                            {lead === null ? 'Send as lead' : 'Send'}
+                                                        </Text>
+                                                    </View>
+                                                ))}
+                                            <Button variant="ghost" onPress={() => setCrew(null)}>
+                                                Close
+                                            </Button>
+                                        </View>
+                                    ) : null}
+                                </Card>
+                            ) : null}
 
                             <Card className="gap-1">
                                 <Label>Who asked?</Label>
@@ -306,6 +485,42 @@ export default function Job() {
                                 </Card>
                             ) : null}
 
+                            {work_order && work_order.lines.length > 0 ? (
+                                <Card className="gap-2">
+                                    <Label>What was done</Label>
+                                    {work_order.lines.map((line) => (
+                                        <View key={line.label} className="gap-0.5">
+                                            <View className="flex-row items-baseline gap-2">
+                                                <Text className="flex-1 text-sm">{line.label}</Text>
+                                                <Text className="text-sm font-medium">
+                                                    {line.total === null
+                                                        ? 'Not accounted for'
+                                                        : peso(line.total)}
+                                                </Text>
+                                            </View>
+                                            {accounting(line) ? (
+                                                <Text className="text-muted-foreground text-xs">
+                                                    {accounting(line)}
+                                                </Text>
+                                            ) : null}
+                                        </View>
+                                    ))}
+                                    {work_order.final_total !== null ? (
+                                        <View className="border-border flex-row items-baseline gap-2 border-t pt-2">
+                                            <Text className="flex-1 text-sm font-medium">Billed</Text>
+                                            <Text className="font-bold">
+                                                {peso(work_order.final_total)}
+                                            </Text>
+                                        </View>
+                                    ) : null}
+                                    {work_order.note ? (
+                                        <Text className="text-muted-foreground text-sm">
+                                            {work_order.note}
+                                        </Text>
+                                    ) : null}
+                                </Card>
+                            ) : null}
+
                             {job.quotation ? (
                                 <QuotationCard quotation={job.quotation} />
                             ) : null}
@@ -329,6 +544,37 @@ export default function Job() {
 
                             {job.status.value === 'pending' && staff.provider.suspension ? (
                                 <HoldNotice suspension={staff.provider.suspension} />
+                            ) : null}
+
+                            {/* One button, for the one step this job is up to.
+                                A row of four would be three wrong answers, and
+                                the crew are reading this holding tools. */}
+                            {step && !staff.provider.suspension ? (
+                                <Button
+                                    variant="brand"
+                                    busy={busy}
+                                    onPress={() => {
+                                        if (step.confirm) {
+                                            setStepping(true);
+
+                                            return;
+                                        }
+
+                                        if (step.path !== null) {
+                                            void advance(step.path);
+                                        }
+                                    }}
+                                >
+                                    {step.label}
+                                </Button>
+                            ) : null}
+
+                            {step && staff.provider.suspension ? (
+                                <HoldNotice suspension={staff.provider.suspension} />
+                            ) : null}
+
+                            {work_order ? (
+                                <JobTimeline activities={work_order.activities ?? []} />
                             ) : null}
 
                             {job.status.value === 'pending' && !staff.provider.suspension ? (
@@ -395,6 +641,24 @@ export default function Job() {
                         errorFor={errorFor}
                         onSend={(lines, why) => void price(lines, why)}
                         onDismiss={() => setPricing(false)}
+                    />
+
+                    <ConfirmDialog
+                        open={stepping}
+                        title={step?.confirm?.title ?? ''}
+                        body={step?.confirm?.body ?? ''}
+                        confirm={step?.confirm?.button ?? 'Yes'}
+                        dismiss="Not yet"
+                        busy={busy}
+                        onConfirm={() => {
+                            setStepping(false);
+
+                            router.push({
+                                pathname: '/job/finish',
+                                params: { id: work ?? id, name: name ?? job?.service.name ?? 'Job' },
+                            });
+                        }}
+                        onDismiss={() => setStepping(false)}
                     />
 
                     <ConfirmDialog

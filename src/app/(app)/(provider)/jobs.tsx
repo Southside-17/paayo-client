@@ -27,6 +27,11 @@ type Showing = 'jobs' | 'enquiries';
  * Two lists, because an enquiry has no visit to be sorted by: it is ordered
  * unanswered-first and then by age, and its row leads with the instruction
  * rather than a time and a place.
+ *
+ * **Which list this reads is a permission, not a preference.** Somebody who
+ * answers bookings reads the queue; a technician holds no `booking:view` and
+ * reads `/jobs`, which is scoped to the jobs they are actually on. Both answer
+ * the same shape, so there is one list and one row.
  */
 export default function Jobs() {
     const session = useSession();
@@ -42,6 +47,7 @@ export default function Jobs() {
     const authenticatedRequest =
         session.status === 'authenticated' ? session.authenticatedRequest : null;
     const provider = staff?.provider.id ?? null;
+    const queue = staff?.permissions.includes('booking:view') ?? false;
 
     useFocusEffect(
         useCallback(() => {
@@ -50,13 +56,23 @@ export default function Jobs() {
             }
 
             void authenticatedRequest<{ data: Booking[]; meta?: { filters?: Filter[] } }>(
-                `/providers/${provider}/bookings`,
+                queue ? `/providers/${provider}/bookings` : `/providers/${provider}/jobs`,
             )
                 .then(({ data, meta }) => {
                     setJobs(data);
                     setFilters(meta?.filters ?? []);
                 })
                 .catch(() => setJobs([]));
+
+            void pushIsReachable().then(setReachable);
+
+            // Nobody without booking:view may read the enquiry queue, and there
+            // is no toggle drawn for them either.
+            if (!queue) {
+                setEnquiries([]);
+
+                return;
+            }
 
             void authenticatedRequest<{ data: Enquiry[]; meta?: { filters?: Filter[] } }>(
                 `/providers/${provider}/enquiries`,
@@ -66,9 +82,7 @@ export default function Jobs() {
                     setEnquiryFilters(meta?.filters ?? []);
                 })
                 .catch(() => setEnquiries([]));
-
-            void pushIsReachable().then(setReachable);
-        }, [authenticatedRequest, provider]),
+        }, [authenticatedRequest, provider, queue]),
     );
 
     const onEnquiries = showing === 'enquiries';
@@ -105,6 +119,7 @@ export default function Jobs() {
                     />
                 ) : null}
 
+                {queue ? (
                 <View className="bg-muted flex-row gap-1 rounded-xl p-1">
                     {(['jobs', 'enquiries'] as const).map((option) => (
                         <Text
@@ -126,6 +141,7 @@ export default function Jobs() {
                         </Text>
                     ))}
                 </View>
+                ) : null}
 
                 {rows === null ? null : (
                     <BookingFilter
@@ -155,9 +171,13 @@ export default function Jobs() {
 
                 {!onEnquiries && jobs?.length === 0 ? (
                     <Card className="gap-2">
-                        <Text className="font-semibold">Nothing booked yet</Text>
+                        <Text className="font-semibold">
+                            {queue ? 'Nothing booked yet' : 'Nothing on your list'}
+                        </Text>
                         <Text className="text-muted-foreground text-sm">
-                            Work booked against this business turns up here, soonest visit first.
+                            {queue
+                                ? 'Work booked against this business turns up here, soonest visit first.'
+                                : 'Jobs you are put on turn up here, soonest visit first.'}
                         </Text>
                     </Card>
                 ) : null}
@@ -221,7 +241,14 @@ export default function Jobs() {
                         key={job.id}
                         href={{
                             pathname: '/job/[id]',
-                            params: { id: job.id, name: job.service.name },
+                            params: {
+                                id: job.id,
+                                name: job.service.name,
+                                // Travels with the link so the detail screen can
+                                // read through /jobs, which a technician may, and
+                                // not through /bookings, which they may not.
+                                ...(job.job ? { job: job.job.id } : {}),
+                            },
                         }}
                         asChild
                     >
@@ -231,7 +258,13 @@ export default function Jobs() {
                         >
                             <View className="flex-row items-center justify-between gap-3">
                                 <Text className="flex-1 font-semibold">{job.service.name}</Text>
-                                <StatusPill tone={job.status.tone}>{job.status.wording}</StatusPill>
+                                {/* The work's own state once there is one: a
+                                    booking reads "accepted" for as long as it
+                                    takes to do, which says nothing useful to
+                                    whoever has to do it. */}
+                                <StatusPill tone={job.job?.status.tone ?? job.status.tone}>
+                                    {job.job?.status.wording ?? job.status.wording}
+                                </StatusPill>
                             </View>
                             <Text className="text-muted-foreground text-sm">
                                 {job.client?.nickname ?? 'A client'}
