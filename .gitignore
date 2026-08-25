@@ -17,7 +17,8 @@ expo-env.d.ts
 *.keystore
 *.jks
 
-# Packaged artifacts
+# Packaged artifacts, and where `npm run build` puts them
+/build/
 *.apk
 *.aab
 *.ipa
