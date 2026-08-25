@@ -57,12 +57,18 @@ export function WhereCard({
     map = true,
     audience = 'client',
     radius = null,
+    crew = null,
 }: {
     place: Place;
     map?: boolean;
     audience?: Audience;
     /** Metres the real address can be from the pin, straight off `pin_radius`. */
     radius?: number | null;
+    /**
+     * Where the crew is. Null everywhere today -- see `PinMap` for why live
+     * tracking is not built and why the slot exists anyway.
+     */
+    crew?: { latitude: number; longitude: number } | null;
 }) {
     const { colorScheme } = useColorScheme();
     const colours = palette[colorScheme ?? 'light'];
@@ -120,7 +126,13 @@ export function WhereCard({
             ) : null}
 
             {map && pin ? (
-                <PinMap pin={pin} focus={pin} radius={radius} className="mt-1 h-40" />
+                <PinMap
+                    pin={pin}
+                    focus={pin}
+                    radius={radius}
+                    crew={crew}
+                    className="mt-1 h-40"
+                />
             ) : null}
 
             {map && !pin ? (

@@ -15,6 +15,15 @@ type Props = {
     focus: Pin | null;
     /** Metres the real place can be from `pin`, drawn as a circle, not a marker. */
     radius?: number | null;
+    /**
+     * Where the crew is, drawn as a second marker joined to the pin.
+     *
+     * **Passed null everywhere today.** Live tracking is deliberately not built
+     * -- it needs a broadcast driver, a socket server and continuous background
+     * emission, none of which exist -- and the slot is here so landing it later
+     * is one prop rather than a redesign of this component and every caller.
+     */
+    crew?: Pin | null;
     /** Omitted for a preview: the map then shows the pin and takes no input. */
     onMove?: (pin: Pin) => void;
     className?: string;
@@ -42,7 +51,14 @@ function mercatorOffset(height: number | null): number {
 /**
  * A map you tap to place the pin.
  */
-export function PinMap({ pin, focus, radius, onMove, className = 'h-56' }: Props) {
+export function PinMap({
+    pin,
+    focus,
+    radius,
+    crew = null,
+    onMove,
+    className = 'h-56',
+}: Props) {
     const map = useRef<AppleMaps.MapView & GoogleMaps.MapView>(null);
     const { colorScheme } = useColorScheme();
     const colours = palette[colorScheme ?? 'light'];
@@ -130,7 +146,26 @@ export function PinMap({ pin, focus, radius, onMove, className = 'h-56' }: Props
                 ref={map}
                 style={{ flex: 1 }}
                 cameraPosition={openingCamera}
-                markers={pin === null || area ? [] : [{ coordinates: pin }]}
+                markers={[
+                    ...(pin === null || area ? [] : [{ id: 'place', coordinates: pin }]),
+                    ...(crew === null ? [] : [{ id: 'crew', coordinates: crew }]),
+                ]}
+                // The line between the crew and the address. A plain stroke and
+                // not a dash: contourStyle is iOS only and Google takes no dash
+                // pattern at all, so a dashed version would be dashed on half
+                // the phones and solid on the rest.
+                polylines={
+                    pin === null || crew === null
+                        ? []
+                        : [
+                              {
+                                  id: 'approach',
+                                  coordinates: [crew, pin],
+                                  color: colours.brand,
+                                  width: 3,
+                              },
+                          ]
+                }
                 circles={
                     pin === null || !area
                         ? []

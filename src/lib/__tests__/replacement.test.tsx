@@ -85,6 +85,7 @@ const declined: Booking = {
 
     },
     pricing_method: { value: 'per_job', label: 'Per job', is_on_request: false },
+    hour_rounding: { value: 'hour' as const, label: 'To the hour' },
     lines: [],
     expected_total: null,
     intake: [],
@@ -98,6 +99,7 @@ function listing(id: string, provider: string, providerId?: string): Listing {
         id,
         description: null,
         pricing_method: { value: 'per_job', label: 'Per job', is_on_request: false },
+        hour_rounding: { value: 'hour' as const, label: 'To the hour' },
         rates: [],
         allows_many_lines: false,
         intake: [],

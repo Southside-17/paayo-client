@@ -192,8 +192,35 @@ export type PricingMethod = {
     is_on_request: boolean;
 };
 
+/**
+ * How a listing turns minutes worked into hours charged.
+ *
+ * A trade convention rather than a platform one, which is why it sits on the
+ * listing. Snapshotted onto the booking, so changing it does not rewrite what
+ * was already agreed. Rounding is always up.
+ */
+export type HourRounding = {
+    value: 'minute' | 'half_hour' | 'hour';
+    label: string;
+};
+
 /** One line of a provider's rate card. `amount` is centavos. */
 export type BookedLine = RateLine & { quantity: number | null };
+
+/**
+ * One agreed line as it was actually done.
+ *
+ * `minutes` is what the crew stated, `chargeable_minutes` is that after the
+ * booking's rounding, and `workings` is the sentence explaining the gap. The
+ * rounding is applied on the server so the two ends cannot drift.
+ */
+export type WorkedLine = RateLine & {
+    quantity: number | null;
+    minutes: number | null;
+    chargeable_minutes: number | null;
+    workings: string | null;
+    total: number | null;
+};
 
 export type RateLine = {
     label: string;
@@ -259,6 +286,7 @@ export type Listing = {
     intake: string[];
     price_min: number | null;
     price_max: number | null;
+    hour_rounding: HourRounding;
     provider: { id: string; name: string; slug: string };
     /** Only present when the query named an address. */
     surcharge?: number | null;
@@ -287,6 +315,7 @@ export type ProviderListing = {
     intake: string[];
     price_min: number | null;
     price_max: number | null;
+    hour_rounding: HourRounding;
     paused_at: string | null;
     service: Service;
     standing: ListingStanding;
@@ -407,6 +436,74 @@ export type Enquiry = {
     created_at: string;
 };
 
+/** Where the work itself stands, as distinct from the agreement. */
+export type JobStatus = {
+    value:
+        | 'unassigned'
+        | 'assigned'
+        | 'enroute'
+        | 'arrived'
+        | 'working'
+        | 'completed'
+        | 'cancelled';
+    label: string;
+    wording: string;
+    tone: Tone;
+    /** The crew is out: on the way, at the address, or working. */
+    is_underway: boolean;
+    is_finished: boolean;
+};
+
+/** One crew member on a job, as either end reads them. */
+export type JobCrew = {
+    id: string;
+    staff_id: string;
+    nickname: string;
+    is_lead: boolean;
+};
+
+/** One line of a job's history. */
+export type Activity = {
+    id: string;
+    type: string;
+    /** The sentence the timeline prints, written by the server. */
+    wording: string;
+    occurred_at: string;
+    /** Null once the account that did it is gone. */
+    by?: string | null;
+};
+
+/**
+ * The work order hanging off a booking, once somebody has taken it.
+ *
+ * Not coarsened, and it owes no handover check: it carries no address and no
+ * pin. Both ends read progress off the booking they already fetch.
+ */
+export type Job = {
+    id: string;
+    booking_id: string;
+    status: JobStatus;
+    enroute_at: string | null;
+    arrived_at: string | null;
+    /** Arriving is not starting: the wait at the gate is not billable time. */
+    started_at: string | null;
+    completed_at: string | null;
+    cancelled_at: string | null;
+    lines: WorkedLine[];
+    /** Every line accounted for, or null while any one is not. */
+    final_total: number | null;
+    note: string | null;
+    /** Minutes from starting to finishing, or to now. The completion pre-fill. */
+    elapsed_minutes: number | null;
+    /** True when nothing on the card is hourly, so there is no start tap. */
+    starts_on_arrival: boolean;
+    /** The one hourly line minutes may be pre-filled into, when there is one. */
+    hourly_label: string | null;
+    crew?: JobCrew[];
+    activities?: Activity[];
+    created_at: string;
+};
+
 export type Booking = {
     id: string;
     status: BookingStatus;
@@ -437,6 +534,10 @@ export type Booking = {
     pin_radius: number | null;
     surcharge: number | null;
     pricing_method: PricingMethod;
+    /** The booking's own snapshot, never the listing's live setting. */
+    hour_rounding: HourRounding;
+    /** The work order, once somebody has taken the booking. */
+    job?: Job | null;
     /** The lines the client picked, copied off the card as it stood. */
     lines: BookedLine[];
     /** Every line summed, when all of them can be. Null for hourly work. */
