@@ -602,11 +602,15 @@ their own app is a code they cannot use at the door — the payment screen shows
 chosen account's QR on the *crew's* phone with "Show this for them to scan", and
 falls back to "read them the number" where none was published.
 
-Tapping it opens `MediaViewer`, which is where it is big enough to scan. **Save**
-hands the signed link to `expo-web-browser` rather than writing to the gallery:
-saving to Photos needs a native module this build does not carry, and the
-browser's own save works today. Swap it for a share sheet when somebody decides
-the rebuild is worth it.
+Tapping it opens `MediaViewer`, which is where it is big enough to scan. **Send**
+and **Save** go through `lib/codes.ts`, which fetches the bytes first — the link
+is signed and short-lived, so handing the URL itself to a share sheet would pass
+on something that stops working within the hour.
+
+`expo-media-library` is declared **write-only**: Paayo saves a business's own QR
+and never reads the library, which the picker asks for separately. A refused
+permission is answered with a sentence rather than an error, because somebody who
+says no has made a choice.
 
 Read `booking.invoice` and `provider.destinations` defensively, the way
 `hour_rounding` and `user.suspension` are.

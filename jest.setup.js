@@ -126,3 +126,16 @@ process.env.EXPO_PUBLIC_APPLE_DEVELOPER_PROGRAM = '1';
 // factory that reaches an out-of-scope variable. A module file has no such
 // limit, and jest picks it up for a node module without being asked.
 jest.mock('react-native-reanimated');
+
+// Neither is reachable in a test run: saving and sharing a QR both go through
+// native modules, and the screens are asserted on what they say rather than on
+// the file landing.
+jest.mock('expo-sharing', () => ({
+    isAvailableAsync: jest.fn(async () => true),
+    shareAsync: jest.fn(async () => undefined),
+}));
+
+jest.mock('expo-media-library', () => ({
+    requestPermissionsAsync: jest.fn(async () => ({ granted: true })),
+    saveToLibraryAsync: jest.fn(async () => undefined),
+}));

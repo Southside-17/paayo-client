@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { View } from 'react-native';
 
 import RecordPayment from '@/app/(app)/job/payment';
@@ -9,7 +9,10 @@ import { useWorkspace } from '@/lib/workspace';
 jest.mock('@/lib/session', () => ({ useSession: jest.fn() }));
 jest.mock('@/lib/workspace', () => ({ useWorkspace: jest.fn() }));
 jest.mock('expo-image-picker', () => ({ launchImageLibraryAsync: jest.fn() }));
-jest.mock('expo-web-browser', () => ({ openBrowserAsync: jest.fn() }));
+jest.mock('@/lib/codes', () => ({
+    saveCode: jest.fn(async () => true),
+    shareCode: jest.fn(async () => true),
+}));
 jest.mock('expo-router', () => ({
     Redirect: MockRedirect,
     useLocalSearchParams: () => ({ id: 'j1', name: 'Aircon cleaning' }),
@@ -217,15 +220,46 @@ it('opens the code full screen so it is big enough to scan', async () => {
     expect(screen.getByLabelText('Close')).toBeTruthy();
 });
 
-it('hands the code to the browser to be saved', async () => {
-    const browser = jest.requireMock('expo-web-browser') as { openBrowserAsync: jest.Mock };
+it('saves the code to the phone photos', async () => {
+    const codes = jest.requireMock('@/lib/codes') as { saveCode: jest.Mock };
     signedIn(bookingWith({}, [gcash]));
 
     render(<RecordPayment />);
 
     await waitFor(() => expect(screen.getByLabelText('GCash')).toBeTruthy());
     fireEvent.press(screen.getByLabelText('GCash'));
-    fireEvent.press(screen.getByLabelText('Save the GCash QR'));
+    await act(async () => void fireEvent.press(screen.getByLabelText('Save the GCash QR')));
 
-    expect(browser.openBrowserAsync).toHaveBeenCalledWith(gcash.code_url);
+    expect(codes.saveCode).toHaveBeenCalledWith(gcash.code_url, 'gcash-qr.png');
+    expect(screen.getByText('Saved to your photos.')).toBeTruthy();
+});
+
+// Sending the client the code before the visit is what a business actually
+// wants, and it saves the crew holding a screen out at the door.
+it('sends the code on when asked', async () => {
+    const codes = jest.requireMock('@/lib/codes') as { shareCode: jest.Mock };
+    signedIn(bookingWith({}, [gcash]));
+
+    render(<RecordPayment />);
+
+    await waitFor(() => expect(screen.getByLabelText('GCash')).toBeTruthy());
+    fireEvent.press(screen.getByLabelText('GCash'));
+    await act(async () => void fireEvent.press(screen.getByLabelText('Send the GCash QR')));
+
+    expect(codes.shareCode).toHaveBeenCalledWith(gcash.code_url, 'gcash-qr.png');
+});
+
+// A refusal is a choice, not an error. Saying so plainly beats a failure.
+it('says plainly when permission to save was refused', async () => {
+    const codes = jest.requireMock('@/lib/codes') as { saveCode: jest.Mock };
+    codes.saveCode.mockResolvedValueOnce(false);
+    signedIn(bookingWith({}, [gcash]));
+
+    render(<RecordPayment />);
+
+    await waitFor(() => expect(screen.getByLabelText('GCash')).toBeTruthy());
+    fireEvent.press(screen.getByLabelText('GCash'));
+    await act(async () => void fireEvent.press(screen.getByLabelText('Save the GCash QR')));
+
+    expect(screen.getByText(/needs permission to save/i)).toBeTruthy();
 });

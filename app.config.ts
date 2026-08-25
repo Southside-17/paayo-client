@@ -104,6 +104,20 @@ const config: ExpoConfig = {
                     'Paayo uses your location to place the pin on a new address and to know when you reach a job.',
             },
         ],
+        'expo-sharing',
+        [
+            // Write-only. Paayo saves a business's own QR so a client can be sent
+            // it later; it never reads the library, and the picker asks for that
+            // separately when a photo of the work is being attached.
+            'expo-media-library',
+            {
+                savePhotosPermission:
+                    'Paayo saves the QR code clients pay you through to your photos.',
+                photosPermission:
+                    'Paayo saves the QR code clients pay you through to your photos.',
+                isAccessMediaLocationEnabled: false,
+            },
+        ],
         [
             'expo-image-picker',
             {
