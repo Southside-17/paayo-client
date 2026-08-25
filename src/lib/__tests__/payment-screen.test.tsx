@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { View } from 'react-native';
 
 import RecordPayment from '@/app/(app)/job/payment';
@@ -9,6 +9,7 @@ import { useWorkspace } from '@/lib/workspace';
 jest.mock('@/lib/session', () => ({ useSession: jest.fn() }));
 jest.mock('@/lib/workspace', () => ({ useWorkspace: jest.fn() }));
 jest.mock('expo-image-picker', () => ({ launchImageLibraryAsync: jest.fn() }));
+jest.mock('expo-web-browser', () => ({ openBrowserAsync: jest.fn() }));
 jest.mock('expo-router', () => ({
     Redirect: MockRedirect,
     useLocalSearchParams: () => ({ id: 'j1', name: 'Aircon cleaning' }),
@@ -41,7 +42,8 @@ const gcash: Destination = {
     handle: '09171234567',
     name: 'Juan D.',
     institution: 'GCash',
-    has_code: false,
+    has_code: true,
+    code_url: 'https://store.example/gcash.png?sig=abc',
 };
 
 const maya: Destination = {
@@ -175,4 +177,55 @@ it('sends a crew member with no business back to the start', () => {
     render(<RecordPayment />);
 
     expect(screen.getByLabelText('redirect /')).toBeTruthy();
+});
+
+// A client cannot point a camera at their own screen, so the code has to be
+// showable on the crew's phone at the door.
+it('shows the QR on the crew phone for the client to scan', async () => {
+    signedIn(bookingWith({}, [gcash]));
+
+    render(<RecordPayment />);
+
+    await waitFor(() => expect(screen.getByLabelText('GCash')).toBeTruthy());
+    fireEvent.press(screen.getByLabelText('GCash'));
+
+    expect(screen.getByLabelText('GCash QR')).toBeTruthy();
+    expect(screen.getByText('Show this for them to scan.')).toBeTruthy();
+});
+
+it('says to read the number out when no QR was published', async () => {
+    signedIn(bookingWith({}, [{ ...gcash, has_code: false, code_url: undefined }]));
+
+    render(<RecordPayment />);
+
+    await waitFor(() => expect(screen.getByLabelText('GCash')).toBeTruthy());
+    fireEvent.press(screen.getByLabelText('GCash'));
+
+    expect(screen.queryByLabelText('GCash QR')).toBeNull();
+    expect(screen.getByText(/Read them the number/i)).toBeTruthy();
+});
+
+it('opens the code full screen so it is big enough to scan', async () => {
+    signedIn(bookingWith({}, [gcash]));
+
+    render(<RecordPayment />);
+
+    await waitFor(() => expect(screen.getByLabelText('GCash')).toBeTruthy());
+    fireEvent.press(screen.getByLabelText('GCash'));
+    fireEvent.press(screen.getByLabelText('Show the GCash QR full screen'));
+
+    expect(screen.getByLabelText('Close')).toBeTruthy();
+});
+
+it('hands the code to the browser to be saved', async () => {
+    const browser = jest.requireMock('expo-web-browser') as { openBrowserAsync: jest.Mock };
+    signedIn(bookingWith({}, [gcash]));
+
+    render(<RecordPayment />);
+
+    await waitFor(() => expect(screen.getByLabelText('GCash')).toBeTruthy());
+    fireEvent.press(screen.getByLabelText('GCash'));
+    fireEvent.press(screen.getByLabelText('Save the GCash QR'));
+
+    expect(browser.openBrowserAsync).toHaveBeenCalledWith(gcash.code_url);
 });

@@ -6,6 +6,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BackButton } from '@/components/back-button';
 import { FormMessage } from '@/components/form-message';
 import { MediaPicker, type MediaItem } from '@/components/media-picker';
+import { MediaViewer, type Viewable } from '@/components/media-viewer';
+import { QrCard } from '@/components/qr-card';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -14,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Text } from '@/components/ui/text';
-import { destinationLine, isTransfer } from '@/lib/billing';
+import { isTransfer } from '@/lib/billing';
 import { peso } from '@/lib/money';
 import { useSession } from '@/lib/session';
 import type { Booking, Destination, PaymentMethod } from '@/lib/types';
@@ -60,6 +62,7 @@ export default function RecordPayment() {
     const [chosen, setChosen] = useState('cash');
     const [receipts, setReceipts] = useState<MediaItem[]>([]);
     const [recording, setRecording] = useState(false);
+    const [viewing, setViewing] = useState<Viewable | null>(null);
 
     const authenticatedRequest =
         session.status === 'authenticated' ? session.authenticatedRequest : null;
@@ -205,14 +208,21 @@ export default function RecordPayment() {
                                 ))}
                             </View>
 
+                            {/* Shown on *this* phone for the client to scan with
+                                theirs. A client cannot point a camera at their own
+                                screen, so a code they can only see in their own app
+                                is a code they cannot use at the door. */}
                             {destination !== null ? (
-                                <View className="gap-0.5">
-                                    <Text className="text-sm font-semibold">
-                                        {destinationLine(destination)}
-                                    </Text>
-                                    <Text className="text-muted-foreground font-mono text-xs">
-                                        {destination.handle}
-                                    </Text>
+                                <View className="border-border gap-2 border-t pt-3">
+                                    <QrCard
+                                        destination={destination}
+                                        onOpen={(uri) => setViewing({ uri, video: false })}
+                                        hint={
+                                            destination.code_url
+                                                ? 'Show this for them to scan.'
+                                                : 'Read them the number, or add a QR in Business.'
+                                        }
+                                    />
                                 </View>
                             ) : null}
                         </Card>
@@ -249,6 +259,8 @@ export default function RecordPayment() {
                         </Button>
                     </>
                 ) : null}
+
+                <MediaViewer item={viewing} onClose={() => setViewing(null)} />
 
                 <ConfirmDialog
                     open={recording}

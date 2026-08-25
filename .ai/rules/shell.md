@@ -596,5 +596,17 @@ link behind the same gate as the number, since the image encodes the number.
 A QR is optional on both ends: a client can type the number, so a business with
 none to hand is not shut out of being paid.
 
+**`QrCard` draws it on both ends, and the crew's end is not an afterthought.** A
+client cannot point a camera at their own screen, so a code they can only see in
+their own app is a code they cannot use at the door — the payment screen shows the
+chosen account's QR on the *crew's* phone with "Show this for them to scan", and
+falls back to "read them the number" where none was published.
+
+Tapping it opens `MediaViewer`, which is where it is big enough to scan. **Save**
+hands the signed link to `expo-web-browser` rather than writing to the gallery:
+saving to Photos needs a native module this build does not carry, and the
+browser's own save works today. Swap it for a share sheet when somebody decides
+the rebuild is worth it.
+
 Read `booking.invoice` and `provider.destinations` defensively, the way
 `hour_rounding` and `user.suspension` are.

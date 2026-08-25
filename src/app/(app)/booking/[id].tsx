@@ -1,4 +1,3 @@
-import { Image } from 'expo-image';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
@@ -12,6 +11,7 @@ import { JobTimeline } from '@/components/job-timeline';
 import { MediaThumb } from '@/components/media-thumb';
 import { MediaViewer, type Viewable } from '@/components/media-viewer';
 import { PhoneNotice } from '@/components/phone-notice';
+import { QrCard } from '@/components/qr-card';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -20,7 +20,7 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusPill } from '@/components/ui/status-pill';
 import { Text } from '@/components/ui/text';
-import { attestation, destinationLine, isOwed, standing } from '@/lib/billing';
+import { attestation, isOwed, standing } from '@/lib/billing';
 import { accounting } from '@/lib/jobs';
 import { peso, priceRange, rateLine, workings } from '@/lib/money';
 import { useSession } from '@/lib/session';
@@ -355,33 +355,11 @@ export default function BookingDetail() {
                                     <View className="border-border gap-2 border-t pt-3">
                                         <Label>Where to send it</Label>
                                         {(booking.provider.destinations ?? []).map((destination) => (
-                                            <View
+                                            <QrCard
                                                 key={`${destination.method.value}-${destination.institution}`}
-                                                className="flex-row items-center gap-3"
-                                            >
-                                                {/* Scannable where one was
-                                                    published, typable where none
-                                                    was. The QR is a convenience;
-                                                    the account name above it is
-                                                    the thing worth checking. */}
-                                                {destination.code_url ? (
-                                                    <Image
-                                                        source={{ uri: destination.code_url }}
-                                                        style={{ width: 72, height: 72, borderRadius: 10 }}
-                                                        contentFit="cover"
-                                                        accessibilityLabel={`${destination.institution} QR`}
-                                                    />
-                                                ) : null}
-
-                                                <View className="min-w-0 flex-1 gap-0.5">
-                                                    <Text className="text-sm font-semibold">
-                                                        {destinationLine(destination)}
-                                                    </Text>
-                                                    <Text className="text-muted-foreground font-mono text-xs">
-                                                        {destination.handle}
-                                                    </Text>
-                                                </View>
-                                            </View>
+                                                destination={destination}
+                                                onOpen={(uri) => setViewing({ uri, video: false })}
+                                            />
                                         ))}
                                         {/* The account name is what makes the
                                             number checkable. Sending to a number
