@@ -723,3 +723,34 @@ it('offers a price rather than a take when nothing was picked', async () => {
     expect(screen.queryByText('Take this job')).toBeNull();
     expect(screen.getByText(/not picked anything to price/i)).toBeOnTheScreen();
 });
+
+// Money owed outranks the work's own state on the list. A finished job nobody has
+// been paid for still needs something doing, and "completed" reads as though it
+// does not -- which is how it shipped, alongside a card the crew could not reach.
+it('flags a finished job nobody has been paid for', async () => {
+    acting(staffAt('s1', 'Bright Electric'));
+    signedIn(
+        jest.fn().mockResolvedValue({
+            data: [
+                {
+                    ...job,
+                    status: { value: 'accepted', label: 'Accepted', wording: 'accepted', tone: 'success' },
+                    invoice: {
+                        id: 'inv1',
+                        lines: [],
+                        total: 200_000,
+                        paid: 0,
+                        outstanding: 200_000,
+                        is_settled: false,
+                        created_at: '2026-08-25T10:00:00+08:00',
+                    },
+                },
+            ],
+        }),
+    );
+
+    render(<Jobs />);
+
+    expect(await screen.findByText('unpaid')).toBeOnTheScreen();
+    expect(screen.queryByText('accepted')).toBeNull();
+});

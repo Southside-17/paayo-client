@@ -12,6 +12,7 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusPill } from '@/components/ui/status-pill';
 import { Text } from '@/components/ui/text';
+import { isOwed } from '@/lib/billing';
 import { countByStatus, narrowTo, when } from '@/lib/bookings';
 import { enablePush, pushIsReachable, pushIsSupported } from '@/lib/push';
 import { useSession } from '@/lib/session';
@@ -258,13 +259,24 @@ export default function Jobs() {
                         >
                             <View className="flex-row items-center justify-between gap-3">
                                 <Text className="flex-1 font-semibold">{job.service.name}</Text>
-                                {/* The work's own state once there is one: a
-                                    booking reads "accepted" for as long as it
-                                    takes to do, which says nothing useful to
-                                    whoever has to do it. */}
-                                <StatusPill tone={job.job?.status.tone ?? job.status.tone}>
-                                    {job.job?.status.wording ?? job.status.wording}
-                                </StatusPill>
+                                {/* Money owed outranks the work's own state: a
+                                    finished job that nobody has been paid for
+                                    still needs something doing, and "completed"
+                                    reads as though it does not. Most unrecorded
+                                    payments are forgetfulness, and this is the
+                                    screen that keeps mentioning it.
+
+                                    Below that, the work's own state once there
+                                    is one: a booking reads "accepted" for as long
+                                    as it takes to do, which says nothing useful
+                                    to whoever has to do it. */}
+                                {isOwed(job.invoice) ? (
+                                    <StatusPill tone="warning">unpaid</StatusPill>
+                                ) : (
+                                    <StatusPill tone={job.job?.status.tone ?? job.status.tone}>
+                                        {job.job?.status.wording ?? job.status.wording}
+                                    </StatusPill>
+                                )}
                             </View>
                             <Text className="text-muted-foreground text-sm">
                                 {job.client?.nickname ?? 'A client'}
