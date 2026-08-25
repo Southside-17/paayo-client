@@ -535,3 +535,39 @@ The same rule `user.suspension` and `session.user.staffs` already follow: the ap
 ships on its own schedule, and an older server omitting the field must not take
 the offer editor down or stop a crew finishing a job. It defaults to the trade
 convention, which is what the server defaults to as well.
+
+## Getting paid: the Direct rail
+The crew record that a client paid; nothing waits on the client. `job/payment.tsx`
+is a full screen, following `finish.tsx` and against `price-sheet.tsx`, which is
+the outlier.
+
+**Only cash is always offered.** A transfer appears only where the business
+published somewhere to send it, read off `booking.provider.destinations` — that
+list is empty until the work has been taken, because a provider's GCash number is
+their mobile number. Offering GCash with no GCash number is offering a refusal, so
+the picker filters rather than letting the server answer.
+
+**A transfer must carry the confirmation screen; cash must not.** `MediaPicker`
+takes `photosOnly` and `limit` for this — a video of a confirmation is not
+evidence of anything the still does not show. The server refuses both directions
+with a deferred trigger, so the app is preventing a round trip rather than being
+the only check.
+
+**Say who, on both screens.** A payment on this rail is somebody's word, so the
+client sees "paid in cash · ₱2,000 · 25 Aug · by Mario" rather than a bare
+"paid". `attestation()` in `lib/billing.ts` writes that line; `standing()` writes
+the one about where the money stands, and neither accuses anybody — an unrecorded
+payment is usually just forgetfulness.
+
+**Amounts come off the invoice, never recomputed.** `outstanding()` reads the
+server's figure. The rounding that produced the total belongs to the booking that
+was answered, and two places computing money is how an invoice stops adding up to
+its own lines.
+
+**`destinations.tsx` is Owner only** (`provider:update`), and every owner is told
+when it changes including whoever changed it. Changing where money arrives is how
+a taken-over account becomes cash. The account name field is not a nicety: it is
+the only thing that lets a client check they are sending to the right person.
+
+Read `booking.invoice` and `provider.destinations` defensively, the way
+`hour_rounding` and `user.suspension` are.

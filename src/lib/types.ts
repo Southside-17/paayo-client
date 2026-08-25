@@ -506,6 +506,80 @@ export type Job = {
     created_at: string;
 };
 
+/**
+ * How a client settled an invoice.
+ *
+ * `cash`, `gcash`, `maya` and `bank` all mean the provider took the money and
+ * Paayo is owed its share afterwards. `paymongo` means Paayo collected it. The
+ * distinction is custody, not whether it was electronic -- a GCash sent straight
+ * to the provider is the same shape as cash on the doorstep.
+ */
+export type PaymentMethod = {
+    value: 'cash' | 'gcash' | 'maya' | 'bank' | 'paymongo';
+    label: string;
+    /** The phrase a payment line reads as, written by the server. */
+    wording: string;
+};
+
+/**
+ * One account a business will take money into.
+ *
+ * `name` is the account name and it is not decoration: a client scanning a bare
+ * QR has no way to tell whose it is. Sent only once the work has been taken --
+ * a provider's GCash number is their mobile number.
+ */
+export type Destination = {
+    method: { value: string; label: string };
+    handle: string;
+    name: string;
+    /** Which bank, for a bank account. Null for GCash and Maya, which are one. */
+    institution: string | null;
+    has_code: boolean;
+};
+
+/**
+ * Money that arrived against an invoice.
+ *
+ * `is_attested` is the honest bit: a payment somebody typed in is weaker
+ * evidence than one a gateway proved, and the client is shown which.
+ */
+export type Payment = {
+    id: string;
+    method: PaymentMethod;
+    amount: number;
+    paid_at: string;
+    is_attested: boolean;
+    /** Who said the money arrived. Null once that account is gone. */
+    confirmed_by?: string | null;
+    /** Where it was sent, snapshotted. Null for cash, which went nowhere. */
+    destination: { name: string; handle: string; institution: string | null } | null;
+    receipts?: Attachment[];
+};
+
+/**
+ * What is owed on a job, raised the moment the work is finished.
+ *
+ * Carries no number and is nothing official yet -- a statement of what is owed,
+ * which is what a business sends before the tax paperwork catches up. Settled is
+ * derived from the payments, so no key here can disagree with another.
+ */
+export type Invoice = {
+    id: string;
+    lines: {
+        label: string;
+        amount: number;
+        unit: string | null;
+        quantity: number | null;
+        minutes: number | null;
+    }[];
+    total: number;
+    paid: number;
+    outstanding: number;
+    is_settled: boolean;
+    payments?: Payment[];
+    created_at: string;
+};
+
 export type Booking = {
     id: string;
     status: BookingStatus;
@@ -540,13 +614,26 @@ export type Booking = {
     hour_rounding: HourRounding;
     /** The work order, once somebody has taken the booking. */
     job?: Job | null;
+    /** What is owed, once the work is finished. */
+    invoice?: Invoice | null;
     /** The lines the client picked, copied off the card as it stood. */
     lines: BookedLine[];
     /** Every line summed, when all of them can be. Null for hourly work. */
     expected_total: number | null;
     intake: { question: string; answer: string | null }[];
     service: { id: string; name: string };
-    provider: { id: string; name: string };
+    provider: {
+        id: string;
+        name: string;
+        /**
+         * Where the business takes money.
+         *
+         * Empty until the work has been taken: a provider's GCash number is
+         * their mobile number, so it is not published to anyone who merely
+         * placed a booking.
+         */
+        destinations?: Destination[];
+    };
     /** Who asked. Sent only to the business the work was booked against. */
     client?: { id: string; nickname: string; phone: string | null };
     attachments?: Attachment[];

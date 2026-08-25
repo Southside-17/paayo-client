@@ -39,6 +39,7 @@ export default function Business() {
         session.status === 'authenticated' ? session.authenticatedRequest : null;
     const provider = staff?.provider.id ?? null;
     const mayReadStaff = staff?.permissions.includes('staff:view') ?? false;
+    const mayBePaid = staff?.permissions.includes('provider:update') ?? false;
 
     useFocusEffect(
         useCallback(() => {
@@ -118,6 +119,29 @@ export default function Business() {
                                 className="border-border flex-row items-center justify-center gap-2 rounded-xl border border-dashed p-3"
                             >
                                 <Text className="text-sm font-semibold">Manage staff</Text>
+                                <ChevronRight color={colours['muted-foreground']} size={15} />
+                            </Pressable>
+                        </Link>
+                    </>
+                ) : null}
+
+                {mayBePaid ? (
+                    <>
+                        <Text className="text-muted-foreground pt-1 text-xs font-bold uppercase">
+                            Getting paid
+                        </Text>
+
+                        {/* Owner only. Changing where money arrives is how a
+                            taken-over account becomes cash, so this sits behind
+                            the narrowest permission there is. */}
+                        <Link href="/destinations" asChild>
+                            <Pressable
+                                accessibilityRole="button"
+                                className="border-border flex-row items-center justify-center gap-2 rounded-xl border border-dashed p-3"
+                            >
+                                <Text className="text-sm font-semibold">
+                                    Where clients send money
+                                </Text>
                                 <ChevronRight color={colours['muted-foreground']} size={15} />
                             </Pressable>
                         </Link>

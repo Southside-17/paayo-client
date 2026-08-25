@@ -47,12 +47,27 @@ type Props = {
     disabled?: boolean;
     /** Outlines the add tile the way an unfilled input is outlined. */
     invalid?: boolean;
+    /**
+     * Photographs only, no clips. A receipt is a screenshot of a confirmation;
+     * a video of one is not evidence of anything the still does not show.
+     */
+    photosOnly?: boolean;
+    /** How many may be attached. Defaults to what a booking takes. */
+    limit?: number;
 };
 
 /**
  * Take photos and video of the job, sending each one as it is chosen.
  */
-export function MediaPicker({ send, items, onChange, disabled = false, invalid = false }: Props) {
+export function MediaPicker({
+    send,
+    items,
+    onChange,
+    disabled = false,
+    invalid = false,
+    photosOnly = false,
+    limit = MAX_MEDIA,
+}: Props) {
     const { colorScheme } = useColorScheme();
     const colours = palette[colorScheme ?? 'light'];
     const [busy, setBusy] = useState(false);
@@ -75,7 +90,7 @@ export function MediaPicker({ send, items, onChange, disabled = false, invalid =
     };
 
     const pick = async () => {
-        const room = MAX_MEDIA - items.length;
+        const room = limit - items.length;
 
         if (room <= 0) {
             return;
@@ -85,7 +100,7 @@ export function MediaPicker({ send, items, onChange, disabled = false, invalid =
 
         try {
             const picked = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ['images', 'videos'],
+                mediaTypes: photosOnly ? ['images'] : ['images', 'videos'],
                 allowsMultipleSelection: true,
                 selectionLimit: room,
                 videoMaxDuration: VIDEO_SECONDS,
@@ -180,7 +195,7 @@ export function MediaPicker({ send, items, onChange, disabled = false, invalid =
                 </View>
             ))}
 
-            {items.length < MAX_MEDIA ? (
+            {items.length < limit ? (
                 <Pressable
                     accessibilityRole="button"
                     accessibilityLabel="Add a photo or video"

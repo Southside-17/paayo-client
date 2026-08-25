@@ -25,6 +25,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { StatusPill } from '@/components/ui/status-pill';
 import { Text } from '@/components/ui/text';
 import { stopWatching, watchForArrival } from '@/lib/geofence';
+import { attestation, isOwed, standing } from '@/lib/billing';
 import { accounting, nextStep } from '@/lib/jobs';
 import { peso, priceRange, rateLine, workings } from '@/lib/money';
 import { useSession } from '@/lib/session';
@@ -544,6 +545,60 @@ export default function Job() {
                                         <Text className="text-muted-foreground text-sm">
                                             {work_order.note}
                                         </Text>
+                                    ) : null}
+                                </Card>
+                            ) : null}
+
+                            {job.invoice ? (
+                                <Card className="gap-3">
+                                    <View className="flex-row items-baseline gap-2">
+                                        <Label>Getting paid</Label>
+                                        <Text className="text-muted-foreground flex-1 text-right text-xs">
+                                            {standing(job.invoice)}
+                                        </Text>
+                                    </View>
+
+                                    {(job.invoice.payments ?? []).map((payment) => (
+                                        <View key={payment.id} className="gap-0.5">
+                                            <View className="flex-row items-baseline gap-2">
+                                                <Text className="flex-1 text-sm">
+                                                    {payment.method.label}
+                                                </Text>
+                                                <Text className="text-sm font-medium">
+                                                    {peso(payment.amount)}
+                                                </Text>
+                                            </View>
+                                            <Text className="text-muted-foreground text-xs">
+                                                {attestation(payment)}
+                                            </Text>
+                                        </View>
+                                    ))}
+
+                                    {/* An unrecorded payment is an unfinished
+                                        task, not a silence. Most of these are
+                                        forgetfulness, and the fix is a screen
+                                        that keeps mentioning it. */}
+                                    {isOwed(job.invoice) ? (
+                                        <>
+                                            <Text className="text-muted-foreground text-sm">
+                                                Nobody has recorded this as paid yet.
+                                            </Text>
+                                            <Button
+                                                variant="brand"
+                                                disabled={Boolean(staff.provider.suspension)}
+                                                onPress={() =>
+                                                    router.push({
+                                                        pathname: '/job/payment',
+                                                        params: {
+                                                            id: work ?? id,
+                                                            name: name ?? job.service.name,
+                                                        },
+                                                    })
+                                                }
+                                            >
+                                                Record payment
+                                            </Button>
+                                        </>
                                     ) : null}
                                 </Card>
                             ) : null}

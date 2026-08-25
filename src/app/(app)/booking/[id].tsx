@@ -19,6 +19,7 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusPill } from '@/components/ui/status-pill';
 import { Text } from '@/components/ui/text';
+import { attestation, destinationLine, isOwed, standing } from '@/lib/billing';
 import { accounting } from '@/lib/jobs';
 import { peso, priceRange, rateLine, workings } from '@/lib/money';
 import { useSession } from '@/lib/session';
@@ -308,6 +309,68 @@ export default function BookingDetail() {
                                     <Text className="text-muted-foreground text-sm">
                                         {job.note}
                                     </Text>
+                                ) : null}
+                            </Card>
+                        ) : null}
+
+                        {booking.invoice ? (
+                            <Card className="gap-3">
+                                <View className="flex-row items-baseline gap-2">
+                                    <Label>What you owe</Label>
+                                    <Text className="text-muted-foreground flex-1 text-right text-xs">
+                                        {standing(booking.invoice)}
+                                    </Text>
+                                </View>
+
+                                {(booking.invoice.payments ?? []).map((payment) => (
+                                    <View key={payment.id} className="gap-0.5">
+                                        <View className="flex-row items-baseline gap-2">
+                                            <Text className="flex-1 text-sm">
+                                                {payment.method.wording}
+                                            </Text>
+                                            <Text className="text-sm font-medium">
+                                                {peso(payment.amount)}
+                                            </Text>
+                                        </View>
+                                        {/* Who said so, named on purpose. On this
+                                            rail the record is somebody's word,
+                                            and you are owed the chance to see
+                                            whose before you accept it. */}
+                                        <Text className="text-muted-foreground text-xs">
+                                            {attestation(payment)}
+                                        </Text>
+                                    </View>
+                                ))}
+
+                                {isOwed(booking.invoice) ? (
+                                    <Text className="text-muted-foreground text-sm">
+                                        Nobody has marked this as paid yet. If you have already
+                                        paid, tell them so they can record it.
+                                    </Text>
+                                ) : null}
+
+                                {isOwed(booking.invoice) &&
+                                (booking.provider.destinations ?? []).length > 0 ? (
+                                    <View className="border-border gap-2 border-t pt-3">
+                                        <Label>Where to send it</Label>
+                                        {(booking.provider.destinations ?? []).map((destination) => (
+                                            <View key={destination.method.value} className="gap-0.5">
+                                                <Text className="text-sm font-semibold">
+                                                    {destinationLine(destination)}
+                                                </Text>
+                                                <Text className="text-muted-foreground font-mono text-xs">
+                                                    {destination.handle}
+                                                </Text>
+                                            </View>
+                                        ))}
+                                        {/* The account name is what makes the
+                                            number checkable. Sending to a number
+                                            nobody has vouched for is the whole
+                                            risk of this rail. */}
+                                        <Text className="text-muted-foreground text-xs">
+                                            Check the account name matches before you send anything.
+                                        </Text>
+                                    </View>
                                 ) : null}
                             </Card>
                         ) : null}
