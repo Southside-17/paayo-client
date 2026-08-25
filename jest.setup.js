@@ -23,11 +23,11 @@ jest.mock('react-native-passkeys', () => ({
     get: jest.fn(),
 }));
 
-// A configured build is the default the suite runs as: a relying party domain,
-// and the iOS entitlement a paid Apple team can carry. Tests that care about
-// the unconfigured cases reload the module with these cleared.
-process.env.EXPO_PUBLIC_PASSKEY_RP_ID = 'www.paayo.test';
-process.env.EXPO_PUBLIC_PASSKEY_IOS = '1';
+// A fully provisioned build is the default the suite runs as: a passkey domain,
+// and the paid Apple membership that lets iOS carry the entitlements. Tests
+// that care about the unprovisioned cases reload the module with these cleared.
+process.env.EXPO_PUBLIC_PASSKEY_DOMAIN = 'www.paayo.test';
+process.env.EXPO_PUBLIC_APPLE_DEVELOPER_PROGRAM = '1';
 
 // expo-maps is a native view with no JS fallback, so requiring it under jest
 // throws before a screen that draws a map can render at all. The stand-in keeps
@@ -97,8 +97,9 @@ jest.mock('expo-notifications', () => ({
 }));
 
 // Android push needs no entitlement, so the suite runs as a build that can be
-// notified on either platform. The iOS-unconfigured case reloads the module.
-process.env.EXPO_PUBLIC_PUSH_IOS = '1';
+// notified on either platform. The iOS-without-membership case reloads the
+// module.
+process.env.EXPO_PUBLIC_APPLE_DEVELOPER_PROGRAM = '1';
 
 // Reanimated boots worklets on import, and the worklets runtime is not
 // transformed for jest -- requiring it throws before any screen holding a

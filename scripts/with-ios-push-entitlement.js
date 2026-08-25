@@ -12,7 +12,7 @@ const { withEntitlementsPlist } = require('expo/config-plugins');
  */
 function withIosPushEntitlement(config) {
     return withEntitlementsPlist(config, (plist) => {
-        if (!process.env.EXPO_PUBLIC_PUSH_IOS) {
+        if (!process.env.EXPO_PUBLIC_APPLE_DEVELOPER_PROGRAM) {
             delete plist.modResults['aps-environment'];
         }
 

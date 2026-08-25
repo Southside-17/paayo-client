@@ -23,7 +23,7 @@ function push() {
 
 beforeEach(() => {
     jest.clearAllMocks();
-    process.env.EXPO_PUBLIC_PUSH_IOS = '1';
+    process.env.EXPO_PUBLIC_APPLE_DEVELOPER_PROGRAM = '1';
 });
 
 it('registers the phone the OS has already agreed to', async () => {
@@ -86,13 +86,13 @@ it('signs out even when dropping the registration fails', async () => {
 // The suite runs as iOS. A build with no entitlement must not even ask, or
 // Xcode refuses to mint a profile and nothing installs at all.
 it('is unsupported on an iOS build with no entitlement', () => {
-    process.env.EXPO_PUBLIC_PUSH_IOS = '';
+    process.env.EXPO_PUBLIC_APPLE_DEVELOPER_PROGRAM = '';
 
     expect(push().pushIsSupported()).toBe(false);
 });
 
 it('registers nothing on a build it is unsupported on', async () => {
-    process.env.EXPO_PUBLIC_PUSH_IOS = '';
+    process.env.EXPO_PUBLIC_APPLE_DEVELOPER_PROGRAM = '';
 
     await push().syncPushRegistration('bearer');
 

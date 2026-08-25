@@ -13,13 +13,19 @@ export type PasskeyAnswer = { challenge_token: string; credential: unknown };
 
 /**
  * Whether this build can hold a passkey at all.
+ *
+ * Two gates. A domain to bind to, which both platforms need -- the server
+ * decides the relying party, so this only says whether to offer the sheet. And
+ * on iOS a paid Apple Developer Program membership, without which the build
+ * carries no Associated Domains entitlement and the sheet could only fail.
+ * Android needs no membership.
  */
 export function passkeysAreSupported(): boolean {
-    if (!process.env.EXPO_PUBLIC_PASSKEY_RP_ID) {
+    if (!process.env.EXPO_PUBLIC_PASSKEY_DOMAIN) {
         return false;
     }
 
-    if (Platform.OS === 'ios' && !process.env.EXPO_PUBLIC_PASSKEY_IOS) {
+    if (Platform.OS === 'ios' && !process.env.EXPO_PUBLIC_APPLE_DEVELOPER_PROGRAM) {
         return false;
     }
 

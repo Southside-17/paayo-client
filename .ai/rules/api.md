@@ -41,9 +41,9 @@ reads `/.well-known/assetlinks.json` and looks for the signing certificate. An
 IP or `localhost` can never satisfy either, so passkeys do not work against a
 dev server no matter what else is right.
 
-iOS additionally needs `EXPO_PUBLIC_PASSKEY_IOS`, which gates the Associated Domains entitlement -- a paid Apple Developer Program capability, and a build without it hides the buttons rather than failing at the sheet. See `.ai/rules/toolchain.md`.
+iOS additionally needs `EXPO_PUBLIC_APPLE_DEVELOPER_PROGRAM`, the one flag every paid Apple capability hangs off. It gates the Associated Domains entitlement, and a build without it hides the buttons rather than failing at the sheet. See `.ai/rules/toolchain.md`.
 
-`EXPO_PUBLIC_PASSKEY_RP_ID` names the domain -- `www.paayo.ph`, and the `www` is
+`EXPO_PUBLIC_PASSKEY_DOMAIN` names the domain -- `www.paayo.ph`, and the `www` is
 load-bearing: the apex carries no A record, so a relying party there fails at
 DNS. It must equal `PASSKEY_RP_ID`
 on the server -- it drives the iOS Associated Domains entitlement in
@@ -187,12 +187,12 @@ server's `.ai/rules/push.md` for why that choice is not reversible cheaply.
 
 ## pushIsSupported() is the iOS entitlement gate, exactly like passkeys
 Android returns true unconditionally; iOS returns true only when
-`EXPO_PUBLIC_PUSH_IOS` is set. Push Notifications is a paid Apple Developer
-Program capability, so a free Personal Team build must not declare
+`EXPO_PUBLIC_APPLE_DEVELOPER_PROGRAM` is set. Push Notifications is a paid Apple
+Developer Program capability, so a free Personal Team build must not declare
 `aps-environment` at all — Xcode refuses to mint a profile and the app stops
-installing, not just push. Same shape and same reason as
-`EXPO_PUBLIC_PASSKEY_IOS`; the env pair is read as the module graph is built, so
-tests reload the module inside `jest.isolateModules`.
+installing, not just push. It is the same flag passkeys read, because it answers
+the same question; the env is read as the module graph is built, so tests reload
+the module inside `jest.isolateModules`.
 
 `android.googleServicesFile` is required for FCM and is not committed. Without
 `google-services.json` the app registers against no project and the token read

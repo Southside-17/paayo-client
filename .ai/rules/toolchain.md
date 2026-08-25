@@ -192,16 +192,23 @@ A free Personal Team cannot claim a domain. Put `associatedDomains` in
 "Personal development teams ... do not support the Associated Domains
 capability" -- so the app stops building and installing, not just passkeys.
 
-That is why the entitlement hangs off `EXPO_PUBLIC_PASSKEY_IOS` rather than off
-`EXPO_PUBLIC_PASSKEY_RP_ID`. The domain is shared with Android, which needs no
-entitlement and works on the debug keystore today; the flag is the one thing
-that is iOS-only and costs a Developer Program membership. Empty means iOS
-builds as before with the passkey buttons hidden.
+That is why the entitlement hangs off `EXPO_PUBLIC_APPLE_DEVELOPER_PROGRAM`
+rather than off `EXPO_PUBLIC_PASSKEY_DOMAIN`. The domain is shared with Android,
+which needs no entitlement and works on the debug keystore today; the membership
+is the one thing that is iOS-only and costs money. Empty means iOS builds as
+before with the passkey buttons hidden.
 
-`passkeysAreSupported()` reads the same pair, so the UI cannot offer a sheet the
-build has no entitlement to open. Both are read through Expo's env shim as the
-module graph is built, not per call, which is why the tests reload the module
-inside `jest.isolateModules` instead of setting `process.env` and calling again.
+**The membership flag is deliberately not per-feature.** It is one fact about
+the world -- whether this build was signed by a paid team -- and every paid Apple
+capability hangs off it: Associated Domains here, `aps-environment` below. A flag
+per feature invites setting one and not the other, which is a state that cannot
+exist. Paying for the membership turns both on with no code change.
+
+`passkeysAreSupported()` reads the domain and the membership, so the UI cannot
+offer a sheet the build has no entitlement to open. Both are read through Expo's
+env shim as the module graph is built, not per call, which is why the tests
+reload the module inside `jest.isolateModules` instead of setting `process.env`
+and calling again.
 
 ## expo-notifications applies its own config plugin, and its entitlement breaks the build
 `expo-notifications` ships an `app.plugin.js`, and prebuild applies it **from the
@@ -214,7 +221,7 @@ ours to withhold, here it arrives whether we ask or not. A `--clean` prebuild
 does not help; it is regenerated every time.
 
 `scripts/with-ios-push-entitlement.js` deletes the key unless
-`EXPO_PUBLIC_PUSH_IOS` is set, and is composed at the bottom of `app.config.ts`
+`EXPO_PUBLIC_APPLE_DEVELOPER_PROGRAM` is set, and is composed at the bottom of `app.config.ts`
 with the other mods. The native module stays autolinked either way -- check
 `grep -c ExpoNotifications ios/Podfile.lock` -- which is the pairing that
 matters: the module must be present or the JS import throws on iOS, and the

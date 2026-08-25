@@ -52,18 +52,19 @@ const config: ExpoConfig = {
         // one until it has read https://{domain}/.well-known/
         // apple-app-site-association and found this bundle listed there.
         //
-        // Gated on its own flag and not on the domain alone, because Associated
+        // Gated on the membership flag as well as the domain, because Associated
         // Domains is a paid Apple Developer Program capability: a free Personal
         // Team cannot claim a domain, and asking it to fails the entire build
-        // rather than only passkeys. Android needs none of this.
+        // rather than only passkeys. Android needs none of this, so the domain
+        // alone must not be what turns it on.
         associatedDomains:
-            process.env.EXPO_PUBLIC_PASSKEY_RP_ID && process.env.EXPO_PUBLIC_PASSKEY_IOS
-                ? [`webcredentials:${process.env.EXPO_PUBLIC_PASSKEY_RP_ID}`]
+            process.env.EXPO_PUBLIC_PASSKEY_DOMAIN && process.env.EXPO_PUBLIC_APPLE_DEVELOPER_PROGRAM
+                ? [`webcredentials:${process.env.EXPO_PUBLIC_PASSKEY_DOMAIN}`]
                 : undefined,
-        // Push Notifications is a paid Apple Developer Program capability, the
-        // same as Associated Domains above: a free Personal Team cannot hold the
-        // entitlement and asking for it fails the whole build, not only push.
-        entitlements: process.env.EXPO_PUBLIC_PUSH_IOS
+        // Push Notifications is the other paid capability behind the same flag:
+        // a free Personal Team cannot hold the entitlement, and asking for it
+        // fails the whole build, not only push.
+        entitlements: process.env.EXPO_PUBLIC_APPLE_DEVELOPER_PROGRAM
             ? { 'aps-environment': 'development' }
             : undefined,
         infoPlist: {

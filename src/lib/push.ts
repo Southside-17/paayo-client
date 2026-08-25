@@ -17,7 +17,7 @@ export function pushIsSupported(): boolean {
         return true;
     }
 
-    return Platform.OS === 'ios' && Boolean(process.env.EXPO_PUBLIC_PUSH_IOS);
+    return Platform.OS === 'ios' && Boolean(process.env.EXPO_PUBLIC_APPLE_DEVELOPER_PROGRAM);
 }
 
 /**

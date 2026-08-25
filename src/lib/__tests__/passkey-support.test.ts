@@ -30,19 +30,19 @@ function supportedGiven(env: Record<string, string | undefined>): boolean {
 
 beforeEach(() => jest.mocked(isSupported).mockReturnValue(true));
 
-// Jest reports iOS, which is the platform the entitlement gate applies to.
-it('is offered when the build has a domain and the iOS entitlement', () => {
+// Jest reports iOS, which is the platform the membership gate applies to.
+it('is offered when the build has a domain and a paid Apple membership', () => {
     expect(supportedGiven({})).toBe(true);
 });
 
 it('is refused with no domain to bind a passkey to', () => {
-    expect(supportedGiven({ EXPO_PUBLIC_PASSKEY_RP_ID: undefined })).toBe(false);
+    expect(supportedGiven({ EXPO_PUBLIC_PASSKEY_DOMAIN: undefined })).toBe(false);
 });
 
 // The free Personal Team case: Associated Domains is a paid capability, so the
 // build carries no entitlement and every ceremony would fail at the sheet.
-it('is refused on iOS when the build cannot claim the domain', () => {
-    expect(supportedGiven({ EXPO_PUBLIC_PASSKEY_IOS: undefined })).toBe(false);
+it('is refused on iOS without the Apple Developer Program', () => {
+    expect(supportedGiven({ EXPO_PUBLIC_APPLE_DEVELOPER_PROGRAM: undefined })).toBe(false);
 });
 
 it('is refused on a device too old to hold one', () => {
