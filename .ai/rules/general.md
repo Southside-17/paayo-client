@@ -36,7 +36,7 @@ make it pass -- the exemption list is for the primitives themselves.
 These hold here exactly as they do in the server repo. See its `.ai/rules/general.md`.
 
 - **One-line docblocks.** State what the thing is. Rationale belongs in `.ai/rules`, not above the declaration.
-- **Never write "verified" unqualified.** Two planes exist and they mean different things: `email_verified` and `identification_verified`. A bare `verified` does not say which.
+- **Never write "verified" unqualified.** Three planes exist and they mean different things: `email_verified`, `identification_verified` and `phone_verified`. A bare `verified` does not say which. In UI copy the email and phone planes both say **confirm** -- *Confirm your email*, *Confirm your number*, *not confirmed* -- and only an identification is ever called verified, because only that one is checked by a person.
 - **Staff, never member.** No singular form; use the person's name in row actions.
 - **Nickname is the primary line.** `fullname` is subtext and is nullable -- it is deliberately not a fallback for a nickname, because a self-chosen name must never appear where a legal one is expected.
 - **npm only.** `packageManager` is pinned.

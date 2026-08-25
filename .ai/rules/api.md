@@ -20,6 +20,8 @@ password strength, nickname shape, and uniqueness all live there.
 - **Login is a union.** It returns a token response *or* `{ two_factor: true, challenge_token }`. Narrow with `isTwoFactorChallenge()` before assuming a token.
 - **Refresh is destructive.** The server deletes the presented token, so a failed refresh means the device is signed out for good -- never retry it in a loop.
 - **Reading 2FA enrolment material before `POST /auth/two-factor`** returns 422 on `code`, not 404.
+- **`POST profile/phone/verification` answers 202, and refuses four ways.** No number on the account is a 422 on `phone` -- a field with no input on that screen, so the banner has to read `errorFor('phone')` or nobody sees it. An already-confirmed number is a 200, not a refusal. A gateway that would not take the message is a **502**, and `App\Sms\SendFailed::render()` writes that message to be shown as it is: no field errors, so `useSubmit` puts it straight in the banner. The seventh send in an hour is a 429 carrying Laravel's own `Too Many Attempts.`, which says nothing about codes or about waiting -- catch it with `ApiError.isThrottled` and rethrow a `DisplayableError` in our words.
+- **`PUT profile/phone/verification`** takes `{code}` and answers `{data: User, message}`. A wrong, spent or expired code is a 422 on `code`; the code itself is spent after five wrong answers, which is the server's boundary and not something the app counts.
 
 ## An address has no Region, and its locality is `town`
 Province is the top place name; `region` was stored and then ignored, and is

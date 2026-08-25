@@ -12,6 +12,7 @@ paths:
   - src/components/business-bar.tsx
   - src/components/business-switch.tsx
   - src/components/hold-notice.tsx
+  - src/components/phone-notice.tsx
   - src/lib/addresses.tsx
   - src/lib/use-selected-address.ts
   - src/lib/offers.ts
@@ -92,6 +93,56 @@ not a paragraph, and the note under each label carries the detail.
 **Never "Provider" for a way of signing in.** In this codebase `Provider` is a
 service company -- `app/Models/Provider.php` on the server, with staff, listings
 and coverage. Google is a *social provider*, and in UI copy it is a way in.
+
+## Confirming a number is asked for, never sent on its own
+`profile/phone.tsx` opens on a button. `security/two-factor.tsx` auto-begins in
+a `useEffect` and this deliberately does not: every send spends one of six an
+hour and costs real centavos, and a screen that re-mounts on focus would spend
+another without anybody pressing anything.
+
+Four states, and only one of them has a field: no number on the account, a
+number with nothing asked for yet, a code asked for, and a number already
+confirmed. The confirmed state has no button at all -- the server answers 200
+rather than refusing, so a **Text me a code** there would spend nothing and
+change nothing, which is worse than not offering it.
+
+**There is no fourth gate.** The API requires a confirmed number nowhere, so
+`(app)/_layout.tsx` keeps its three redirects; adding one would strand every
+existing account behind a screen the server never asked for. What a person
+misses is the arrival SMS, and that is said where it matters rather than
+enforced.
+
+The word is **confirm**, never verify. `.ai/rules/general.md` forbids an
+unqualified "verified" and the email flow already says *Confirm your email*.
+
+`BackButton`'s label is a route param here (`from`), because three routes reach
+this screen -- the phone field on `profile/edit`, the notice on a booking, and
+`profile/edit`'s own save. That is the case the prop exists for; see *Every
+pushed screen goes back, and says where to*. `profile/edit` takes the same param
+for the same reason, defaulting to `Account`.
+
+Saving a **changed** number `router.replace`s into this screen rather than going
+back, because the server has just cleared the confirmation and the next step is
+one the person is already in the middle of. `replace`, so back reaches wherever
+the form was opened from instead of a form that is finished with. Clearing the
+number to nothing still goes `back()`.
+
+## The unconfirmed-number notice is on the booking, not in settings
+`phone-notice.tsx` is `NotifyNotice`'s twin and sits on `booking/[id].tsx`,
+drawn on `booking.status.is_open && !user.phone_verified`. Same reasoning that
+keeps `NotifyNotice` on the Jobs tab: a client reading a live booking is looking
+at the thing the text is about. A closed booking gets nothing, because nobody is
+coming.
+
+Held behind `is_open` and nothing finer. Conditioning it on there being a job,
+or on the job reading `enroute`, would put it on screen at the moment it is
+already too late to act on.
+
+It says **the app will still show it**, out loud. The push still lands, so an
+unconfirmed number is a diminished thing rather than a broken one, and claiming
+otherwise is a lie the reader can check. The tap routes to `/profile/edit` when
+there is no number at all and to `/profile/phone` when there is -- the branch
+lives here because this is where the number is known.
 
 ## Adding Apple or Microsoft is one row in `src/lib/providers.ts`
 `SOCIAL_PROVIDERS` is the single list every screen reads: the key matches the
