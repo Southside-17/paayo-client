@@ -5,13 +5,15 @@ import type { Tone } from '@/components/ui/tone';
  * app/Http/Controllers/Api/V1/Auth on the server.
  */
 
-/** Both verification planes are named in full; a bare "verified" is ambiguous. */
+/** Every verification plane is named in full; a bare "verified" is ambiguous. */
 export type User = {
     id: string;
     /** Empty when a provider signed them up and its name was unusable. */
     nickname: string;
     fullname: string | null;
     phone: string | null;
+    /** Whether the number has been proven with a texted code. */
+    phone_verified: boolean;
     /** Whether a picture exists; it is fetched from one fixed route. */
     avatar: boolean;
     /** A signed address for the picture, present only when there is one. */
