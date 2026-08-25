@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { View } from 'react-native';
 
 import { AuthScreen } from '@/components/auth-screen';
+import { LegalConsent } from '@/components/legal-consent';
 import { FormMessage } from '@/components/form-message';
 import { Button } from '@/components/ui/button';
 import { FieldError } from '@/components/ui/field-error';
@@ -20,6 +21,7 @@ export default function Register() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmation, setConfirmation] = useState('');
+    const [accepted, setAccepted] = useState(false);
 
     const create = () =>
         submit(async () => {
@@ -28,6 +30,7 @@ export default function Register() {
                 email: email.trim(),
                 password,
                 password_confirmation: confirmation,
+                accepted,
             });
         });
 
@@ -83,6 +86,11 @@ export default function Register() {
                         autoComplete="new-password"
                         placeholder="Confirm password"
                     />
+                </View>
+
+                <View>
+                    <LegalConsent value={accepted} onValueChange={setAccepted} disabled={busy} />
+                    <FieldError message={errorFor('accepted')} />
                 </View>
 
                 <Button onPress={create} busy={busy}>

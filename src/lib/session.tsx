@@ -29,6 +29,7 @@ type RegisterFields = {
     email: string;
     password: string;
     password_confirmation: string;
+    accepted: boolean;
 };
 
 type AuthenticatedOptions = {
