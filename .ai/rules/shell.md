@@ -382,3 +382,105 @@ not destructive red: a decision is waiting, nothing is wrong. React Navigation
 takes literals, so `tabBarBadgeStyle` reads `palette.js` the way
 `tabBarLabelStyle` already does, and the count is read defensively — an older
 server omits the field, and `NaN` on the tab bar is worse than no badge.
+
+## A crew has one screen, and it holds one button
+`(provider)/_layout.tsx` gates every tab on its own permission rather than
+branching the whole layout on `booking:view`. It used to fall back to a bare
+`<Stack>` for anybody without it, which is why a technician had no screens at
+all; they hold `job:work` now and Jobs is the one the role exists for. `href:
+null` keeps a tab routable but off the bar.
+
+Which list the Jobs tab reads is a permission, not a preference: `/bookings` for
+somebody who answers work, `/jobs` for somebody who does it. Both answer the
+same shape, so it is one list and one row. The row's pill shows the **job's**
+state once there is one -- a booking reads "accepted" for as long as the work
+takes, which says nothing to whoever has to do it.
+
+`job/[id].tsx` reads through `/jobs/{job}` whenever there is a job, because a
+technician deliberately holds no `booking:view` and everyone who can be on a job
+holds `job:work`. The job id therefore travels with the link the way names
+already do.
+
+**One live button, for the one step the job is up to.** `nextStep()` in
+`src/lib/jobs.ts` owns it. A row of four would be three wrong answers, and the
+crew are reading this holding tools. There is no start button on a card with
+nothing hourly on it: arriving writes `started_at` in the same breath there, and
+`JobResource.starts_on_arrival` is how the phone knows.
+
+## Finishing a job is a screen, not a sheet
+`job/finish.tsx`. `price-sheet.tsx` is the outlier that draws a `<Modal>`, and
+this is the same kind of form `book.tsx` and `enquiry/new.tsx` are: several
+fields, a running figure, and a keyboard that has to sit under all of it.
+
+Minutes pre-fill from `elapsed_minutes`, which the server measures from
+**`started_at` and never `arrived_at`** -- the wait at the gate is not the
+client's time. They pre-fill only when `hourly_label` names a line, which the
+server sets only when there is exactly one hourly line: time on site cannot be
+split across two, and a guess spread over both is worse than a blank.
+
+Running past a rate's `maximum_minutes` **warns and does not refuse**. The crew
+still get to report what actually happened, and the client sees a line that ran
+past what the card promised.
+
+`chargeableMinutes()` in `src/lib/jobs.ts` duplicates the server's rounding on
+purpose and says so: it is a preview so the total moves as the crew type, and the
+server applies it again on the way in. Its answer is the one that bills.
+
+## The moving dot is not built, and its slot is
+`PinMap` takes `crew`, draws a second marker and a line to the address, and every
+caller passes **null** -- so the map renders exactly as it does today and landing
+tracking later is one prop rather than a redesign. There is a test asserting the
+null case changes nothing.
+
+The line is a plain stroke, not a dash: `contourStyle` is iOS only and Google
+takes no dash pattern at all, so a dashed version would be dashed on half the
+phones.
+
+What actually answers "where is the crew" is `job-progress.tsx` -- a sentence in
+the tense the job is in, and a trail with the real timestamps under each rung.
+For somebody waiting in at a booked hour that is more use than a marker
+refreshed every thirty seconds, and it is honest: it says what is known instead
+of implying a precision there isn't.
+
+## Auto-arrival is a geofence, and the position never leaves the phone
+Everything `expo-location`-geofencing is confined to `src/lib/geofence.ts`. It is
+armed from `job/[id].tsx` while the job reads `enroute` and dropped the moment it
+does not.
+
+Region monitoring, not tracking: the phone's own hardware watches the boundary
+and wakes the app once. That is why this could ship while the dot could not, and
+why **no coordinate reaches the server** -- the request body carries
+`{automatic: true}` and nothing else, which a test pins.
+
+Radius is **150m**. iOS region monitoring is unreliable below about 100m, and the
+pin is a marker somebody dropped rather than a surveyed point; a fence that never
+fires is worse than one that fires at the gate.
+
+Registering also takes **one fix of its own**, because ENTER never fires for a
+boundary nobody crossed -- a crew setting out from next door would otherwise
+never arrive at all.
+
+A refused permission does nothing: no error, no nag. **The manual button stays.**
+Auto-arrival removes a tap; it must never be the only way to make one.
+
+`expo-task-manager` is the one dependency this added. `app.config.ts` declares
+`expo-location` in its own right rather than leaning on the maps plugin, because
+the background permission and the foreground service are not things that plugin
+asks for -- and this is CNG, so a `prebuild --clean` and a fresh dev build are
+needed before a fence can be tested at all.
+
+## A notification action does not navigate
+`registerJobActions()` in `src/lib/push.ts` teaches the OS the buttons, and the
+root layout answers them by posting and stopping there. Being dropped into a
+screen would undo the saving: the whole point is that the crew never open the app.
+
+The action deliberately does **not** arm the geofence. That needs the address's
+exact pin, and a push travels through Apple or Google -- a client's doorstep is
+not worth putting through one to save a tap. Arming happens next time the job
+screen is opened.
+
+## hour_rounding is read defensively everywhere it is read
+The same rule `user.suspension` and `session.user.staffs` already follow: the app
+ships on its own schedule, and an older server omitting the field must not take
+the offer editor down or stop a crew finishing a job. It defaults to the trade
+convention, which is what the server defaults to as well.
