@@ -248,16 +248,6 @@ export default function FinishJob() {
                         );
                     })}
 
-                    {booking !== null && lines.length === 0 ? (
-                        <Card className="gap-2">
-                            <Text className="font-semibold">Nothing was priced on this job</Text>
-                            <Text className="text-muted-foreground text-sm">
-                                The client picked no lines, so there is nothing to count. Finishing
-                                records the visit and leaves the figure where it is.
-                            </Text>
-                        </Card>
-                    ) : null}
-
                     <Card className="gap-2">
                         <Label>Anything to add?</Label>
                         <Input

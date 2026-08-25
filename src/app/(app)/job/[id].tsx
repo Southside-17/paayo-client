@@ -689,18 +689,32 @@ export default function Job() {
                                         </View>
                                     ) : (
                                         <>
-                                            <Button busy={busy} onPress={() => setTaking(true)}>
-                                                Take this job
-                                            </Button>
-                                            {/* Pakyawan: the job is larger than the
-                                                published rate covers, so it is priced
-                                                as one job instead of taken at a rate
-                                                that cannot hold it. */}
+                                            {/* Nothing agreed means nothing to take,
+                                                and the server refuses it: a client who
+                                                picked no lines is asking to be quoted.
+                                                Offering the button anyway would be
+                                                offering a refusal. */}
+                                            {job.lines.length > 0 ? (
+                                                <Button busy={busy} onPress={() => setTaking(true)}>
+                                                    Take this job
+                                                </Button>
+                                            ) : (
+                                                <Text className="text-muted-foreground text-sm">
+                                                    They have not picked anything to price, so send
+                                                    them one before taking this on.
+                                                </Text>
+                                            )}
+                                            {/* Pakyawan where lines were picked: the job
+                                                is larger than the published rate covers,
+                                                so it is priced as one job rather than
+                                                taken at a rate that cannot hold it. */}
                                             <Button
-                                                variant="outline"
+                                                variant={job.lines.length > 0 ? 'outline' : 'brand'}
                                                 onPress={() => setPricing(true)}
                                             >
-                                                Price it as one job
+                                                {job.lines.length > 0
+                                                    ? 'Price it as one job'
+                                                    : 'Send them a price'}
                                             </Button>
                                             <Button
                                                 variant="ghost"

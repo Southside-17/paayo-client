@@ -141,7 +141,19 @@ const job: Booking = {
     surcharge: null,
     pricing_method: { value: 'per_job', label: 'Per job', is_on_request: false },
     hour_rounding: { value: 'hour' as const, label: 'To the hour' },
-    lines: [],
+    // A line, because a booking with none cannot be taken at all -- it is a
+    // request to be quoted, and the screen offers a price instead.
+    lines: [
+        {
+            label: 'Call out',
+            amount: 150_000,
+            unit: null,
+            estimated_minutes: null,
+            maximum_minutes: null,
+            is_active: true,
+            quantity: null,
+        },
+    ],
     expected_total: null,
     intake: [],
     service: { id: 's1', name: 'Aircon cleaning' },
@@ -696,4 +708,18 @@ describe('the business side', () => {
         expect(await screen.findByText('Set by Paayo')).toBeOnTheScreen();
         expect(screen.queryByText('Who works here')).not.toBeOnTheScreen();
     });
+});
+
+// The server refuses to accept work with nothing agreed on it, so offering the
+// button would be offering a refusal. A client who picked no lines is asking to
+// be quoted, and the price is the way through.
+it('offers a price rather than a take when nothing was picked', async () => {
+    acting(staffAt('s1', 'Bright Electric'));
+    signedIn(jest.fn().mockResolvedValue({ data: { ...job, lines: [] } }));
+
+    render(<Job />);
+
+    expect(await screen.findByText('Send them a price')).toBeOnTheScreen();
+    expect(screen.queryByText('Take this job')).toBeNull();
+    expect(screen.getByText(/not picked anything to price/i)).toBeOnTheScreen();
 });
