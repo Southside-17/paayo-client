@@ -88,6 +88,23 @@ const config: ExpoConfig = {
             },
         ],
         [
+            // Declared in its own right, not through expo-maps. Auto-arrival
+            // watches a boundary with the app closed -- the crew are driving,
+            // not reading a screen -- and that needs the background permission
+            // and the foreground service, neither of which the maps plugin asks
+            // for. Region monitoring, not tracking: the phone's own hardware
+            // watches the boundary and wakes the app once.
+            'expo-location',
+            {
+                isAndroidBackgroundLocationEnabled: true,
+                isAndroidForegroundServiceEnabled: true,
+                locationAlwaysAndWhenInUsePermission:
+                    'Paayo marks you as arrived when you reach a job, so you do not have to stop and tap. Your location stays on this phone.',
+                locationWhenInUsePermission:
+                    'Paayo uses your location to place the pin on a new address and to know when you reach a job.',
+            },
+        ],
+        [
             'expo-image-picker',
             {
                 photosPermission: 'Paayo needs your photo library to set your picture and to send documents for verification.',

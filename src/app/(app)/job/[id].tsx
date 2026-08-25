@@ -1,5 +1,5 @@
 import { Redirect, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -24,6 +24,7 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusPill } from '@/components/ui/status-pill';
 import { Text } from '@/components/ui/text';
+import { stopWatching, watchForArrival } from '@/lib/geofence';
 import { accounting, nextStep } from '@/lib/jobs';
 import { peso, priceRange, rateLine, workings } from '@/lib/money';
 import { useSession } from '@/lib/session';
@@ -92,6 +93,32 @@ export default function Job() {
                 .catch(() => setJob(null));
         }, [authenticatedRequest, id, provider, work]),
     );
+
+    // Auto-arrival, armed while the crew are on the road and dropped the moment
+    // they are not. Region monitoring rather than tracking: the phone's own
+    // hardware watches the boundary and wakes the app once, and no coordinate
+    // ever reaches the server. A refused permission does nothing at all -- the
+    // button on screen is still the way through, which is why it stays.
+    const enroute = job?.job?.status.value === 'enroute';
+    const latitude = job?.latitude ?? null;
+    const longitude = job?.longitude ?? null;
+    const token = session.status === 'authenticated' ? (session.token ?? null) : null;
+
+    useEffect(() => {
+        if (!enroute || work === null || !provider || token === null) {
+            return;
+        }
+
+        if (latitude === null || longitude === null) {
+            return;
+        }
+
+        void watchForArrival({ provider, job: work, token }, { latitude, longitude });
+
+        return () => {
+            void stopWatching();
+        };
+    }, [enroute, work, provider, token, latitude, longitude]);
 
     if (!staff) {
         return <Redirect href="/" />;

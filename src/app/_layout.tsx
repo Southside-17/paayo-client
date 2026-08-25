@@ -5,6 +5,8 @@ import { useColorScheme } from 'nativewind';
 import { useEffect } from 'react';
 import { ActivityIndicator, LogBox, View } from 'react-native';
 
+import { request } from '@/lib/api';
+import { JOB_ACTIONS, registerJobActions } from '@/lib/push';
 import { SessionProvider, useSession } from '@/lib/session';
 import { WorkspaceProvider } from '@/lib/workspace';
 import palette from '@/theme/palette';
@@ -30,15 +32,45 @@ const DESTINATIONS: Record<string, (id: string) => string> = {
     'booking.placed': (id) => `/job/${id}`,
     'booking.accepted': (id) => `/booking/${id}`,
     'booking.declined': (id) => `/booking/${id}`,
+    'job.assigned': (id) => `/job/${id}`,
+    'job.enroute': (id) => `/booking/${id}`,
+    'job.completed': (id) => `/booking/${id}`,
 };
 
 /**
- * Open the record a tapped notification is about.
+ * Answer an action button, or open the record a tapped notification is about.
+ *
+ * An action does not navigate. The whole point of it is that the crew never
+ * open the app: pressing "I'm on my way" on a lock screen and being dropped
+ * into a screen would undo the saving.
+ *
+ * The geofence is deliberately not armed from here. It needs the address's
+ * exact pin, and a push travels through Apple or Google -- putting a client's
+ * doorstep in one to save a tap is not a trade worth making. Arming happens the
+ * next time the job screen is opened.
  */
-function useNotificationTaps() {
+function useNotificationTaps(token: string | null) {
     useEffect(() => {
-        const listener = Notifications.addNotificationResponseReceivedListener(({ notification }) => {
-            const data = notification.request.content.data as Record<string, unknown>;
+        void registerJobActions();
+    }, []);
+
+    useEffect(() => {
+        const listener = Notifications.addNotificationResponseReceivedListener((response) => {
+            const data = response.notification.request.content.data as Record<string, unknown>;
+            const step = JOB_ACTIONS[response.actionIdentifier];
+
+            if (step && token && typeof data.job_id === 'string') {
+                void request<void>(
+                    `/providers/${String(data.provider_id)}/jobs/${data.job_id}/${step}`,
+                    { method: 'POST', body: {}, token },
+                ).catch(() => {
+                    // No signal on a job site is ordinary. The button on the
+                    // screen is still there, which is why it never goes away.
+                });
+
+                return;
+            }
+
             const destination = DESTINATIONS[String(data.type)];
 
             if (destination && typeof data.booking_id === 'string') {
@@ -47,7 +79,7 @@ function useNotificationTaps() {
         });
 
         return () => listener.remove();
-    }, []);
+    }, [token]);
 }
 
 /**
@@ -76,7 +108,7 @@ function navigationTheme(scheme: 'light' | 'dark') {
 function RootNavigator() {
     const session = useSession();
 
-    useNotificationTaps();
+    useNotificationTaps(session.status === 'authenticated' ? (session.token ?? null) : null);
 
     if (session.status === 'loading') {
         return (

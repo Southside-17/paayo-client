@@ -10,6 +10,50 @@ type PushPlatform = 'ios' | 'android';
 type Registration = { token: string; platform: PushPlatform; device_name: string };
 
 /**
+ * The action sets a job notification can carry, mirroring PushMessage.
+ *
+ * A category is a name both ends agree on: the server sends the name, and the
+ * app is what actually knows the buttons. Change these in both or neither.
+ */
+export const JOB_CATEGORIES = {
+    departure: 'job.departure',
+    arrival: 'job.arrival',
+} as const;
+
+/** What each action button does, keyed by the identifier it comes back as. */
+export const JOB_ACTIONS: Record<string, 'departure' | 'arrival'> = {
+    'job.on-my-way': 'departure',
+    'job.arrived': 'arrival',
+};
+
+/**
+ * Teach the OS the buttons a job notification offers.
+ *
+ * This is the largest cut in app interaction available without new
+ * infrastructure: the crew are holding tools, and setting out becomes one tap on
+ * a lock screen rather than unlocking, finding the job and pressing a button.
+ *
+ * Called once, from the root layout. Registering a category twice is harmless.
+ */
+export async function registerJobActions(): Promise<void> {
+    if (!pushIsSupported()) {
+        return;
+    }
+
+    try {
+        await Notifications.setNotificationCategoryAsync(JOB_CATEGORIES.departure, [
+            { identifier: 'job.on-my-way', buttonTitle: "I'm on my way" },
+        ]);
+
+        await Notifications.setNotificationCategoryAsync(JOB_CATEGORIES.arrival, [
+            { identifier: 'job.arrived', buttonTitle: "I've arrived" },
+        ]);
+    } catch {
+        // A build with no notification support at all. Nothing to say about it.
+    }
+}
+
+/**
  * Determine whether this build can be notified at all.
  */
 export function pushIsSupported(): boolean {

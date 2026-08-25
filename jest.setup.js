@@ -93,7 +93,24 @@ jest.mock('expo-notifications', () => ({
     requestPermissionsAsync: jest.fn(async () => ({ granted: false, canAskAgain: true })),
     getDevicePushTokenAsync: jest.fn(async () => ({ data: 'device-token', type: 'android' })),
     setNotificationHandler: jest.fn(),
+    setNotificationCategoryAsync: jest.fn(async () => undefined),
     addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+}));
+
+// Geofencing needs both of these, and neither exists off a device. The geofence
+// test mocks them itself with handles it can assert on; this is the blanket so
+// any screen importing src/lib/geofence.ts renders.
+jest.mock('expo-task-manager', () => ({ defineTask: jest.fn() }));
+
+jest.mock('expo-location', () => ({
+    requestForegroundPermissionsAsync: jest.fn(async () => ({ granted: false })),
+    requestBackgroundPermissionsAsync: jest.fn(async () => ({ granted: false })),
+    getCurrentPositionAsync: jest.fn(async () => ({ coords: { latitude: 0, longitude: 0 } })),
+    startGeofencingAsync: jest.fn(async () => undefined),
+    stopGeofencingAsync: jest.fn(async () => undefined),
+    hasStartedGeofencingAsync: jest.fn(async () => false),
+    GeofencingEventType: { Enter: 1, Exit: 2 },
+    Accuracy: { Balanced: 3 },
 }));
 
 // Android push needs no entitlement, so the suite runs as a build that can be
