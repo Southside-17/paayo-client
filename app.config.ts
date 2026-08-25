@@ -70,6 +70,18 @@ const config: ExpoConfig = {
         infoPlist: {
             NSLocalNetworkUsageDescription:
                 'Paayo reaches the development server running on your computer.',
+            // Set here rather than through the expo-media-library plugin, which
+            // reads its permission options and then throws them away: it calls
+            // createPermissionsPlugin(...)(config, props) and discards the
+            // returned config, so the mod is never registered. Verified against
+            // 57.0.4 by finding no NSPhotoLibraryAddUsageDescription in the
+            // generated Info.plist after a prebuild.
+            //
+            // Load bearing, not cosmetic: a missing usage description is a hard
+            // crash on iOS rather than a refused permission, so saving a QR
+            // would take the app down.
+            NSPhotoLibraryAddUsageDescription:
+                'Paayo saves the QR code clients pay you through to your photos.',
         },
     },
     web: {
@@ -105,19 +117,14 @@ const config: ExpoConfig = {
             },
         ],
         'expo-sharing',
-        [
-            // Write-only. Paayo saves a business's own QR so a client can be sent
-            // it later; it never reads the library, and the picker asks for that
-            // separately when a photo of the work is being attached.
-            'expo-media-library',
-            {
-                savePhotosPermission:
-                    'Paayo saves the QR code clients pay you through to your photos.',
-                photosPermission:
-                    'Paayo saves the QR code clients pay you through to your photos.',
-                isAccessMediaLocationEnabled: false,
-            },
-        ],
+        // Listed for the native module and its Android manifest entry only. Its
+        // permission options do nothing -- see NSPhotoLibraryAddUsageDescription
+        // above -- so do not add them back expecting them to take effect.
+        //
+        // Write-only in use: Paayo saves a business's own QR so a client can be
+        // sent it later and never reads the library, which the picker asks for
+        // separately when a photo of the work is attached.
+        'expo-media-library',
         [
             'expo-image-picker',
             {

@@ -246,3 +246,30 @@ A dev build logs `multiple possible URI schemes ... Ignoring: com.paayo.ph,
 com.paayo.ph`. The duplicate is Expo's dev launcher appending the application id
 at runtime for its own `expo-development-client` link -- the config holds it
 once, and a release build has no launcher to add it. It is noise, not a symptom.
+
+## expo-media-library's permission options do nothing (57.0.4)
+Its config plugin reads `photosPermission` and `savePhotosPermission` and then
+throws them away:
+
+```js
+IOSConfig.Permissions.createPermissionsPlugin({...})(config, {...});  // return discarded
+AndroidConfig.Permissions.withPermissions(config, [...]);             // return discarded
+return withMediaLibraryExternalStorage(config);                       // only this kept
+```
+
+A config plugin returns a new config with its mod appended, so discarding those
+two means the iOS permission mod is **never registered** and the Android
+permissions are never added. Verified by prebuilding and finding no
+`NSPhotoLibraryAddUsageDescription` in the generated `Info.plist`.
+
+`NSPhotoLibraryAddUsageDescription` is therefore set by hand in
+`ios.infoPlist`, beside `NSLocalNetworkUsageDescription`. **This is load bearing,
+not cosmetic:** a missing usage description is a hard crash on iOS rather than a
+refused permission, so saving a QR would take the app down. Do not move it back
+into the plugin's options on the assumption they work, and re-check on an SDK
+bump — if upstream fixes it, the two will both write the key and the plugin's
+default would win.
+
+The plugin entry stays listed for the native module itself. Android saving is
+untested for the same reason: if `saveToLibraryAsync` ever fails there, the
+missing manifest permissions are the first place to look.
