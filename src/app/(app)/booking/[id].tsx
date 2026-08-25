@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
@@ -354,13 +355,32 @@ export default function BookingDetail() {
                                     <View className="border-border gap-2 border-t pt-3">
                                         <Label>Where to send it</Label>
                                         {(booking.provider.destinations ?? []).map((destination) => (
-                                            <View key={destination.method.value} className="gap-0.5">
-                                                <Text className="text-sm font-semibold">
-                                                    {destinationLine(destination)}
-                                                </Text>
-                                                <Text className="text-muted-foreground font-mono text-xs">
-                                                    {destination.handle}
-                                                </Text>
+                                            <View
+                                                key={`${destination.method.value}-${destination.institution}`}
+                                                className="flex-row items-center gap-3"
+                                            >
+                                                {/* Scannable where one was
+                                                    published, typable where none
+                                                    was. The QR is a convenience;
+                                                    the account name above it is
+                                                    the thing worth checking. */}
+                                                {destination.code_url ? (
+                                                    <Image
+                                                        source={{ uri: destination.code_url }}
+                                                        style={{ width: 72, height: 72, borderRadius: 10 }}
+                                                        contentFit="cover"
+                                                        accessibilityLabel={`${destination.institution} QR`}
+                                                    />
+                                                ) : null}
+
+                                                <View className="min-w-0 flex-1 gap-0.5">
+                                                    <Text className="text-sm font-semibold">
+                                                        {destinationLine(destination)}
+                                                    </Text>
+                                                    <Text className="text-muted-foreground font-mono text-xs">
+                                                        {destination.handle}
+                                                    </Text>
+                                                </View>
                                             </View>
                                         ))}
                                         {/* The account name is what makes the

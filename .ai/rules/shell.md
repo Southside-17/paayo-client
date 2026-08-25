@@ -585,5 +585,16 @@ because a business banking at a rural co-op still has to be able to be paid. Wha
 the list buys is spelling: the server refuses the same institution twice
 case-insensitively, so "GCash" and "Gcash" cannot both be published.
 
+**The QR is sent as multipart, and saying nothing about it keeps it.** The save is
+a POST rather than a PUT because PHP only parses multipart on a POST. Each account
+sends `destinations[N][code]` when a new image was picked, `remove_code` when it
+was taken down, and **neither** when it was left alone — that last case is what
+tells the server to carry the published QR forward, so editing a number does not
+silently drop the code beside it. Read it back as `code_url`, a short-lived signed
+link behind the same gate as the number, since the image encodes the number.
+
+A QR is optional on both ends: a client can type the number, so a business with
+none to hand is not shut out of being paid.
+
 Read `booking.invoice` and `provider.destinations` defensively, the way
 `hour_rounding` and `user.suspension` are.

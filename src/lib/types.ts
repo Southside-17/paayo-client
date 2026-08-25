@@ -539,6 +539,13 @@ export type Destination = {
     /** The actual wallet or bank: GCash, Maya, BPI, Landbank. Always named. */
     institution: string;
     has_code: boolean;
+    /**
+     * A signed link to the QR a client scans, when one was published.
+     *
+     * Behind the same gate as `handle`, because the image encodes the number.
+     * Short-lived, so read it when the screen opens rather than holding it.
+     */
+    code_url?: string;
 };
 
 /**
