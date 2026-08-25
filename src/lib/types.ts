@@ -30,6 +30,8 @@ export type User = {
     staffs: Staff[];
     /** How many bookings are waiting on this person to choose somebody else. */
     bookings_needing_provider: number;
+    /** What was accepted, against what is in force. Unequal means ask again. */
+    legal: { accepted: Record<string, string>; current: Record<string, string> };
     created_at: string;
 };
 
