@@ -23,10 +23,15 @@ import { cn } from '@/lib/utils';
 import { useWorkspace } from '@/lib/workspace';
 import palette from '@/theme/palette';
 
-/** The accounts a business may publish, and what each is called. */
+/**
+ * The two rails money can be sent to.
+ *
+ * GCash and Maya are not on this list. They are e-wallets the way BPI is a bank
+ * -- the actual wallet or bank is the `institution` field below, which is free
+ * text so a business banking at a rural co-op can still be paid.
+ */
 const KINDS = [
-    { value: 'gcash', label: 'GCash', bank: false },
-    { value: 'maya', label: 'Maya', bank: false },
+    { value: 'ewallet', label: 'E-wallet', bank: false },
     { value: 'bank', label: 'Bank account', bank: true },
 ] as const;
 
@@ -56,6 +61,8 @@ export default function Destinations() {
     const colours = palette[colorScheme ?? 'light'];
     const { busy, message, errorFor, submit } = useSubmit();
     const [drafts, setDrafts] = useState<Draft[] | null>(null);
+    /** What the server suggests may be typed in. Suggestions, never a whitelist. */
+    const [suggested, setSuggested] = useState<Record<string, string[]>>({});
 
     const authenticatedRequest =
         session.status === 'authenticated' ? session.authenticatedRequest : null;
@@ -67,19 +74,21 @@ export default function Destinations() {
                 return;
             }
 
-            void authenticatedRequest<{ data: Destination[] }>(
-                `/providers/${provider}/destinations`,
-            )
-                .then(({ data }) =>
+            void authenticatedRequest<{
+                data: Destination[];
+                meta?: { institutions?: Record<string, string[]> };
+            }>(`/providers/${provider}/destinations`)
+                .then(({ data, meta }) => {
+                    setSuggested(meta?.institutions ?? {});
                     setDrafts(
                         data.map((entry) => ({
                             method: entry.method.value as Draft['method'],
                             handle: entry.handle,
                             name: entry.name,
-                            institution: entry.institution ?? '',
+                            institution: entry.institution,
                         })),
-                    ),
-                )
+                    );
+                })
                 .catch(() => setDrafts([]));
         }, [authenticatedRequest, provider, drafts]),
     );
@@ -89,7 +98,6 @@ export default function Destinations() {
     }
 
     const held = drafts ?? [];
-    const spare = KINDS.filter((kind) => !held.some((entry) => entry.method === kind.value));
 
     const add = (method: Draft['method']) =>
         setDrafts([...held, { method, handle: '', name: '', institution: '' }]);
@@ -112,7 +120,7 @@ export default function Destinations() {
                         method: entry.method,
                         handle: entry.handle.trim(),
                         name: entry.name.trim(),
-                        institution: entry.method === 'bank' ? entry.institution.trim() : null,
+                        institution: entry.institution.trim(),
                     })),
                 },
             });
@@ -137,6 +145,12 @@ export default function Destinations() {
                         told when they change.
                     </Text>
 
+                    {/* The suggestions below are a spelling aid, not a list of
+                        what is allowed: type any wallet or bank. */}
+                    <Text className="text-muted-foreground text-sm">
+                        Add as many as you take. If your bank or wallet is not suggested, type it.
+                    </Text>
+
                     {drafts === null ? (
                         <Card className="gap-2">
                             <Skeleton className="h-5 w-24" />
@@ -146,11 +160,14 @@ export default function Destinations() {
 
                     {held.map((entry, at) => {
                         const kind = KINDS.find((option) => option.value === entry.method);
+                        const options = suggested[entry.method] ?? [];
 
                         return (
-                            <Card key={entry.method} className="gap-3">
+                            <Card key={`${entry.method}-${at}`} className="gap-3">
                                 <View className="flex-row items-center gap-2">
-                                    <Label>{kind?.label ?? entry.method}</Label>
+                                    <Label>
+                                        {entry.institution.trim() || (kind?.label ?? entry.method)}
+                                    </Label>
                                     <View className="flex-1" />
                                     <Pressable
                                         accessibilityRole="button"
@@ -163,20 +180,50 @@ export default function Destinations() {
                                     </Pressable>
                                 </View>
 
-                                {kind?.bank ? (
-                                    <View className="gap-1.5">
-                                        <Label>Which bank</Label>
-                                        <Input
-                                            value={entry.institution}
-                                            onChangeText={(typed) =>
-                                                change(at, { institution: typed })
-                                            }
-                                            editable={!busy}
-                                            placeholder="BPI"
-                                            accessibilityLabel="Which bank"
-                                        />
-                                    </View>
-                                ) : null}
+                                <View className="gap-1.5">
+                                    <Label>{kind?.bank ? 'Which bank' : 'Which wallet'}</Label>
+                                    <Input
+                                        value={entry.institution}
+                                        onChangeText={(typed) => change(at, { institution: typed })}
+                                        editable={!busy}
+                                        placeholder={kind?.bank ? 'BPI' : 'GCash'}
+                                        accessibilityLabel={
+                                            kind?.bank ? 'Which bank' : 'Which wallet'
+                                        }
+                                    />
+                                    {/* Taps fill the field rather than replacing
+                                        it: the list is a spelling aid, and a
+                                        business banking somewhere nobody listed
+                                        must still be able to be paid. */}
+                                    {options.length > 0 ? (
+                                        <View className="flex-row flex-wrap gap-1.5 pt-0.5">
+                                            {options.map((option) => (
+                                                <Pressable
+                                                    key={option}
+                                                    accessibilityRole="button"
+                                                    accessibilityLabel={option}
+                                                    disabled={busy}
+                                                    onPress={() =>
+                                                        change(at, { institution: option })
+                                                    }
+                                                    className={cn(
+                                                        'rounded-lg border px-2.5 py-1',
+                                                        entry.institution === option
+                                                            ? 'border-brand bg-brand/10'
+                                                            : 'border-border bg-muted',
+                                                    )}
+                                                >
+                                                    <Text className="text-xs font-medium">
+                                                        {option}
+                                                    </Text>
+                                                </Pressable>
+                                            ))}
+                                        </View>
+                                    ) : null}
+                                    <FieldError
+                                        message={errorFor(`destinations.${at}.institution`)}
+                                    />
+                                </View>
 
                                 <View className="gap-1.5">
                                     <Label>{kind?.bank ? 'Account number' : 'Mobile number'}</Label>
@@ -225,9 +272,9 @@ export default function Destinations() {
                         </Card>
                     ) : null}
 
-                    {spare.length > 0 && drafts !== null ? (
+                    {drafts !== null ? (
                         <View className="flex-row flex-wrap gap-2">
-                            {spare.map((kind) => (
+                            {KINDS.map((kind) => (
                                 <Pressable
                                     key={kind.value}
                                     accessibilityRole="button"

@@ -1,17 +1,18 @@
 import { peso } from '@/lib/money';
 import type { Destination, Invoice, Payment, PaymentMethod } from '@/lib/types';
 
-/** The methods a client can be recorded as having paid by, in the order offered. */
-export const COLLECTABLE: PaymentMethod['value'][] = ['cash', 'gcash', 'maya', 'bank'];
+/** The rails a client can be recorded as having paid on, in the order offered. */
+export const COLLECTABLE: PaymentMethod['value'][] = ['cash', 'ewallet', 'bank'];
 
 /**
- * Whether a method was sent somewhere rather than handed over.
+ * Whether a payment was sent somewhere rather than handed over.
  *
- * The same set that leaves a confirmation screen worth photographing, which is
- * why it answers both questions. Mirrors PaymentMethod::isTransfer().
+ * One question doing three jobs, mirroring PaymentMethod::isTransfer(): a
+ * transfer names the institution it went to, has a published account behind it,
+ * and leaves a confirmation screen worth photographing. Cash does none.
  */
 export function isTransfer(method: PaymentMethod['value']): boolean {
-    return method === 'gcash' || method === 'maya' || method === 'bank';
+    return method === 'ewallet' || method === 'bank';
 }
 
 /**
@@ -68,9 +69,13 @@ export function attestation(payment: Payment): string {
     return payment.confirmed_by ? `${when} · by ${payment.confirmed_by}` : when;
 }
 
-/** How an account is named to a client about to send money to it. */
+/**
+ * How an account is named to a client about to send money to it.
+ *
+ * The institution first, because that is what a person recognises -- "GCash",
+ * not "E-wallet" -- and the account name second, because that is the only thing
+ * that lets them check they are sending to the right person.
+ */
 export function destinationLine(destination: Destination): string {
-    const label = destination.institution ?? destination.method.label;
-
-    return `${label} · ${destination.name}`;
+    return `${destination.institution} · ${destination.name}`;
 }

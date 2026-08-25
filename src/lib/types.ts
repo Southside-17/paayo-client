@@ -509,15 +509,19 @@ export type Job = {
 /**
  * How a client settled an invoice.
  *
- * `cash`, `gcash`, `maya` and `bank` all mean the provider took the money and
- * Paayo is owed its share afterwards. `paymongo` means Paayo collected it. The
- * distinction is custody, not whether it was electronic -- a GCash sent straight
- * to the provider is the same shape as cash on the doorstep.
+ * `cash`, `ewallet` and `bank` all mean the provider took the money and Paayo is
+ * owed its share afterwards. `paymongo` means Paayo collected it. The distinction
+ * is custody, not whether it was electronic -- a GCash sent straight to the
+ * provider is the same shape as cash on the doorstep.
+ *
+ * GCash and Maya are **not** values here. They are e-wallets the way BPI and
+ * Landbank are banks: the actual wallet or bank is `institution`, a field, and
+ * nothing in the app behaves differently for one wallet over another.
  */
 export type PaymentMethod = {
-    value: 'cash' | 'gcash' | 'maya' | 'bank' | 'paymongo';
+    value: 'cash' | 'ewallet' | 'bank' | 'paymongo';
     label: string;
-    /** The phrase a payment line reads as, written by the server. */
+    /** The phrase a payment line reads as, naming the institution where there is one. */
     wording: string;
 };
 
@@ -532,8 +536,8 @@ export type Destination = {
     method: { value: string; label: string };
     handle: string;
     name: string;
-    /** Which bank, for a bank account. Null for GCash and Maya, which are one. */
-    institution: string | null;
+    /** The actual wallet or bank: GCash, Maya, BPI, Landbank. Always named. */
+    institution: string;
     has_code: boolean;
 };
 
@@ -552,7 +556,7 @@ export type Payment = {
     /** Who said the money arrived. Null once that account is gone. */
     confirmed_by?: string | null;
     /** Where it was sent, snapshotted. Null for cash, which went nowhere. */
-    destination: { name: string; handle: string; institution: string | null } | null;
+    destination: { name: string; handle: string; institution: string } | null;
     receipts?: Attachment[];
 };
 

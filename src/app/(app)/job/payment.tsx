@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Text } from '@/components/ui/text';
-import { COLLECTABLE, destinationLine, isTransfer } from '@/lib/billing';
+import { destinationLine, isTransfer } from '@/lib/billing';
 import { peso } from '@/lib/money';
 import { useSession } from '@/lib/session';
 import type { Booking, Destination, PaymentMethod } from '@/lib/types';
@@ -25,13 +25,19 @@ import { useWorkspace } from '@/lib/workspace';
 /** How many photographs of a confirmation screen anybody needs. */
 const RECEIPTS = 3;
 
-/** What each way of paying is called on the button. */
-const NAMES: Record<PaymentMethod['value'], string> = {
-    cash: 'Cash',
-    gcash: 'GCash',
-    maya: 'Maya',
-    bank: 'Bank transfer',
-    paymongo: 'Card or e-wallet',
+/**
+ * One way this client could have paid, as a button.
+ *
+ * Accounts rather than rails: a business may publish GCash and Maya at once, so
+ * "E-wallet" would ask the crew to pick a category and then pick again. The
+ * institution is what they recognise anyway.
+ */
+type Way = {
+    key: string;
+    label: string;
+    method: PaymentMethod['value'];
+    institution: string | null;
+    destination: Destination | null;
 };
 
 /**
@@ -51,7 +57,7 @@ export default function RecordPayment() {
     const { busy, message, errorFor, submit } = useSubmit();
     const [booking, setBooking] = useState<Booking | null>(null);
     const [failure, setFailure] = useState<string | null>(null);
-    const [method, setMethod] = useState<PaymentMethod['value']>('cash');
+    const [chosen, setChosen] = useState('cash');
     const [receipts, setReceipts] = useState<MediaItem[]>([]);
     const [recording, setRecording] = useState(false);
 
@@ -77,24 +83,28 @@ export default function RecordPayment() {
     // render would re-derive the offered methods on every tap.
     const published = useMemo(() => booking?.provider.destinations ?? [], [booking]);
 
-    // Cash always, and a transfer only where the business published somewhere to
-    // send it. Offering GCash with no GCash number is offering a refusal.
-    const offered = useMemo(
-        () =>
-            COLLECTABLE.filter(
-                (value) =>
-                    value === 'cash' ||
-                    published.some((destination) => destination.method.value === value),
-            ),
+    // Cash always, then one button per published account. Offering a rail the
+    // business published nothing on is offering a refusal.
+    const ways = useMemo<Way[]>(
+        () => [
+            { key: 'cash', label: 'Cash', method: 'cash', institution: null, destination: null },
+            ...published.map((entry) => ({
+                key: `${entry.method.value}:${entry.institution}`,
+                label: entry.institution,
+                method: entry.method.value as PaymentMethod['value'],
+                institution: entry.institution,
+                destination: entry,
+            })),
+        ],
         [published],
     );
 
-    const destination: Destination | null =
-        published.find((entry) => entry.method.value === method) ?? null;
+    const way = ways.find((option) => option.key === chosen) ?? ways[0];
+    const destination = way?.destination ?? null;
 
     const attached = receipts.filter((item) => item.id !== null).map((item) => item.id as string);
     const settling = receipts.some((item) => item.progress !== null);
-    const wanted = isTransfer(method);
+    const wanted = isTransfer(way?.method ?? 'cash');
 
     if (!staff || session.status !== 'authenticated') {
         return <Redirect href="/" />;
@@ -111,7 +121,10 @@ export default function RecordPayment() {
                 {
                     method: 'POST',
                     body: {
-                        method,
+                        method: way?.method ?? 'cash',
+                        // The rail alone no longer says where it went: a business
+                        // may publish GCash and Maya at once.
+                        institution: way?.institution ?? null,
                         amount: invoice.total,
                         attachments: attached,
                     },
@@ -162,20 +175,20 @@ export default function RecordPayment() {
                         <Card className="gap-3">
                             <Label>They paid by</Label>
                             <View className="flex-row flex-wrap gap-2">
-                                {offered.map((value) => (
+                                {ways.map((option) => (
                                     <Pressable
-                                        key={value}
+                                        key={option.key}
                                         accessibilityRole="button"
-                                        accessibilityLabel={NAMES[value]}
-                                        accessibilityState={{ selected: method === value }}
+                                        accessibilityLabel={option.label}
+                                        accessibilityState={{ selected: chosen === option.key }}
                                         disabled={busy}
                                         onPress={() => {
-                                            setMethod(value);
+                                            setChosen(option.key);
                                             setReceipts([]);
                                         }}
                                         className={cn(
                                             'rounded-xl border px-4 py-2.5',
-                                            method === value
+                                            chosen === option.key
                                                 ? 'border-brand bg-brand/10'
                                                 : 'border-border bg-card',
                                         )}
@@ -183,10 +196,10 @@ export default function RecordPayment() {
                                         <Text
                                             className={cn(
                                                 'text-sm font-semibold',
-                                                method === value ? 'text-brand' : undefined,
+                                                chosen === option.key ? 'text-brand' : undefined,
                                             )}
                                         >
-                                            {NAMES[value]}
+                                            {option.label}
                                         </Text>
                                     </Pressable>
                                 ))}
@@ -211,7 +224,7 @@ export default function RecordPayment() {
                                     leaves a screen, and that screen is the only
                                     evidence this rail ever has. */}
                                 <Text className="text-muted-foreground text-sm">
-                                    {`Attach the ${NAMES[method]} confirmation so the client can see it too.`}
+                                    {`Attach the ${way?.label ?? ''} confirmation so the client can see it too.`}
                                 </Text>
                                 <MediaPicker
                                     send={session.authenticatedRequest}
@@ -243,7 +256,7 @@ export default function RecordPayment() {
                     body={
                         invoice === null
                             ? ''
-                            : `${peso(invoice.total)} ${NAMES[method].toLowerCase() === 'cash' ? 'in cash' : `by ${NAMES[method]}`}. The client sees this, and your name against it.`
+                            : `${peso(invoice.total)} ${way?.method === 'cash' ? 'in cash' : `by ${way?.label}`}. The client sees this, and your name against it.`
                     }
                     confirm="Record it"
                     dismiss="Not yet"

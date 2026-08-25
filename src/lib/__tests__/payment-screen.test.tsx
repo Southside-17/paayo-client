@@ -37,10 +37,18 @@ const owner: Staff = {
 };
 
 const gcash: Destination = {
-    method: { value: 'gcash', label: 'GCash' },
+    method: { value: 'ewallet', label: 'E-wallet' },
     handle: '09171234567',
     name: 'Juan D.',
-    institution: null,
+    institution: 'GCash',
+    has_code: false,
+};
+
+const maya: Destination = {
+    method: { value: 'ewallet', label: 'E-wallet' },
+    handle: '09991234567',
+    name: 'Juan D.',
+    institution: 'Maya',
     has_code: false,
 };
 
@@ -124,16 +132,20 @@ it('offers a transfer only where the business published somewhere to send it', a
 
     await waitFor(() => expect(screen.getByLabelText('Cash')).toBeTruthy());
     expect(screen.queryByLabelText('GCash')).toBeNull();
-    expect(screen.queryByLabelText('Maya')).toBeNull();
+    expect(screen.queryByLabelText('E-wallet')).toBeNull();
 });
 
-it('offers the accounts that are published, and names them', async () => {
-    signedIn(bookingWith({}, [gcash]));
+// Accounts, not rails. "E-wallet" would ask the crew to pick a category and then
+// pick again, and the institution is what they recognise anyway.
+it('names each published account rather than the rail it sits on', async () => {
+    signedIn(bookingWith({}, [gcash, maya]));
 
     render(<RecordPayment />);
 
     await waitFor(() => expect(screen.getByLabelText('GCash')).toBeTruthy());
+    expect(screen.getByLabelText('Maya')).toBeTruthy();
     expect(screen.getByLabelText('Cash')).toBeTruthy();
+    expect(screen.queryByLabelText('E-wallet')).toBeNull();
 });
 
 // Cash leaves nothing to photograph, so asking for a receipt would be asking for

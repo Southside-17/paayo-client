@@ -26,15 +26,14 @@ const payment = (over: Partial<Payment> = {}): Payment => ({
 // is the same shape as cash on the doorstep, and the receipt requirement follows
 // the same line.
 it('counts a transfer as anything sent somewhere, cash as neither', () => {
-    expect(isTransfer('gcash')).toBe(true);
-    expect(isTransfer('maya')).toBe(true);
+    expect(isTransfer('ewallet')).toBe(true);
     expect(isTransfer('bank')).toBe(true);
     expect(isTransfer('cash')).toBe(false);
     expect(isTransfer('paymongo')).toBe(false);
 });
 
 it('offers only the rails a person can attest', () => {
-    expect(COLLECTABLE).toEqual(['cash', 'gcash', 'maya', 'bank']);
+    expect(COLLECTABLE).toEqual(['cash', 'ewallet', 'bank']);
     expect(COLLECTABLE).not.toContain('paymongo');
 });
 
@@ -67,7 +66,7 @@ it('names who said the money arrived', () => {
     expect(attestation(payment({ confirmed_by: null }))).not.toContain('by');
 });
 
-it('names an account by its institution, and by the wallet when it is one', () => {
+it('names an account by its institution, never by its rail', () => {
     const bank: Destination = {
         method: { value: 'bank', label: 'Bank transfer' },
         handle: '1234567890',
@@ -77,13 +76,15 @@ it('names an account by its institution, and by the wallet when it is one', () =
     };
 
     const gcash: Destination = {
-        method: { value: 'gcash', label: 'GCash' },
+        method: { value: 'ewallet', label: 'E-wallet' },
         handle: '09171234567',
         name: 'Juan D.',
-        institution: null,
+        institution: 'GCash',
         has_code: true,
     };
 
+    // The institution first, because "GCash" is what a person recognises and
+    // "E-wallet" is not.
     expect(destinationLine(bank)).toBe('BPI · Juan Dela Cruz');
     expect(destinationLine(gcash)).toBe('GCash · Juan D.');
 });

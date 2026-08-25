@@ -541,11 +541,19 @@ The crew record that a client paid; nothing waits on the client. `job/payment.ts
 is a full screen, following `finish.tsx` and against `price-sheet.tsx`, which is
 the outlier.
 
-**Only cash is always offered.** A transfer appears only where the business
-published somewhere to send it, read off `booking.provider.destinations` — that
-list is empty until the work has been taken, because a provider's GCash number is
-their mobile number. Offering GCash with no GCash number is offering a refusal, so
-the picker filters rather than letting the server answer.
+**The picker offers accounts, not rails.** `PaymentMethod` is `cash | ewallet |
+bank | paymongo`; GCash and Maya are **not** values, they are the `institution`
+field, the way BPI is a bank. So the buttons read "Cash", "GCash", "Maya" —
+built from `booking.provider.destinations`, one per published account, because
+offering "E-wallet" would make the crew pick a category and then pick again.
+
+The payment sends `method` **and** `institution`: a business may publish GCash and
+Maya at once, so the rail alone no longer says where the money went.
+
+Cash is always offered; a transfer only where the business published somewhere to
+send it. That list is empty until the work has been taken, because a provider's
+GCash number is their mobile number. Offering a rail with nothing published is
+offering a refusal, so the picker filters rather than letting the server answer.
 
 **A transfer must carry the confirmation screen; cash must not.** `MediaPicker`
 takes `photosOnly` and `limit` for this — a video of a confirmation is not
@@ -568,6 +576,14 @@ its own lines.
 when it changes including whoever changed it. Changing where money arrives is how
 a taken-over account becomes cash. The account name field is not a nicety: it is
 the only thing that lets a client check they are sending to the right person.
+
+The editor takes as many accounts as a business has, two rails deep. `institution`
+is **free text with suggestions**, and the suggestions arrive as
+`meta.institutions` on the destinations response — so adding a bank needs no app
+release. Tapping one fills the field; typing something nobody listed is expected,
+because a business banking at a rural co-op still has to be able to be paid. What
+the list buys is spelling: the server refuses the same institution twice
+case-insensitively, so "GCash" and "Gcash" cannot both be published.
 
 Read `booking.invoice` and `provider.destinations` defensively, the way
 `hour_rounding` and `user.suspension` are.
