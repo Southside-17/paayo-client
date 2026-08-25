@@ -72,16 +72,19 @@ export default function FinishJob() {
     }, [authenticatedRequest, provider, id]);
 
     const job = booking?.job ?? null;
-    const rounding = booking?.hour_rounding ?? null;
+    // Memoised, and read defensively: an older server that omits the field must
+    // still let a crew finish a job, and a fresh object every render would make
+    // the total below recompute on every keystroke.
+    const rounding = useMemo(
+        () => booking?.hour_rounding ?? { value: 'hour' as const, label: 'To the hour' },
+        [booking],
+    );
 
     // Memoised rather than defaulted inline: a fresh [] every render would make
     // the total below recompute on every keystroke of the note field.
     const lines = useMemo(() => booking?.lines ?? [], [booking]);
 
-    const total = useMemo(
-        () => (rounding === null ? null : runningTotal(lines, stated, rounding)),
-        [lines, stated, rounding],
-    );
+    const total = useMemo(() => runningTotal(lines, stated, rounding), [lines, stated, rounding]);
 
     if (!staff) {
         return <Redirect href="/" />;
@@ -284,7 +287,7 @@ export default function FinishJob() {
                                 </Text>
                             ) : (
                                 <Text className="text-muted-foreground text-sm">
-                                    {`Hours are rounded ${(booking.hour_rounding.label ?? '').toLowerCase()}, the way this offer is priced.`}
+                                    {`Hours are rounded ${rounding.label.toLowerCase()}, the way this offer is priced.`}
                                 </Text>
                             )}
                         </Card>

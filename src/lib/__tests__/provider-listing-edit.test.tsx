@@ -37,6 +37,7 @@ function offer(over: Partial<ProviderListing> = {}): ProviderListing {
         id: 'l1',
         description: null,
         pricing_method: { value: 'per_unit', label: 'Per unit', is_on_request: false },
+        hour_rounding: { value: 'hour' as const, label: 'To the hour' },
         rates: [line('Window type', 80_000), line('Split type', 100_000)],
         allows_many_lines: false,
         intake: ['Which floor is the unit on?'],

@@ -41,6 +41,19 @@ const METHODS = [
 const HOUR = 'hour';
 
 /**
+ * How minutes worked become hours charged. Mirrors App\Enums\HourRounding.
+ *
+ * Rounding up to the whole hour is the trade convention, so it leads and it is
+ * the default; the other two are for a business that would rather bill closer to
+ * the truth.
+ */
+const ROUNDINGS: { value: 'minute' | 'half_hour' | 'hour'; label: string; hint: string }[] = [
+    { value: 'hour', label: 'To the hour', hint: '3h 10m on site bills as 4 hours.' },
+    { value: 'half_hour', label: 'To the half hour', hint: '3h 10m on site bills as 3½ hours.' },
+    { value: 'minute', label: 'To the minute', hint: '3h 10m on site bills as 3h 10m.' },
+];
+
+/**
  * Offered when a trade names no vocabulary of its own. Every trade counts in
  * something, so this is the floor rather than a default worth curating.
  */
@@ -86,6 +99,8 @@ export default function ProviderListingEdit() {
     const [failure, setFailure] = useState<string | null>(null);
     const [method, setMethod] = useState('per_job');
     const [many, setMany] = useState(false);
+    // The trade convention, and the default the server carries too.
+    const [rounding, setRounding] = useState<'minute' | 'half_hour' | 'hour'>('hour');
     const [rows, setRows] = useState<Row[]>([]);
     const [questions, setQuestions] = useState<{ key: string; text: string }[]>([]);
     const [pausing, setPausing] = useState(false);
@@ -118,6 +133,10 @@ export default function ProviderListingEdit() {
                     setListing(found);
                     setMethod(found.pricing_method.value);
                     setMany(found.allows_many_lines);
+                    // Read defensively, the way user.suspension is: the app
+                    // ships on its own schedule, and an older server that omits
+                    // the field must not take the whole editor down.
+                    setRounding(found.hour_rounding?.value ?? 'hour');
                     setRows(found.rates.map((line, at) => ({ ...line, key: `r${at}` })));
                     setQuestions(found.intake.map((text, at) => ({ text, key: `q${at}` })));
                     setLoaded(true);
@@ -163,6 +182,7 @@ export default function ProviderListingEdit() {
                     body: {
                         pricing_method: method,
                         allows_many_lines: onRequest ? false : many,
+                        hour_rounding: rounding,
                         description: listing?.description ?? null,
                         rates: onRequest
                             ? []
@@ -302,6 +322,44 @@ export default function ProviderListingEdit() {
                                     <FieldError message={errorFor('allows_many_lines')} />
                                 </Card>
                             )}
+
+                            {hourly ? (
+                                <Card className="gap-3">
+                                    <Label>How do you round the hours?</Label>
+                                    <Text className="text-muted-foreground text-sm">
+                                        Always rounded up, and settled when the job is done. This
+                                        is fixed onto each booking as it is placed, so changing it
+                                        never re-prices work already agreed.
+                                    </Text>
+                                    <View className="gap-2">
+                                        {ROUNDINGS.map((option) => (
+                                            <Pressable
+                                                key={option.value}
+                                                accessibilityRole="radio"
+                                                accessibilityState={{
+                                                    checked: rounding === option.value,
+                                                }}
+                                                disabled={!mayEdit || busy}
+                                                onPress={() => setRounding(option.value)}
+                                                className={cn(
+                                                    'rounded-lg border p-3',
+                                                    rounding === option.value
+                                                        ? 'border-brand bg-brand-subtle'
+                                                        : 'border-border',
+                                                )}
+                                            >
+                                                <Text className="text-sm font-semibold">
+                                                    {option.label}
+                                                </Text>
+                                                <Text className="text-muted-foreground text-xs">
+                                                    {option.hint}
+                                                </Text>
+                                            </Pressable>
+                                        ))}
+                                    </View>
+                                    <FieldError message={errorFor('hour_rounding')} />
+                                </Card>
+                            ) : null}
 
                             {onRequest ? null : (
                                 <Card className="gap-4">

@@ -6,6 +6,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BackButton } from '@/components/back-button';
 import { WhenCard, WhereCard, WhoCard } from '@/components/booking-facts';
 import { FormMessage } from '@/components/form-message';
+import { JobProgress } from '@/components/job-progress';
+import { JobTimeline } from '@/components/job-timeline';
 import { MediaThumb } from '@/components/media-thumb';
 import { MediaViewer, type Viewable } from '@/components/media-viewer';
 import { Button } from '@/components/ui/button';
@@ -16,6 +18,7 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusPill } from '@/components/ui/status-pill';
 import { Text } from '@/components/ui/text';
+import { accounting } from '@/lib/jobs';
 import { peso, priceRange, rateLine, workings } from '@/lib/money';
 import { useSession } from '@/lib/session';
 import type { Booking } from '@/lib/types';
@@ -54,6 +57,9 @@ export default function BookingDetail() {
     if (session.status !== 'authenticated') {
         return null;
     }
+
+    const job = booking?.job ?? null;
+    const lead = job?.crew?.find((member) => member.is_lead) ?? job?.crew?.[0] ?? null;
 
     const cancel = () =>
         submit(async () => {
@@ -153,8 +159,13 @@ export default function BookingDetail() {
                         ) : null}
 
                         {booking.status.needs_another_provider ? null : (
-                            <WhoCard provider={booking.provider.name} />
+                            <WhoCard
+                                provider={booking.provider.name}
+                                note={lead ? `${lead.nickname} is doing the work.` : undefined}
+                            />
                         )}
+
+                        {job ? <JobProgress job={job} crew={lead?.nickname ?? null} /> : null}
 
                         <WhereCard
                             place={{
@@ -164,6 +175,9 @@ export default function BookingDetail() {
                                 latitude: booking.latitude,
                                 longitude: booking.longitude,
                             }}
+                            // Null until live tracking lands. The map is the
+                            // slot the crew's marker drops into; see PinMap.
+                            crew={null}
                         />
 
                         <WhenCard scheduled={booking.scheduled_at} />
@@ -246,6 +260,47 @@ export default function BookingDetail() {
                             </Card>
                         ) : null}
 
+                        {job && job.lines.length > 0 ? (
+                            <Card className="gap-2">
+                                <Label>What they did</Label>
+                                {job.lines.map((line) => (
+                                    <View key={line.label} className="gap-0.5">
+                                        <View className="flex-row items-baseline gap-2">
+                                            <Text className="flex-1 text-sm">{line.label}</Text>
+                                            <Text className="text-sm font-medium">
+                                                {line.total === null
+                                                    ? 'Not settled'
+                                                    : peso(line.total)}
+                                            </Text>
+                                        </View>
+                                        {/* The workings, so an hourly figure is
+                                            checkable rather than asking to be
+                                            trusted: 3h 10m → 4h. */}
+                                        {accounting(line) ? (
+                                            <Text className="text-muted-foreground text-xs">
+                                                {accounting(line)}
+                                            </Text>
+                                        ) : null}
+                                    </View>
+                                ))}
+                                {job.final_total !== null ? (
+                                    <View className="border-border flex-row items-baseline gap-2 border-t pt-2">
+                                        <Text className="flex-1 text-sm font-medium">
+                                            What you owe
+                                        </Text>
+                                        <Text className="font-bold">{peso(job.final_total)}</Text>
+                                    </View>
+                                ) : null}
+                                {job.note ? (
+                                    <Text className="text-muted-foreground text-sm">
+                                        {job.note}
+                                    </Text>
+                                ) : null}
+                            </Card>
+                        ) : null}
+
+                        {job ? <JobTimeline activities={job.activities ?? []} /> : null}
+
                         {booking.status.is_open ? (
                             <Button variant="outline" onPress={() => setAsking(true)} busy={busy}>
                                 Cancel this booking
@@ -257,7 +312,11 @@ export default function BookingDetail() {
                 <ConfirmDialog
                     open={asking}
                     title="Cancel this booking?"
-                    body="Nobody will be sent. You can book the same work again afterwards."
+                    body={
+                        job?.status.is_underway
+                            ? `${lead?.nickname ?? 'Somebody'} is already out on this. Calling it off now stops the work where it is, and you can book it again afterwards.`
+                            : 'Nobody will be sent. You can book the same work again afterwards.'
+                    }
                     confirm="Cancel booking"
                     dismiss="Keep it"
                     destructive
