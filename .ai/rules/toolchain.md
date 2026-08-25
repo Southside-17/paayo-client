@@ -257,10 +257,17 @@ AndroidConfig.Permissions.withPermissions(config, [...]);             // return 
 return withMediaLibraryExternalStorage(config);                       // only this kept
 ```
 
-A config plugin returns a new config with its mod appended, so discarding those
-two means the iOS permission mod is **never registered** and the Android
-permissions are never added. Verified by prebuilding and finding no
-`NSPhotoLibraryAddUsageDescription` in the generated `Info.plist`.
+**Only the iOS half actually breaks**, and the difference is worth knowing:
+`AndroidConfig.Permissions.withPermissions` **mutates** `config.android.permissions`
+in place, so throwing its return away costs nothing. `IOSConfig.Permissions.createPermissionsPlugin`
+is pure -- it appends a `withInfoPlist` mod and hands back a new config -- so
+discarding that one drops the mod entirely.
+
+Verified both ways by prebuilding: no `NSPhotoLibraryAddUsageDescription` in the
+generated `Info.plist`, while `READ_MEDIA_IMAGES`, `READ_MEDIA_VIDEO`,
+`READ_MEDIA_AUDIO`, `READ_MEDIA_VISUAL_USER_SELECTED` and the `maxSdkVersion=32`
+storage pair are all present in `AndroidManifest.xml`, alongside the
+`requestLegacyExternalStorage` the plugin's returned mod sets.
 
 `NSPhotoLibraryAddUsageDescription` is therefore set by hand in
 `ios.infoPlist`, beside `NSLocalNetworkUsageDescription`. **This is load bearing,
@@ -270,6 +277,7 @@ into the plugin's options on the assumption they work, and re-check on an SDK
 bump — if upstream fixes it, the two will both write the key and the plugin's
 default would win.
 
-The plugin entry stays listed for the native module itself. Android saving is
-untested for the same reason: if `saveToLibraryAsync` ever fails there, the
-missing manifest permissions are the first place to look.
+The plugin entry stays listed for the native module and for the Android manifest,
+which it does get right. **Android needs no hand-written permissions** -- do not
+add any to `android.permissions` on the assumption that it is broken the same way
+iOS was.
