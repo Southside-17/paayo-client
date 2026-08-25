@@ -10,6 +10,7 @@ import { JobProgress } from '@/components/job-progress';
 import { JobTimeline } from '@/components/job-timeline';
 import { MediaThumb } from '@/components/media-thumb';
 import { MediaViewer, type Viewable } from '@/components/media-viewer';
+import { PhoneNotice } from '@/components/phone-notice';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -130,6 +131,18 @@ export default function BookingDetail() {
 
                 {booking ? (
                     <>
+                        {booking.status.is_open && !session.user.phone_verified ? (
+                            <PhoneNotice
+                                onConfirm={() =>
+                                    router.push(
+                                        session.user.phone === null
+                                            ? { pathname: '/profile/edit', params: { from: 'Booking' } }
+                                            : { pathname: '/profile/phone', params: { from: 'Booking' } },
+                                    )
+                                }
+                            />
+                        ) : null}
+
                         <StatusPill tone={booking.status.tone}>{booking.status.wording}</StatusPill>
 
                         {booking.status.needs_another_provider ? (

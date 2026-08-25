@@ -1,8 +1,8 @@
 import { BackButton } from '@/components/back-button';
 import { ScreenHeader } from '@/components/ui/screen-header';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { KeyboardAvoiding } from '@/components/ui/keyboard-avoiding';
@@ -13,6 +13,7 @@ import { Card } from '@/components/ui/card';
 import { FieldError } from '@/components/ui/field-error';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { StatusPill } from '@/components/ui/status-pill';
 import { Text } from '@/components/ui/text';
 import { useSession } from '@/lib/session';
 import type { MessageResponse } from '@/lib/types';
@@ -22,13 +23,15 @@ import { useSubmit } from '@/lib/use-submit';
  * Edit the three things a person is allowed to type about themselves.
  */
 export default function EditProfile() {
+    const { from } = useLocalSearchParams<{ from?: string }>();
     const session = useSession();
     const { busy, message, errorFor, submit } = useSubmit();
 
     const current = session.status === 'authenticated' ? session.user : null;
+    const held = current?.phone ?? '';
     const [nickname, setNickname] = useState(current?.nickname ?? '');
     const [email, setEmail] = useState(current?.email ?? '');
-    const [phone, setPhone] = useState(current?.phone ?? '');
+    const [phone, setPhone] = useState(held);
 
     if (session.status !== 'authenticated') {
         return null;
@@ -36,16 +39,32 @@ export default function EditProfile() {
 
     const save = () =>
         submit(async () => {
+            const typed = phone.trim();
+
             await session.authenticatedRequest<MessageResponse>('/profile', {
                 method: 'PUT',
                 body: {
                     nickname: nickname.trim(),
                     email: email.trim(),
-                    phone: phone.trim() === '' ? null : phone.trim(),
+                    phone: typed === '' ? null : typed,
                 },
             });
 
             await session.reload();
+
+            // A number that changed has lost its confirmation, so the next step
+            // is in front of them rather than two screens away. Replace, not
+            // push: this form is finished with, and back belongs where this
+            // screen was opened from.
+            if (typed !== '' && typed !== held) {
+                router.replace({
+                    pathname: '/profile/phone',
+                    params: { from: from ?? 'Account' },
+                });
+
+                return;
+            }
+
             router.back();
         });
 
@@ -55,7 +74,7 @@ export default function EditProfile() {
                 className="flex-1"
             >
                 <ScrollView contentContainerClassName="gap-6 p-6" keyboardShouldPersistTaps="handled">
-                    <BackButton label="Account" />
+                    <BackButton label={from ?? 'Account'} />
                     <ScreenHeader title="Edit details" />
 
                     <FormMessage message={message} />
@@ -112,6 +131,35 @@ export default function EditProfile() {
                                 invalid={Boolean(errorFor('phone'))}
                             />
                             <FieldError message={errorFor('phone')} />
+                            <Text className="text-muted-foreground mt-1.5 text-sm">
+                                Changing this clears the confirmation and we text a new code.
+                            </Text>
+
+                            {held === '' ? null : (
+                                <View className="mt-2 flex-row items-center gap-3">
+                                    <StatusPill
+                                        tone={session.user.phone_verified ? 'success' : 'neutral'}
+                                    >
+                                        {session.user.phone_verified ? 'confirmed' : 'not confirmed'}
+                                    </StatusPill>
+
+                                    {session.user.phone_verified ? null : (
+                                        <Pressable
+                                            accessibilityRole="button"
+                                            onPress={() =>
+                                                router.push({
+                                                    pathname: '/profile/phone',
+                                                    params: { from: 'Profile' },
+                                                })
+                                            }
+                                        >
+                                            <Text className="text-brand text-sm font-medium">
+                                                Confirm this number
+                                            </Text>
+                                        </Pressable>
+                                    )}
+                                </View>
+                            )}
                         </View>
 
                         <Button onPress={save} busy={busy}>

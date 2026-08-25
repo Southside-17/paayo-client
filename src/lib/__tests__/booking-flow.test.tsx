@@ -89,7 +89,8 @@ const user = {
     id: 'u1',
     nickname: 'Mara',
     fullname: null,
-    phone: null,
+    phone: '+639171234567' as string | null,
+    phone_verified: true,
     avatar: false,
     email: 'mara@example.com',
     email_verified: true,
@@ -122,10 +123,10 @@ const booking = {
     created_at: '2026-08-01T00:00:00.000000Z',
 };
 
-function signedIn(authenticatedRequest: jest.Mock) {
+function signedIn(authenticatedRequest: jest.Mock, account: Partial<typeof user> = {}) {
     (useSession as jest.Mock).mockReturnValue({
         status: 'authenticated',
-        user,
+        user: { ...user, ...account },
         token: 'a-token',
         authenticatedRequest,
         reload: jest.fn(),
@@ -544,4 +545,71 @@ it('plays an attached video, and opens a photo at full size', async () => {
 
     expect(player.play).toHaveBeenCalled();
     expect(player.loop).toBe(false);
+});
+
+// The arrival text is the one notification that does not survive being missed,
+// and an unproven number is where it silently stops. The booking is the screen
+// where that is at stake, so it is said there rather than in settings.
+const cannotText = 'We cannot text you when the crew arrives';
+
+it('says so on a live booking when the number is not confirmed', async () => {
+    signedIn(jest.fn(() => Promise.resolve({ data: booking })), { phone_verified: false });
+
+    render(<BookingDetail />);
+
+    expect(await screen.findByText(cannotText)).toBeOnTheScreen();
+
+    fireEvent.press(screen.getByText(cannotText));
+
+    expect(router.push).toHaveBeenCalledWith({
+        pathname: '/profile/phone',
+        params: { from: 'Booking' },
+    });
+});
+
+it('sends somebody with no number at all to the form that takes one', async () => {
+    signedIn(jest.fn(() => Promise.resolve({ data: booking })), {
+        phone: null,
+        phone_verified: false,
+    });
+
+    render(<BookingDetail />);
+
+    fireEvent.press(await screen.findByText(cannotText));
+
+    expect(router.push).toHaveBeenCalledWith({
+        pathname: '/profile/edit',
+        params: { from: 'Booking' },
+    });
+});
+
+it('says nothing about texting once the number is confirmed', async () => {
+    signedIn(jest.fn(() => Promise.resolve({ data: booking })));
+
+    render(<BookingDetail />);
+
+    await waitFor(() => expect(screen.getByText('Cancel this booking')).toBeOnTheScreen());
+
+    expect(screen.queryByText(cannotText)).toBeNull();
+});
+
+// A closed booking has nobody coming, so there is nothing to be told about.
+it('says nothing on a booking that is no longer open', async () => {
+    signedIn(
+        jest.fn(() =>
+            Promise.resolve({
+                data: {
+                    ...booking,
+                    status: { ...booking.status, value: 'cancelled', is_open: false },
+                },
+            }),
+        ),
+        { phone_verified: false },
+    );
+
+    render(<BookingDetail />);
+
+    await waitFor(() => expect(screen.getByText('pending')).toBeOnTheScreen());
+
+    expect(screen.queryByText(cannotText)).toBeNull();
 });
