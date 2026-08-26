@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -9,6 +9,7 @@ import { FormMessage } from '@/components/form-message';
 import { openDocument } from '@/components/legal-consent';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { DateField } from '@/components/ui/date-field';
 import { FieldError } from '@/components/ui/field-error';
 import { Input } from '@/components/ui/input';
 import { KeyboardAvoiding } from '@/components/ui/keyboard-avoiding';
@@ -24,6 +25,9 @@ import type { DocumentType, Identification, IdentificationIndex } from '@/lib/ty
 import { useSubmit } from '@/lib/use-submit';
 
 type Captures = { front: Upload | null; back: Upload | null };
+
+/** Nobody young enough to be refused should be offered a date at all. */
+const OLDEST_BIRTHDATE = new Date(1900, 0, 1);
 
 const STATUS_TONE = {
     pending: 'warning',
@@ -42,6 +46,7 @@ export default function Identify() {
     const [types, setTypes] = useState<DocumentType[]>([]);
     const [standing, setStanding] = useState<Identification | null>(null);
     const [ready, setReady] = useState(false);
+    const [minimumAge, setMinimumAge] = useState(18);
 
     const [first, setFirst] = useState('');
     const [middle, setMiddle] = useState('');
@@ -62,6 +67,15 @@ export default function Identify() {
     const [selfie, setSelfie] = useState<Upload | null>(null);
     const [consent, setConsent] = useState(false);
 
+    // The picker stops where the server's rule does, so an age it would refuse
+    // cannot be chosen in the first place.
+    const oldEnough = useMemo(() => {
+        const date = new Date();
+        date.setFullYear(date.getFullYear() - minimumAge);
+
+        return date;
+    }, [minimumAge]);
+
     const authenticatedRequest =
         session.status === 'authenticated' ? session.authenticatedRequest : null;
 
@@ -73,6 +87,7 @@ export default function Identify() {
         const answer = await authenticatedRequest<IdentificationIndex>('/identifications');
 
         setTypes(answer.types);
+        setMinimumAge(answer.minimum_age);
         setType((held) => held ?? answer.types[0] ?? null);
         setStanding(answer.data[0] ?? null);
         setReady(true);
@@ -228,13 +243,19 @@ export default function Identify() {
 
                             <Card className="gap-3">
                                 <Text className="font-medium">Birthdate</Text>
+                                <Text className="text-muted-foreground text-sm leading-5">
+                                    As printed on the ID. Paayo is for people aged {minimumAge}
+                                    and over.
+                                </Text>
 
                                 <View>
-                                    <Input
+                                    <DateField
                                         value={birthdate}
-                                        onChangeText={setBirthdate}
-                                        placeholder="YYYY-MM-DD"
-                                        inputMode="numeric"
+                                        onChange={setBirthdate}
+                                        placeholder="Choose your birthdate"
+                                        minimumDate={OLDEST_BIRTHDATE}
+                                        maximumDate={oldEnough}
+                                        disabled={busy}
                                         invalid={Boolean(errorFor('birthdate'))}
                                     />
                                     <FieldError message={errorFor('birthdate')} />
@@ -334,11 +355,11 @@ export default function Identify() {
                                 {type?.requires_expiry ? (
                                     <View>
                                         <Label>Expires</Label>
-                                        <Input
+                                        <DateField
                                             value={expiresAt}
-                                            onChangeText={setExpiresAt}
-                                            placeholder="YYYY-MM-DD"
-                                            inputMode="numeric"
+                                            onChange={setExpiresAt}
+                                            placeholder="Choose the expiry"
+                                            disabled={busy}
                                             invalid={Boolean(errorFor('documents.0.expires_at'))}
                                         />
                                         <FieldError message={errorFor('documents.0.expires_at')} />
