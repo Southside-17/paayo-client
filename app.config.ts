@@ -44,6 +44,16 @@ const config: ExpoConfig = {
             backgroundImage: './assets/images/android-icon-background.png',
             monochromeImage: './assets/images/android-icon-monochrome.png',
         },
+        // Pulled in by dependencies, used by nothing here. Google's Photo and
+        // Video Permissions policy expects the narrowest set an app can work
+        // with, and audio is not part of any feature -- there is no sound
+        // anywhere in Paayo. SYSTEM_ALERT_WINDOW draws over other apps, which
+        // is a debug-tooling permission and has no business in a release.
+        blockedPermissions: [
+            'android.permission.READ_MEDIA_AUDIO',
+            'android.permission.RECORD_AUDIO',
+            'android.permission.SYSTEM_ALERT_WINDOW',
+        ],
     },
     ios: {
         bundleIdentifier: 'com.paayo.ph',
@@ -130,6 +140,11 @@ const config: ExpoConfig = {
             {
                 photosPermission: 'Paayo needs your photo library to set your picture and to send documents for verification.',
                 cameraPermission: 'Paayo needs the camera to photograph documents for verification.',
+                // The plugin adds RECORD_AUDIO by default. Nothing here records
+                // anything, it is a sensitive permission a reviewer will ask
+                // about, and the privacy policy says we do not use the
+                // microphone -- which has to be true.
+                microphonePermission: false,
             },
         ],
         [

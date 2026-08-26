@@ -46,6 +46,7 @@ export default function Identify() {
     const [first, setFirst] = useState('');
     const [middle, setMiddle] = useState('');
     const [last, setLast] = useState('');
+    const [extension, setExtension] = useState('');
     const [birthdate, setBirthdate] = useState('');
     const [street, setStreet] = useState('');
     const [barangay, setBarangay] = useState('');
@@ -92,6 +93,7 @@ export default function Identify() {
             body.append('name[first]', first.trim());
             body.append('name[middle]', middle.trim());
             body.append('name[last]', last.trim());
+            body.append('name[extension]', extension.trim());
             body.append('birthdate', birthdate.trim());
             body.append('address[street]', street.trim());
             body.append('address[barangay]', barangay.trim());
@@ -174,13 +176,13 @@ export default function Identify() {
                     {ready && !waiting ? (
                         <>
                             <Card className="gap-3">
-                                <Text className="font-medium">Your details</Text>
+                                <Text className="font-medium">Name</Text>
                                 <Text className="text-muted-foreground text-sm leading-5">
-                                    Exactly as they appear on the ID you are about to photograph.
+                                    Exactly as it appears on the ID you are about to photograph.
                                 </Text>
 
                                 <View>
-                                    <Label>First name</Label>
+                                    <Label>Given</Label>
                                     <Input
                                         value={first}
                                         onChangeText={setFirst}
@@ -192,7 +194,7 @@ export default function Identify() {
                                 </View>
 
                                 <View>
-                                    <Label>Middle name</Label>
+                                    <Label>Middle</Label>
                                     <Input
                                         value={middle}
                                         onChangeText={setMiddle}
@@ -201,7 +203,7 @@ export default function Identify() {
                                 </View>
 
                                 <View>
-                                    <Label>Last name</Label>
+                                    <Label>Family</Label>
                                     <Input
                                         value={last}
                                         onChangeText={setLast}
@@ -211,6 +213,21 @@ export default function Identify() {
                                     />
                                     <FieldError message={errorFor('name.last')} />
                                 </View>
+
+                                <View>
+                                    <Label>Extension</Label>
+                                    <Input
+                                        value={extension}
+                                        onChangeText={setExtension}
+                                        placeholder="Jr., Sr., III — if you have one"
+                                        invalid={Boolean(errorFor('name.extension'))}
+                                    />
+                                    <FieldError message={errorFor('name.extension')} />
+                                </View>
+                            </Card>
+
+                            <Card className="gap-3">
+                                <Text className="font-medium">Details on the ID</Text>
 
                                 <View>
                                     <Label>Birthdate</Label>
@@ -223,10 +240,6 @@ export default function Identify() {
                                     />
                                     <FieldError message={errorFor('birthdate')} />
                                 </View>
-                            </Card>
-
-                            <Card className="gap-3">
-                                <Text className="font-medium">Address on the ID</Text>
 
                                 <View>
                                     <Label>Street</Label>
@@ -251,7 +264,7 @@ export default function Identify() {
                                 </View>
 
                                 <View>
-                                    <Label>Town or city</Label>
+                                    <Label>Town</Label>
                                     <Input
                                         value={town}
                                         onChangeText={setTown}
