@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/avatar';
 import { BusinessChip } from '@/components/business-chip';
 import { FormMessage } from '@/components/form-message';
+import { openDocument } from '@/components/legal-consent';
 import { PictureSheet } from '@/components/picture-sheet';
 import { SettingsList, type SettingsRow } from '@/components/settings-list';
 import { Button } from '@/components/ui/button';
@@ -167,6 +168,24 @@ export default function Account() {
                 <Button variant="ghost" onPress={() => void session.logout()}>
                     Log out
                 </Button>
+
+                {/* Play requires the policy to be reachable from inside the app,
+                    and somebody who has agreed to something is owed a way back
+                    to what they agreed to. */}
+                <View className="flex-row flex-wrap justify-center gap-x-5 gap-y-2 pb-2">
+                    <Text
+                        className="text-muted-foreground text-sm underline"
+                        onPress={() => void openDocument('/privacy-policy')}
+                    >
+                        Privacy Policy
+                    </Text>
+                    <Text
+                        className="text-muted-foreground text-sm underline"
+                        onPress={() => void openDocument('/user-agreement')}
+                    >
+                        User Agreement
+                    </Text>
+                </View>
             </ScrollView>
 
             <PictureSheet

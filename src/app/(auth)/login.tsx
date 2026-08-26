@@ -7,6 +7,7 @@ import { View } from 'react-native';
 import { AuthScreen } from '@/components/auth-screen';
 import { BrandIcon } from '@/components/brand-icon';
 import { FormMessage } from '@/components/form-message';
+import { openDocument } from '@/components/legal-consent';
 import { Button } from '@/components/ui/button';
 import { FieldError } from '@/components/ui/field-error';
 import { Input } from '@/components/ui/input';
@@ -148,6 +149,28 @@ export default function Login() {
                         <Text className="text-brand text-sm font-medium">Sign up</Text>
                     </Link>
                 </View>
+
+                {/* Google opens an account when there is none, and the server
+                    records that as agreement -- so this is where it is said.
+                    The register form asks with a checkbox; this path has no
+                    form to put one on. */}
+                <Text className="text-muted-foreground text-center text-xs leading-5">
+                    By continuing with Google you accept the{' '}
+                    <Text
+                        className="text-brand text-xs underline"
+                        onPress={() => void openDocument('/privacy-policy')}
+                    >
+                        Privacy Policy
+                    </Text>{' '}
+                    and the{' '}
+                    <Text
+                        className="text-brand text-xs underline"
+                        onPress={() => void openDocument('/user-agreement')}
+                    >
+                        User Agreement
+                    </Text>
+                    .
+                </Text>
             </View>
         </AuthScreen>
     );
