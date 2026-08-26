@@ -227,10 +227,9 @@ export default function Identify() {
                             </Card>
 
                             <Card className="gap-3">
-                                <Text className="font-medium">Details on the ID</Text>
+                                <Text className="font-medium">Birthdate</Text>
 
                                 <View>
-                                    <Label>Birthdate</Label>
                                     <Input
                                         value={birthdate}
                                         onChangeText={setBirthdate}
@@ -240,6 +239,13 @@ export default function Identify() {
                                     />
                                     <FieldError message={errorFor('birthdate')} />
                                 </View>
+                            </Card>
+
+                            <Card className="gap-3">
+                                <Text className="font-medium">Address</Text>
+                                <Text className="text-muted-foreground text-sm leading-5">
+                                    As printed on the ID, which is often not where you are now.
+                                </Text>
 
                                 <View>
                                     <Label>Street</Label>
