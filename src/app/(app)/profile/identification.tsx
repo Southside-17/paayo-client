@@ -252,7 +252,6 @@ export default function Identify() {
                                     <DateField
                                         value={birthdate}
                                         onChange={setBirthdate}
-                                        placeholder="Choose your birthdate"
                                         minimumDate={OLDEST_BIRTHDATE}
                                         maximumDate={oldEnough}
                                         disabled={busy}
@@ -358,7 +357,6 @@ export default function Identify() {
                                         <DateField
                                             value={expiresAt}
                                             onChange={setExpiresAt}
-                                            placeholder="Choose the expiry"
                                             disabled={busy}
                                             invalid={Boolean(errorFor('documents.0.expires_at'))}
                                         />

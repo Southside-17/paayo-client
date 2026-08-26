@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Platform, Pressable, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
+import { Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { cn } from '@/lib/utils';
 import palette from '@/theme/palette';
@@ -13,6 +14,7 @@ type Props = {
     /** The date as the server takes it: YYYY-MM-DD, or empty when unset. */
     value: string;
     onChange: (value: string) => void;
+    /** What an unset field shows. Defaults to the format the picker fills in. */
     placeholder?: string;
     minimumDate?: Date;
     maximumDate?: Date;
@@ -26,11 +28,17 @@ type Props = {
  * Held as YYYY-MM-DD because that is what the server takes, and built from the
  * local date parts rather than `toISOString()`, which converts to UTC and moves
  * a Manila date back a day for anything before 08:00.
+ *
+ * iOS keeps its wheel in a Sheet, like every other choice in this app. Left
+ * inline it renders inside whatever ScrollView it happens to be in, where its
+ * own height is not guaranteed and it can arrive with none at all. Android
+ * ignores the sheet: its picker is already a system dialog, and putting one
+ * inside a modal stacks two.
  */
 export function DateField({
     value,
     onChange,
-    placeholder = 'Choose a date',
+    placeholder = 'DD Month YYYY',
     minimumDate,
     maximumDate,
     disabled = false,
@@ -41,14 +49,55 @@ export function DateField({
     const colours = palette[colorScheme ?? 'light'];
 
     const held = parse(value);
+    const opensAt = held ?? maximumDate ?? new Date();
+
+    // The wheel reports every turn; on iOS nothing is written until Done, so a
+    // half-scrolled year is not committed and Cancel has something to undo to.
+    const [pending, setPending] = useState(opensAt);
+
+    const show = () => {
+        setPending(held ?? maximumDate ?? new Date());
+        setOpen(true);
+    };
+
+    const picker = (inSheet: boolean) => (
+        <DateTimePicker
+            value={inSheet ? pending : opensAt}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            minimumDate={minimumDate}
+            maximumDate={maximumDate}
+            themeVariant={colorScheme ?? 'light'}
+            onChange={(event, picked) => {
+                if (inSheet) {
+                    if (picked) {
+                        setPending(picked);
+                    }
+
+                    return;
+                }
+
+                // Android's dialog closes itself and reports the dismissal.
+                setOpen(false);
+
+                if (event.type === 'dismissed' || !picked) {
+                    return;
+                }
+
+                onChange(stamp(picked));
+            }}
+        />
+    );
 
     return (
         <View>
             <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={value === '' ? placeholder : `Change the date, currently ${value}`}
+                accessibilityLabel={
+                    value === '' ? placeholder : `Change the date, currently ${readable(held)}`
+                }
                 disabled={disabled}
-                onPress={() => setOpen(true)}
+                onPress={show}
                 className={cn(
                     'border-input bg-card h-12 flex-row items-center gap-2.5 rounded-lg border px-3',
                     invalid && 'border-destructive',
@@ -61,36 +110,28 @@ export function DateField({
                 </Text>
             </Pressable>
 
-            {open ? (
-                <>
-                    <DateTimePicker
-                        value={held ?? maximumDate ?? new Date()}
-                        mode="date"
-                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                        minimumDate={minimumDate}
-                        maximumDate={maximumDate}
-                        onChange={(event, picked) => {
-                            // Android closes itself and reports dismissal; iOS
-                            // stays up until its own Done is pressed.
-                            if (Platform.OS !== 'ios') {
-                                setOpen(false);
-                            }
+            {Platform.OS === 'ios' ? (
+                <Sheet open={open} onDismiss={() => setOpen(false)} label="Choose a date">
+                    <Text className="text-base font-bold">Choose a date</Text>
 
-                            if (event.type === 'dismissed' || !picked) {
-                                return;
-                            }
+                    {open ? picker(true) : null}
 
-                            onChange(stamp(picked));
+                    <Button
+                        onPress={() => {
+                            onChange(stamp(pending));
+                            setOpen(false);
                         }}
-                    />
+                    >
+                        Done
+                    </Button>
 
-                    {Platform.OS === 'ios' ? (
-                        <Button variant="outline" onPress={() => setOpen(false)}>
-                            Done
-                        </Button>
-                    ) : null}
-                </>
-            ) : null}
+                    <Button variant="ghost" onPress={() => setOpen(false)}>
+                        Cancel
+                    </Button>
+                </Sheet>
+            ) : (
+                open ? picker(false) : null
+            )}
         </View>
     );
 }

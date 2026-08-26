@@ -200,7 +200,6 @@ export default function BusinessRegistration() {
                                     <DateField
                                         value={registeredAt}
                                         onChange={setRegisteredAt}
-                                        placeholder="Choose the date"
                                         maximumDate={new Date()}
                                         disabled={busy}
                                         invalid={Boolean(errorFor('registered_at'))}
@@ -324,7 +323,6 @@ export default function BusinessRegistration() {
                                             <DateField
                                                 value={paper.expiresAt}
                                                 onChange={(expiresAt) => change(at, { expiresAt })}
-                                                placeholder="Choose the expiry"
                                                 disabled={busy}
                                                 invalid={Boolean(
                                                     errorFor(`documents.${at}.expires_at`),
