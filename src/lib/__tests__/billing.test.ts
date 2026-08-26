@@ -1,8 +1,20 @@
-import { COLLECTABLE, attestation, destinationLine, isOwed, isTransfer, outstanding, standing } from '@/lib/billing';
-import type { Destination, Invoice, Payment } from '@/lib/types';
+import {
+    COLLECTABLE,
+    attestation,
+    billedLine,
+    destinationLine,
+    isOwed,
+    isTransfer,
+    issuerLine,
+    outstanding,
+    standing,
+} from '@/lib/billing';
+import type { Destination, Invoice, IssuedParty, Payment } from '@/lib/types';
 
 const invoice = (total: number, paid: number): Invoice => ({
     id: 'inv_1',
+    issued_from: null,
+    issued_to: null,
     lines: [],
     total,
     paid,
@@ -87,4 +99,34 @@ it('names an account by its institution, never by its rail', () => {
     // "E-wallet" is not.
     expect(destinationLine(bank)).toBe('BPI · Juan Dela Cruz');
     expect(destinationLine(gcash)).toBe('GCash · Juan D.');
+});
+
+test('the issuer is named off the invoice, with its trading name and TIN', () => {
+    const party = (over: Partial<IssuedParty>): IssuedParty => ({
+        name: 'Santos Aircon Services',
+        business_style: null,
+        tin: null,
+        address: null,
+        ...over,
+    });
+
+    const of = (issued_from: IssuedParty | null): Invoice => ({
+        ...invoice(200_000, 0),
+        issued_from,
+    });
+
+    expect(issuerLine(of(null))).toBeNull();
+    expect(issuerLine(of(party({})))).toBe('Santos Aircon Services');
+    expect(issuerLine(of(party({ tin: '123-456-789-000' })))).toBe(
+        'Santos Aircon Services · TIN 123-456-789-000',
+    );
+    expect(
+        issuerLine(of(party({ business_style: 'Santos Electrical', tin: '123-456-789-000' }))),
+    ).toBe('Santos Aircon Services (Santos Electrical) · TIN 123-456-789-000');
+
+    // The other side reads the same way, without the trading name.
+    expect(billedLine({ ...invoice(200_000, 0), issued_to: party({ name: 'Ading' }) })).toBe(
+        'Ading',
+    );
+    expect(billedLine(of(null))).toBeNull();
 });

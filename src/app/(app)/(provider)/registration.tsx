@@ -56,6 +56,7 @@ export default function BusinessRegistration() {
 
     const [name, setName] = useState('');
     const [registeredAt, setRegisteredAt] = useState('');
+    const [tin, setTin] = useState('');
     const [street, setStreet] = useState('');
     const [barangay, setBarangay] = useState('');
     const [town, setTown] = useState('');
@@ -104,6 +105,7 @@ export default function BusinessRegistration() {
             body.append('registered_address[barangay]', barangay.trim());
             body.append('registered_address[town]', town.trim());
             body.append('registered_address[province]', province.trim());
+            body.append('tin', tin.trim());
 
             papers.forEach((paper, at) => {
                 body.append(`documents[${at}][type]`, paper.type?.value ?? '');
@@ -205,6 +207,25 @@ export default function BusinessRegistration() {
                                         invalid={Boolean(errorFor('registered_at'))}
                                     />
                                     <FieldError message={errorFor('registered_at')} />
+                                </View>
+                            </Card>
+
+                            <Card className="gap-3">
+                                <Text className="font-medium">TIN</Text>
+                                <Text className="text-muted-foreground text-sm leading-5">
+                                    On the BIR 2303. It is printed on every invoice you issue, so
+                                    leave it blank if the business is not registered with the BIR.
+                                </Text>
+
+                                <View>
+                                    <Input
+                                        value={tin}
+                                        onChangeText={setTin}
+                                        placeholder="123-456-789-000"
+                                        keyboardType="numbers-and-punctuation"
+                                        invalid={Boolean(errorFor('tin'))}
+                                    />
+                                    <FieldError message={errorFor('tin')} />
                                 </View>
                             </Card>
 

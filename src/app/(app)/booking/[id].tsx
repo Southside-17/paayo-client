@@ -20,7 +20,7 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusPill } from '@/components/ui/status-pill';
 import { Text } from '@/components/ui/text';
-import { attestation, isOwed, standing } from '@/lib/billing';
+import { attestation, isOwed, issuerLine, standing } from '@/lib/billing';
 import { accounting } from '@/lib/jobs';
 import { peso, priceRange, rateLine, workings } from '@/lib/money';
 import { useSession } from '@/lib/session';
@@ -322,6 +322,12 @@ export default function BookingDetail() {
                                         {standing(booking.invoice)}
                                     </Text>
                                 </View>
+
+                                {issuerLine(booking.invoice) ? (
+                                    <Text className="text-muted-foreground text-xs">
+                                        Issued by {issuerLine(booking.invoice)}
+                                    </Text>
+                                ) : null}
 
                                 {(booking.invoice.payments ?? []).map((payment) => (
                                     <View key={payment.id} className="gap-0.5">

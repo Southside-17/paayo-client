@@ -59,6 +59,8 @@ const maya: Destination = {
 
 const invoice: Invoice = {
     id: 'inv1',
+    issued_from: null,
+    issued_to: null,
     lines: [],
     total: 200_000,
     paid: 0,

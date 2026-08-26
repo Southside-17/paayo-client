@@ -5,6 +5,7 @@ import Camera from 'lucide-react-native/icons/camera';
 import Link2 from 'lucide-react-native/icons/link-2';
 import MapPin from 'lucide-react-native/icons/map-pin';
 import Pencil from 'lucide-react-native/icons/pencil';
+import Receipt from 'lucide-react-native/icons/receipt';
 import ShieldCheck from 'lucide-react-native/icons/shield-check';
 import Trash2 from 'lucide-react-native/icons/trash-2';
 import { useColorScheme } from 'nativewind';
@@ -38,6 +39,7 @@ const ROWS: SettingsRow[] = [
     { icon: Link2, label: 'Sign-in', note: 'Google and the other ways in', href: '/profile/socials' },
     { icon: BadgeCheck, label: 'Identity', note: 'Verify who you are', href: '/profile/identification' },
     { icon: ShieldCheck, label: 'Security', note: 'Password, passkeys, two factor', href: '/security' },
+    { icon: Receipt, label: 'Billing', note: 'Who your invoices are made out to', href: '/profile/billing' },
     { icon: Briefcase, label: 'Business', note: 'Register one you own', href: '/profile/business' },
     { icon: Trash2, label: 'Close account', note: 'What goes, and what has to stay', href: '/profile/delete' },
 ];

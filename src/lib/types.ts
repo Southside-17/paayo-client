@@ -6,6 +6,28 @@ import type { Tone } from '@/components/ui/tone';
  */
 
 /** Every verification plane is named in full; a bare "verified" is ambiguous. */
+/**
+ * One side of an invoice, or the details a person saved for their own side.
+ *
+ * Frozen onto an invoice the day it is raised: the Tax Code keeps an issued
+ * invoice as issued, so what is shown here never follows a later edit.
+ */
+export type IssuedParty = {
+    name: string;
+    /** The trading name beside the registered one, where they differ. */
+    business_style: string | null;
+    tin: string | null;
+    address: {
+        unit: string | null;
+        street: string | null;
+        subdivision: string | null;
+        barangay: string | null;
+        town: string | null;
+        province: string | null;
+        postal_code: string | null;
+    } | null;
+};
+
 export type User = {
     id: string;
     /** Empty when a provider signed them up and its name was unusable. */
@@ -21,6 +43,8 @@ export type User = {
     email: string;
     email_verified: boolean;
     identification_verified: boolean;
+    /** What this person wants their invoices made out to, or null for none. */
+    billing: IssuedParty | null;
     two_factor_enabled: boolean;
     has_password: boolean;
     administrator: boolean;
@@ -181,6 +205,8 @@ export type Registration = {
     id: string;
     registered_name: string;
     registered_at: string | null;
+    /** On the BIR 2303. Null where the business is not registered. */
+    tin: string | null;
     status: ReviewStatus;
     status_label: string;
     rejection_reason: string | null;
@@ -613,6 +639,10 @@ export type Payment = {
  */
 export type Invoice = {
     id: string;
+    /** The business, as it stood the day this was raised. */
+    issued_from: IssuedParty | null;
+    /** Who it is made out to, likewise frozen. */
+    issued_to: IssuedParty | null;
     lines: {
         label: string;
         amount: number;

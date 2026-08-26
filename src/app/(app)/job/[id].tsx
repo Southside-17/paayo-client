@@ -25,7 +25,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { StatusPill } from '@/components/ui/status-pill';
 import { Text } from '@/components/ui/text';
 import { stopWatching, watchForArrival } from '@/lib/geofence';
-import { attestation, isOwed, standing } from '@/lib/billing';
+import { attestation, billedLine, isOwed, standing } from '@/lib/billing';
 import { accounting, nextStep } from '@/lib/jobs';
 import { peso, priceRange, rateLine, workings } from '@/lib/money';
 import { useSession } from '@/lib/session';
@@ -557,6 +557,12 @@ export default function Job() {
                                             {standing(job.invoice)}
                                         </Text>
                                     </View>
+
+                                    {billedLine(job.invoice) ? (
+                                        <Text className="text-muted-foreground text-xs">
+                                            Billed to {billedLine(job.invoice)}
+                                        </Text>
+                                    ) : null}
 
                                     {(job.invoice.payments ?? []).map((payment) => (
                                         <View key={payment.id} className="gap-0.5">

@@ -1,5 +1,5 @@
 import { peso } from '@/lib/money';
-import type { Destination, Invoice, Payment, PaymentMethod } from '@/lib/types';
+import type { Destination, Invoice, IssuedParty, Payment, PaymentMethod } from '@/lib/types';
 
 /** The rails a client can be recorded as having paid on, in the order offered. */
 export const COLLECTABLE: PaymentMethod['value'][] = ['cash', 'ewallet', 'bank'];
@@ -78,4 +78,35 @@ export function attestation(payment: Payment): string {
  */
 export function destinationLine(destination: Destination): string {
     return `${destination.institution} · ${destination.name}`;
+}
+
+/**
+ * How the business that issued an invoice is named on it.
+ *
+ * Read off the invoice, never off the provider: an issued invoice is kept as it
+ * was issued, so a business that has since re-registered still shows the name it
+ * billed under. The trading name follows in brackets where the two differ, which
+ * is what lets a client match the document to the company they booked.
+ */
+export function issuerLine(invoice: Invoice | null | undefined): string | null {
+    const issuer = invoice?.issued_from;
+
+    if (!issuer) {
+        return null;
+    }
+
+    const named = issuer.business_style ? `${issuer.name} (${issuer.business_style})` : issuer.name;
+
+    return issuer.tin ? `${named} · TIN ${issuer.tin}` : named;
+}
+
+/** How the party an invoice was made out to is named on it. */
+export function billedLine(invoice: Invoice | null | undefined): string | null {
+    const billed: IssuedParty | null | undefined = invoice?.issued_to;
+
+    if (!billed) {
+        return null;
+    }
+
+    return billed.tin ? `${billed.name} · TIN ${billed.tin}` : billed.name;
 }
