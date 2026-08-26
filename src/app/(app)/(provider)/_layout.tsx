@@ -69,6 +69,7 @@ export default function ProviderLayout() {
                 }}
             />
             <Tabs.Screen name="standing" options={{ href: null }} />
+            <Tabs.Screen name="registration" options={{ href: null }} />
         </Tabs>
     );
 }

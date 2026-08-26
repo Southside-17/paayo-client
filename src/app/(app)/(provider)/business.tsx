@@ -171,6 +171,27 @@ export default function Business() {
                     </View>
                 </Card>
 
+                {mayBePaid ? (
+                    <Link href="/registration" asChild>
+                        <Pressable
+                            accessibilityRole="button"
+                            className="bg-card border-border flex-row items-center gap-3.5 rounded-xl border px-4 py-3.5"
+                        >
+                            <View className="min-w-0 flex-1 gap-0.5">
+                                <Text className="text-[15px] font-medium">
+                                    {business.registration_verified
+                                        ? 'Send new papers'
+                                        : 'Send the business papers'}
+                                </Text>
+                                <Text className="text-muted-foreground text-xs">
+                                    Registration, permit and tax certificate
+                                </Text>
+                            </View>
+                            <ChevronRight color={colours['muted-foreground']} size={17} />
+                        </Pressable>
+                    </Link>
+                ) : null}
+
                 {business.market ? null : (
                     <Text className="text-warning text-sm">
                         No market yet, so nothing can be booked. An administrator sets this.

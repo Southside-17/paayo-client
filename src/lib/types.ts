@@ -176,6 +176,24 @@ export type IdentificationIndex = {
     minimum_age: number;
 };
 
+/** A business's claim about what it legally is, and the verdict on it. */
+export type Registration = {
+    id: string;
+    registered_name: string;
+    registered_at: string | null;
+    status: ReviewStatus;
+    status_label: string;
+    rejection_reason: string | null;
+    reviewed_at: string | null;
+    created_at: string;
+    documents: Document[];
+};
+
+export type RegistrationIndex = {
+    data: Registration[];
+    types: DocumentType[];
+};
+
 export type TokenResponse = {
     data: User;
     token: string;
