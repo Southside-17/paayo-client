@@ -39,6 +39,11 @@ jest.mock('expo-apple-authentication', () => ({
 // that care about the unprovisioned cases reload the module with these cleared.
 process.env.EXPO_PUBLIC_PASSKEY_DOMAIN = 'www.paayo.test';
 process.env.EXPO_PUBLIC_APPLE_DEVELOPER_PROGRAM = '1';
+// The suite runs as a fully provisioned build. Android reads the web client id
+// rather than its own: Play Services knows the app by its signing certificate.
+process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID = 'web.apps.googleusercontent.test';
+process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID = 'android.apps.googleusercontent.test';
+process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID = 'ios.apps.googleusercontent.test';
 
 // expo-maps is a native view with no JS fallback, so requiring it under jest
 // throws before a screen that draws a map can render at all. The stand-in keeps
@@ -149,4 +154,25 @@ jest.mock('expo-sharing', () => ({
 jest.mock('expo-media-library', () => ({
     requestPermissionsAsync: jest.fn(async () => ({ granted: true })),
     saveToLibraryAsync: jest.fn(async () => undefined),
+}));
+
+// Google's native picker. Unavailable by default, the way the passkey and Apple
+// modules are: a test that wants the Android path mocks it for itself.
+jest.mock('@react-native-google-signin/google-signin', () => ({
+    GoogleSignin: {
+        configure: jest.fn(),
+        hasPlayServices: jest.fn(async () => true),
+        signIn: jest.fn(async () => ({ type: 'cancelled', data: null })),
+        signOut: jest.fn(async () => null),
+        getTokens: jest.fn(async () => ({ idToken: null, accessToken: null })),
+    },
+    isSuccessResponse: (response) => response?.type === 'success',
+    isErrorWithCode: (error) => typeof error?.code === 'string',
+    statusCodes: {
+        SIGN_IN_CANCELLED: '12501',
+        IN_PROGRESS: '12502',
+        PLAY_SERVICES_NOT_AVAILABLE: '12503',
+        SIGN_IN_REQUIRED: '4',
+        NULL_PRESENTER: 'NULL_PRESENTER',
+    },
 }));

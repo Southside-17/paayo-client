@@ -102,6 +102,10 @@ const config: ExpoConfig = {
         'expo-router',
         'expo-secure-store',
         '@react-native-community/datetimepicker',
+        // Android's native account picker. Google offers no native picker on
+        // iOS -- its SDK opens a browser sheet there too -- so iOS keeps the
+        // expo-auth-session flow and only Android changes.
+        '@react-native-google-signin/google-signin',
         [
             'expo-maps',
             {
