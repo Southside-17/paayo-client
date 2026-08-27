@@ -34,6 +34,12 @@ function MockLink({
 jest.mock('expo-router', () => ({ Link: MockLink, router: { push: jest.fn() } }));
 jest.mock('@/lib/session', () => ({ useSession: jest.fn() }));
 jest.mock('@/lib/google', () => ({ useGoogleSignIn: jest.fn() }));
+// Mocked now that the gate answers on Android too: this screen is about
+// navigation, and it should not depend on which platform Jest reports.
+jest.mock('@/lib/apple', () => ({
+    useAppleSignIn: jest.fn(() => ({ ready: false, requestToken: jest.fn() })),
+    requestAppleAuthorization: jest.fn(),
+}));
 jest.mock('@/lib/passkey', () => ({ passkeysAreSupported: jest.fn() }));
 
 beforeEach(() => {
@@ -42,6 +48,8 @@ beforeEach(() => {
         login: jest.fn(),
         register: jest.fn(),
         signInWithGoogle: jest.fn(),
+        signInWithApple: jest.fn(),
+        redeemAppleCode: jest.fn(),
         signInWithPasskey: jest.fn(),
     });
     (useGoogleSignIn as jest.Mock).mockReturnValue({ ready: false, requestToken: jest.fn() });

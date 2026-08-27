@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import type { ReactNode } from 'react';
+import { Platform } from 'react-native';
 
 import { useAppleSignIn } from '../apple';
 import { SessionProvider, useSession } from '../session';
@@ -35,11 +36,45 @@ function configuredGiven(env: Record<string, string | undefined>): boolean {
 
 beforeEach(() => {
     jest.mocked(AppleAuthentication.isAvailableAsync).mockResolvedValue(true);
+    // The mock store outlives a test, so a token kept by an earlier sign in would
+    // boot the next provider already authenticated.
+    (jest.requireMock('expo-secure-store').__store as Map<string, string>).clear();
 });
 
-// Jest reports iOS, which is the only platform this is offered on.
+// Jest reports iOS, which is the platform with the native sheet.
 it('is configured when the build was signed by a paid Apple membership', () => {
     expect(configuredGiven({})).toBe(true);
+});
+
+// One flag for both roads: the entitlement iOS needs and the Services ID the
+// server needs both exist exactly when the paid team does.
+it('is configured on Android too, which goes through the browser', () => {
+    const replaced = jest.replaceProperty(Platform, 'OS', 'android');
+
+    expect(configuredGiven({})).toBe(true);
+
+    replaced.restore();
+});
+
+it('is not configured on Android without the Apple Developer Program', () => {
+    const replaced = jest.replaceProperty(Platform, 'OS', 'android');
+
+    expect(configuredGiven({ EXPO_PUBLIC_APPLE_DEVELOPER_PROGRAM: undefined })).toBe(false);
+
+    replaced.restore();
+});
+
+it('is ready on Android without asking a module Android does not have', () => {
+    const replaced = jest.replaceProperty(Platform, 'OS', 'android');
+
+    const { result } = renderHook(() => useAppleSignIn());
+
+    // The browser is always there, so the build being configured is the whole
+    // answer -- and expo-apple-authentication is never touched to learn it.
+    expect(result.current.ready).toBe(true);
+    expect(AppleAuthentication.isAvailableAsync).not.toHaveBeenCalled();
+
+    replaced.restore();
 });
 
 // The free Personal Team case, and the one that must not break a teammate's
@@ -188,4 +223,68 @@ it('trades the identity token at the apple endpoint rather than at Google\'s', a
     expect(result.current.status).toBe('authenticated');
     expect(calls.some((url) => url.endsWith('/auth/socials/apple'))).toBe(true);
     expect(bodies.some((body) => JSON.parse(body).real_user === 'likely')).toBe(true);
+});
+
+it('redeems the browser flow at its own endpoint, sending the verifier once', async () => {
+    const calls: string[] = [];
+    const bodies: string[] = [];
+
+    // @ts-expect-error -- the test replaces the global fetch
+    global.fetch = jest.fn(async (url: string, init?: { body?: string }) => {
+        calls.push(url);
+
+        if (init?.body) {
+            bodies.push(init.body);
+        }
+
+        return url.endsWith('/auth/user')
+            ? { ok: false, status: 401, json: async () => ({}) }
+            : {
+                  ok: true,
+                  status: 201,
+                  json: async () => ({
+                      data: {
+                          id: 'u1',
+                          nickname: '',
+                          fullname: null,
+                          phone: null,
+                          avatar: false,
+                          email: 'juan@example.com',
+                          email_verified: true,
+                          identification_verified: false,
+                          two_factor_enabled: false,
+                          has_password: false,
+                          administrator: false,
+                          created_at: '2026-01-01T00:00:00.000000Z',
+                      },
+                      token: 'a-token',
+                      expires_at: null,
+                  }),
+              };
+    });
+
+    const { result } = renderHook(() => useSession(), {
+        wrapper: ({ children }: { children: ReactNode }) => (
+            <SessionProvider>{children}</SessionProvider>
+        ),
+    });
+
+    await waitFor(() => expect(result.current.status).toBe('unauthenticated'));
+
+    await act(async () => {
+        await result.current.redeemAppleCode('a-one-time-code', 'a-verifier-long-enough-for-rfc-7636-rules');
+    });
+
+    // A code and a verifier, never a token: the token stayed on the server, which
+    // is why an intercepted redirect is worth nothing.
+    expect(result.current.status).toBe('authenticated');
+    expect(calls.some((url) => url.endsWith('/auth/socials/apple/redemption'))).toBe(true);
+
+    const body = JSON.parse(bodies.find((entry) => entry.includes('code_verifier')) ?? '{}');
+
+    expect(body).toMatchObject({
+        code: 'a-one-time-code',
+        code_verifier: 'a-verifier-long-enough-for-rfc-7636-rules',
+    });
+    expect(body.token).toBeUndefined();
 });

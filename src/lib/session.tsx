@@ -18,6 +18,7 @@ type SessionValue = SessionState & {
     signInWithGoogle: (accessToken: string) => Promise<LoginResult>;
     /** Apple hands over a signed identity token, not an access token. */
     signInWithApple: (identityToken: string, realUser?: string | null) => Promise<LoginResult>;
+    redeemAppleCode: (code: string, verifier: string) => Promise<LoginResult>;
     signInWithPasskey: () => Promise<LoginResult | null>;
     completeTwoFactor: (challengeToken: string, code: string, recoveryCode?: string) => Promise<void>;
     register: (fields: RegisterFields) => Promise<void>;
@@ -238,6 +239,25 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         [signInWithSocial],
     );
 
+    // The browser flow's ending. What it redeems is a code rather than a token,
+    // but what comes back is the same union, so the two factor branch and
+    // adopting the session are the ones above and not a second copy.
+    const redeemAppleCode = useCallback(
+        async (code: string, verifier: string): Promise<LoginResult> => {
+            const result = await request<LoginResult>('/auth/socials/apple/redemption', {
+                method: 'POST',
+                body: { code, code_verifier: verifier, device_name: DEVICE_NAME },
+            });
+
+            if (!isTwoFactorChallenge(result)) {
+                await adopt(result);
+            }
+
+            return result;
+        },
+        [adopt],
+    );
+
     const completeTwoFactor = useCallback(
         async (challengeToken: string, code: string, recoveryCode?: string) => {
             const response = await request<TokenResponse>('/auth/two-factor-challenge', {
@@ -292,8 +312,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }, [authenticatedRequest, token]);
 
     const value = useMemo<SessionValue>(
-        () => ({ ...state, token, login, signInWithGoogle, signInWithApple, signInWithPasskey, completeTwoFactor, register, logout, reload, authenticatedRequest }),
-        [authenticatedRequest, completeTwoFactor, login, logout, register, reload, signInWithApple, signInWithGoogle, signInWithPasskey, state, token],
+        () => ({ ...state, token, login, signInWithGoogle, signInWithApple, redeemAppleCode, signInWithPasskey, completeTwoFactor, register, logout, reload, authenticatedRequest }),
+        [authenticatedRequest, completeTwoFactor, login, logout, redeemAppleCode, register, reload, signInWithApple, signInWithGoogle, signInWithPasskey, state, token],
     );
 
     return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

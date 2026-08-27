@@ -2,7 +2,7 @@ import { Link, router } from 'expo-router';
 import KeyRound from 'lucide-react-native/icons/key-round';
 import { useColorScheme } from 'nativewind';
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 
 import { AuthScreen } from '@/components/auth-screen';
 import { BrandIcon } from '@/components/brand-icon';
@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Text } from '@/components/ui/text';
-import { useAppleSignIn } from '@/lib/apple';
+import { requestAppleAuthorization, useAppleSignIn } from '@/lib/apple';
 import { APPLE, GOOGLE } from '@/lib/brands';
 import { useGoogleSignIn } from '@/lib/google';
 import { passkeysAreSupported } from '@/lib/passkey';
@@ -24,7 +24,8 @@ import { useSubmit } from '@/lib/use-submit';
 import palette from '@/theme/palette';
 
 export default function Login() {
-    const { login, signInWithGoogle, signInWithApple, signInWithPasskey } = useSession();
+    const { login, signInWithGoogle, signInWithApple, redeemAppleCode, signInWithPasskey } =
+        useSession();
     const { busy, message, errorFor, submit } = useSubmit();
     const google = useGoogleSignIn();
     const apple = useAppleSignIn();
@@ -73,6 +74,21 @@ export default function Login() {
 
     const continueWithApple = () =>
         submit(async () => {
+            // Android has no native sheet: the flow runs in a browser and comes
+            // back with a code to redeem rather than a token to post.
+            if (Platform.OS === 'android') {
+                const granted = await requestAppleAuthorization();
+
+                // Closing the tab is a decision, not a failure.
+                if (granted === null) {
+                    return;
+                }
+
+                challenge(await redeemAppleCode(granted.code, granted.verifier));
+
+                return;
+            }
+
             const credential = await apple.requestToken();
 
             // Backing out of the sheet is a decision, not a failure.
