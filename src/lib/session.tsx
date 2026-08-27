@@ -16,6 +16,8 @@ type SessionValue = SessionState & {
     token: string | null;
     login: (email: string, password: string) => Promise<LoginResult>;
     signInWithGoogle: (accessToken: string) => Promise<LoginResult>;
+    /** Apple hands over a signed identity token, not an access token. */
+    signInWithApple: (identityToken: string, realUser?: string | null) => Promise<LoginResult>;
     signInWithPasskey: () => Promise<LoginResult | null>;
     completeTwoFactor: (challengeToken: string, code: string, recoveryCode?: string) => Promise<void>;
     register: (fields: RegisterFields) => Promise<void>;
@@ -200,11 +202,19 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         return result;
     }, [adopt]);
 
-    const signInWithGoogle = useCallback(
-        async (accessToken: string): Promise<LoginResult> => {
-            const result = await request<LoginResult>('/auth/socials/google', {
+    // One implementation for both providers, because what follows the exchange
+    // -- the two factor branch and adopting the session -- must not drift between
+    // them. What differs is only which kind of token the platform handed over,
+    // and the server knows that from the provider in the path.
+    const signInWithSocial = useCallback(
+        async (
+            provider: 'google' | 'apple',
+            token: string,
+            extra: Record<string, string> = {},
+        ): Promise<LoginResult> => {
+            const result = await request<LoginResult>(`/auth/socials/${provider}`, {
                 method: 'POST',
-                body: { token: accessToken, device_name: DEVICE_NAME },
+                body: { token, device_name: DEVICE_NAME, ...extra },
             });
 
             if (!isTwoFactorChallenge(result)) {
@@ -214,6 +224,18 @@ export function SessionProvider({ children }: { children: ReactNode }) {
             return result;
         },
         [adopt],
+    );
+
+    const signInWithGoogle = useCallback(
+        (accessToken: string): Promise<LoginResult> => signInWithSocial('google', accessToken),
+        [signInWithSocial],
+    );
+
+    const signInWithApple = useCallback(
+        // Sent only when Apple offered one, which is the first sign in alone.
+        (identityToken: string, realUser?: string | null): Promise<LoginResult> =>
+            signInWithSocial('apple', identityToken, realUser ? { real_user: realUser } : {}),
+        [signInWithSocial],
     );
 
     const completeTwoFactor = useCallback(
@@ -270,8 +292,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }, [authenticatedRequest, token]);
 
     const value = useMemo<SessionValue>(
-        () => ({ ...state, token, login, signInWithGoogle, signInWithPasskey, completeTwoFactor, register, logout, reload, authenticatedRequest }),
-        [authenticatedRequest, completeTwoFactor, login, logout, register, reload, signInWithGoogle, signInWithPasskey, state, token],
+        () => ({ ...state, token, login, signInWithGoogle, signInWithApple, signInWithPasskey, completeTwoFactor, register, logout, reload, authenticatedRequest }),
+        [authenticatedRequest, completeTwoFactor, login, logout, register, reload, signInWithApple, signInWithGoogle, signInWithPasskey, state, token],
     );
 
     return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

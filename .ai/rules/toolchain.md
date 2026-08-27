@@ -210,23 +210,30 @@ env shim as the module graph is built, not per call, which is why the tests
 reload the module inside `jest.isolateModules` instead of setting `process.env`
 and calling again.
 
-## expo-notifications applies its own config plugin, and its entitlement breaks the build
-`expo-notifications` ships an `app.plugin.js`, and prebuild applies it **from the
-dependency list alone** -- listing it in `plugins` is not what turns it on, and
-removing it from `plugins` does not turn it off. It writes
-`aps-environment` into the entitlements, which a free Personal Team cannot hold,
-so Xcode refuses to mint a profile and the whole app stops building. Same wall as
-Associated Domains above, reached by a different door: there the entitlement was
-ours to withhold, here it arrives whether we ask or not. A `--clean` prebuild
-does not help; it is regenerated every time.
+## Some packages apply their own config plugin, and their entitlements break the build
+`expo-notifications` and `expo-apple-authentication` each ship an
+`app.plugin.js`, and prebuild applies it **from the dependency list alone** --
+listing them in `plugins` is not what turns it on, and removing them from
+`plugins` does not turn it off. They write `aps-environment` and
+`com.apple.developer.applesignin` into the entitlements, which a free Personal
+Team cannot hold, so Xcode refuses to mint a profile and the whole app stops
+building. Same wall as Associated Domains above, reached by a different door:
+there the entitlement was ours to withhold, here it arrives whether we ask or
+not. A `--clean` prebuild does not help; they are regenerated every time.
 
-`scripts/with-ios-push-entitlement.js` deletes the key unless
+`scripts/with-ios-paid-entitlements.js` deletes both keys unless
 `EXPO_PUBLIC_APPLE_DEVELOPER_PROGRAM` is set, and is composed at the bottom of `app.config.ts`
-with the other mods. The native module stays autolinked either way -- check
+with the other mods. **Add to its `PAID` list whenever a dependency brings
+another paid entitlement**, or a teammate on a free team loses the whole build
+rather than one feature. The native modules stay autolinked either way -- check
 `grep -c ExpoNotifications ios/Podfile.lock` -- which is the pairing that
 matters: the module must be present or the JS import throws on iOS, and the
 entitlement must be absent or nothing installs. Setting the flag after enrolling
-in the Apple Developer Program puts the entitlement back with no code change.
+in the Apple Developer Program puts them back with no code change.
+
+Each feature carries its own support check for the same flag, so an
+unprovisioned build hides the button rather than offering one that cannot work:
+`passkeysAreSupported()`, `pushIsSupported()`, `appleIsConfigured()`.
 
 **A native module added on one platform must be prebuilt on both.** iOS was left
 a day behind Android during the push work, so Metro served the new JS to an old

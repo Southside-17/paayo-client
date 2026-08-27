@@ -1,7 +1,7 @@
 import type { ExpoConfig } from 'expo/config';
 import { withXcodeProject } from 'expo/config-plugins';
 
-import { withIosPushEntitlement } from './scripts/with-ios-push-entitlement';
+import { withIosPaidEntitlements } from './scripts/with-ios-paid-entitlements';
 import { withIosSceneLifecycle } from './scripts/with-ios-scene-lifecycle';
 import palette from './src/theme/palette';
 
@@ -243,4 +243,4 @@ function withIosBuildSettings(expoConfig: ExpoConfig): ExpoConfig {
     });
 }
 
-export default withIosPushEntitlement(withIosSceneLifecycle(withIosBuildSettings(config)));
+export default withIosPaidEntitlements(withIosSceneLifecycle(withIosBuildSettings(config)));

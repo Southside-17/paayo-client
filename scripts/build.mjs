@@ -227,7 +227,7 @@ function resolveApiUrl({ target, apiUrl }, production, local) {
  * Xcode-side signing state with them, and a rebuild is slow enough to be worth
  * not doing twice.
  */
-function ensureNativeProjects(platforms, wanted) {
+function ensureNativeProjects(platforms, wanted, env) {
     if (!wanted) {
         return;
     }
@@ -238,8 +238,106 @@ function ensureNativeProjects(platforms, wanted) {
         return;
     }
 
+    // Prebuild is given the same EXPO_PUBLIC_* values the bundle will be built
+    // with, because app.config.ts reads them to decide the entitlements -- and a
+    // production build takes EXPO_PUBLIC_PASSKEY_DOMAIN from PRODUCTION above
+    // rather than from .env, which is empty on purpose. Without this it
+    // generated an ios/ with no associated domain and no way to know.
+    //
+    // NODE_ENV is deliberately withheld: prebuild may install packages, and
+    // `production` there omits devDependencies. It buys nothing anyway, since
+    // prebuild writes native projects and bundles no JS.
+    const { NODE_ENV: _release, ...expoPublic } = env;
+
     console.log(`\nGenerating ${missing.join(' and ')}/ with expo prebuild.\n`);
-    run('npx', ['expo', 'prebuild', '--platform', missing.length === 2 ? 'all' : missing[0]]);
+    run('npx', ['expo', 'prebuild', '--platform', missing.length === 2 ? 'all' : missing[0]], {
+        env: { ...process.env, ...expoPublic },
+    });
+}
+
+/**
+ * The entitlements plist prebuild generated, or null when there is no ios/.
+ *
+ * Found rather than assumed: Expo names it after the target, so a renamed app
+ * would otherwise pass a check that silently read nothing.
+ */
+function iosEntitlements() {
+    const ios = join(ROOT, 'ios');
+
+    if (!existsSync(ios)) {
+        return null;
+    }
+
+    for (const entry of readdirSync(ios, { withFileTypes: true })) {
+        if (!entry.isDirectory()) {
+            continue;
+        }
+
+        const directory = join(ios, entry.name);
+        const name = readdirSync(directory).find((file) => file.endsWith('.entitlements'));
+
+        if (name) {
+            return { path: join(directory, name), contents: readFileSync(join(directory, name), 'utf8') };
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Refuse an iOS build whose JS claims a paid capability the binary cannot hold.
+ *
+ * The two halves are decided at different moments by different environments, and
+ * that is the whole problem. `EXPO_PUBLIC_*` is inlined into the bundle by the
+ * xcodebuild run below, which is handed `env`; the entitlements were written
+ * earlier by whatever environment `expo prebuild` happened to see. Prebuild by
+ * hand without the production domain exported, and the result is a build that
+ * shows passkey buttons over an entitlement that was never written.
+ *
+ * Invisible until a real device taps the sheet against production, which is the
+ * most expensive place to find it -- so it is a hard stop here instead. Read as
+ * text rather than parsed: the file is generated, tiny, and what matters is
+ * whether one exact string Expo writes is in it.
+ */
+function assertIosCapabilities(env, membership) {
+    const entitlements = iosEntitlements();
+
+    // Nothing generated yet, so there is nothing to disagree with. A prebuild is
+    // still to come, and ensureNativeProjects gives it the right environment.
+    if (entitlements === null || !membership) {
+        return;
+    }
+
+    const domain = env.EXPO_PUBLIC_PASSKEY_DOMAIN;
+    const missing = [];
+
+    if (!entitlements.contents.includes('aps-environment')) {
+        missing.push('push  aps-environment');
+    }
+
+    if (domain && !entitlements.contents.includes(`webcredentials:${domain}`)) {
+        missing.push(`passkeys  webcredentials:${domain}`);
+    }
+
+    if (missing.length === 0) {
+        return;
+    }
+
+    const exports = [`EXPO_PUBLIC_APPLE_DEVELOPER_PROGRAM=${membership}`]
+        .concat(domain ? [`EXPO_PUBLIC_PASSKEY_DOMAIN=${domain}`] : [])
+        .join(' ');
+
+    console.error(`\n  ${entitlements.path.replace(`${ROOT}/`, '')} is missing:\n`);
+
+    for (const entry of missing) {
+        console.error(`    ${entry}`);
+    }
+
+    console.error('\n  This bundle would claim capabilities the binary has no entitlement for.');
+    console.error('  Regenerate the native project with the values this build uses:\n');
+    console.error(`    ${exports} npm run prebuild\n`);
+
+    process.exit(1);
 }
 
 function buildAndroid(env, label, version) {
@@ -280,8 +378,6 @@ function buildIos(env, label, version) {
 
     const scheme = basename(workspace, '.xcworkspace');
     const archive = join(OUTPUT, `${scheme}.xcarchive`);
-    const team = process.env.APPLE_TEAM_ID?.trim();
-
     rmSync(archive, { recursive: true, force: true });
 
     const signing = team
@@ -368,6 +464,22 @@ const label = options.target === 'custom' ? 'custom' : options.target;
 const { version } = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
 const platforms = options.platform === 'all' ? ['android', 'ios'] : [options.platform];
 
+// Not in PRODUCTION: the membership is a fact about the signing team rather than
+// a release setting, so it reaches prebuild through .env the way Expo reads every
+// other EXPO_PUBLIC_* value. Resolved here as well, so the banner can say which
+// way it went and assertIosCapabilities knows what to expect -- with Expo's own
+// precedence, the environment ahead of the file.
+const membership =
+    process.env.EXPO_PUBLIC_APPLE_DEVELOPER_PROGRAM?.trim() ||
+    valueOf(local, 'EXPO_PUBLIC_APPLE_DEVELOPER_PROGRAM');
+
+// Read from .env as well as the environment, the environment winning, like every
+// other value here. process.env alone was wrong: nothing loads .env for this
+// script -- Expo's CLI does that for its own commands, not for `node
+// scripts/build.mjs` -- so a team named in .env was never seen and what looked
+// like a signed build silently took the unsigned branch in buildIos.
+const team = process.env.APPLE_TEAM_ID?.trim() || valueOf(local, 'APPLE_TEAM_ID');
+
 // NODE_ENV=production is what makes this a release bundle. Every key PRODUCTION
 // declares is then set explicitly: to its own value for a production build, and
 // to .env's (or empty) otherwise, so a local build cannot inherit a production
@@ -388,20 +500,41 @@ console.log(`  Server    ${apiUrl}`);
 // Everything else PRODUCTION governs, so a build that quietly has passkeys off
 // is visible here rather than only on the phone.
 const governed = [...production.keys()].filter((key) => key !== 'EXPO_PUBLIC_API_URL');
-const width = Math.max(8, ...governed.map((key) => key.replace('EXPO_PUBLIC_', '').length));
+const width = Math.max(10, ...governed.map((key) => key.replace('EXPO_PUBLIC_', '').length));
 
 for (const key of governed) {
     console.log(`  ${key.replace('EXPO_PUBLIC_', '').padEnd(width)}  ${env[key] || '(off)'}`);
 }
 
+// The other half of every paid capability. With it off, passkeys and push are
+// quietly absent rather than broken, which is exactly what needs saying here.
+console.log(`  ${'MEMBERSHIP'.padEnd(width)}  ${membership ? 'paid team' : '(off)'}`);
+
+// An unsigned IPA installs nowhere and honours no entitlement, and the branch
+// that produces one looks just as successful as the branch that does not.
+if (platforms.includes('ios')) {
+    console.log(`  ${'SIGNING'.padEnd(width)}  ${team ?? '(unsigned)'}`);
+}
+
 console.log('');
 
 if (options.dryRun) {
+    // A dry run still reads what a previous prebuild wrote: "this would ship
+    // passkeys with no entitlement" is worth knowing before a ten-minute
+    // archive, and reading one file is not work.
+    if (platforms.includes('ios')) {
+        assertIosCapabilities(env, membership);
+    }
+
     process.exit(0);
 }
 
 mkdirSync(OUTPUT, { recursive: true });
-ensureNativeProjects(platforms, options.prebuild);
+ensureNativeProjects(platforms, options.prebuild, env);
+
+if (platforms.includes('ios')) {
+    assertIosCapabilities(env, membership);
+}
 
 const artifacts = platforms.map((platform) =>
     platform === 'android' ? buildAndroid(env, label, version) : buildIos(env, label, version),

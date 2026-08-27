@@ -14,7 +14,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Text } from '@/components/ui/text';
-import { GOOGLE } from '@/lib/brands';
+import { useAppleSignIn } from '@/lib/apple';
+import { APPLE, GOOGLE } from '@/lib/brands';
 import { useGoogleSignIn } from '@/lib/google';
 import { passkeysAreSupported } from '@/lib/passkey';
 import { useSession } from '@/lib/session';
@@ -23,12 +24,19 @@ import { useSubmit } from '@/lib/use-submit';
 import palette from '@/theme/palette';
 
 export default function Login() {
-    const { login, signInWithGoogle, signInWithPasskey } = useSession();
+    const { login, signInWithGoogle, signInWithApple, signInWithPasskey } = useSession();
     const { busy, message, errorFor, submit } = useSubmit();
     const google = useGoogleSignIn();
+    const apple = useAppleSignIn();
     const { colorScheme } = useColorScheme();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+
+    // Only the providers with a button above, so the notice never promises
+    // agreement to something this build cannot offer.
+    const consentProviders = [google.ready ? 'Google' : null, apple.ready ? 'Apple' : null]
+        .filter((name): name is string => name !== null)
+        .join(' or ');
 
     const challenge = (result: LoginResult) => {
         if (isTwoFactorChallenge(result)) {
@@ -63,6 +71,18 @@ export default function Login() {
             challenge(await signInWithGoogle(token));
         });
 
+    const continueWithApple = () =>
+        submit(async () => {
+            const credential = await apple.requestToken();
+
+            // Backing out of the sheet is a decision, not a failure.
+            if (credential === null) {
+                return;
+            }
+
+            challenge(await signInWithApple(credential.token, credential.realUser));
+        });
+
     return (
         <AuthScreen title="Log in to your account" subtitle="Enter your email and password to log in">
             <View className="gap-4">
@@ -83,21 +103,39 @@ export default function Login() {
 
                 <FieldError message={errorFor('credential')} />
 
-                {google.ready ? (
+                {google.ready || apple.ready ? (
                     <>
-                        <Button
-                            variant="outline"
-                            onPress={continueWithGoogle}
-                            busy={busy}
-                            icon={
-                                <BrandIcon
-                                    brand={GOOGLE}
-                                    color={palette[colorScheme ?? 'light'].foreground}
-                                />
-                            }
-                        >
-                            Sign in with Google
-                        </Button>
+                        {google.ready ? (
+                            <Button
+                                variant="outline"
+                                onPress={continueWithGoogle}
+                                busy={busy}
+                                icon={
+                                    <BrandIcon
+                                        brand={GOOGLE}
+                                        color={palette[colorScheme ?? 'light'].foreground}
+                                    />
+                                }
+                            >
+                                Sign in with Google
+                            </Button>
+                        ) : null}
+
+                        {apple.ready ? (
+                            <Button
+                                variant="outline"
+                                onPress={continueWithApple}
+                                busy={busy}
+                                icon={
+                                    <BrandIcon
+                                        brand={APPLE}
+                                        color={palette[colorScheme ?? 'light'].foreground}
+                                    />
+                                }
+                            >
+                                Sign in with Apple
+                            </Button>
+                        ) : null}
 
                         <View className="flex-row items-center gap-3">
                             <View className="bg-border h-px flex-1" />
@@ -150,12 +188,14 @@ export default function Login() {
                     </Link>
                 </View>
 
-                {/* Google opens an account when there is none, and the server
-                    records that as agreement -- so this is where it is said.
-                    The register form asks with a checkbox; this path has no
-                    form to put one on. */}
+                {/* A provider opens an account when there is none, and the
+                    server records that as agreement -- so this is where it is
+                    said. The register form asks with a checkbox; this path has
+                    no form to put one on. Named rather than generic, and only
+                    shown when there is a button above to agree by pressing. */}
+                {google.ready || apple.ready ? (
                 <Text className="text-muted-foreground text-center text-xs leading-5">
-                    By continuing with Google you accept the{' '}
+                    By continuing with {consentProviders} you accept the{' '}
                     <Text
                         className="text-brand text-xs underline"
                         onPress={() => void openDocument('/privacy-policy')}
@@ -171,6 +211,7 @@ export default function Login() {
                     </Text>
                     .
                 </Text>
+                ) : null}
             </View>
         </AuthScreen>
     );

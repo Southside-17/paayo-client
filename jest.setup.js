@@ -23,6 +23,17 @@ jest.mock('react-native-passkeys', () => ({
     get: jest.fn(),
 }));
 
+// Apple sign in is a platform sheet too, and jest has no Apple Account.
+// Unavailable by default for the same reason as passkeys above, so a screen
+// renders the way it does where the feature cannot be offered; a test that wants
+// the button turns isAvailableAsync on for itself.
+jest.mock('expo-apple-authentication', () => ({
+    isAvailableAsync: jest.fn(async () => false),
+    signInAsync: jest.fn(),
+    AppleAuthenticationScope: { FULL_NAME: 0, EMAIL: 1 },
+    AppleAuthenticationUserDetectionStatus: { UNSUPPORTED: 0, UNKNOWN: 1, LIKELY_REAL: 2 },
+}));
+
 // A fully provisioned build is the default the suite runs as: a passkey domain,
 // and the paid Apple membership that lets iOS carry the entitlements. Tests
 // that care about the unprovisioned cases reload the module with these cleared.
