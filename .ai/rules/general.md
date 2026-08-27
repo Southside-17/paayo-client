@@ -104,6 +104,13 @@ the lucide rule below exists for. `src/lib/brands.ts` holds the paths;
 `simple-icons` stays a devDependency and `brand-icon.test.tsx` reads it for real
 and fails if a copied path has drifted, so the copy cannot rot in silence.
 
+Microsoft is the exception, and not by choice: they asked Simple Icons to remove
+their marks, so `MICROSOFT` has no upstream and no drift test can be written for
+it. It is written out in `brands.ts` and stays as it is. It is also monochrome
+like the other two, which Microsoft's own brand guidance would not have -- but
+`BrandIcon` paints whatever it is given in one colour, and a single brand
+arriving in its own would read as a mistake rather than as compliance.
+
 The mark takes its `color` as a prop. There is no `currentColor` to inherit
 here, and NativeWind does not reach `react-native-svg`, so it is fed from
 `src/theme/palette.js` like every other icon. Passkey is a Lucide glyph

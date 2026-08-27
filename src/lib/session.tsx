@@ -18,6 +18,8 @@ type SessionValue = SessionState & {
     signInWithGoogle: (accessToken: string) => Promise<LoginResult>;
     /** Apple hands over a signed identity token, not an access token. */
     signInWithApple: (identityToken: string, realUser?: string | null) => Promise<LoginResult>;
+    /** Microsoft hands over one too; nothing will describe its access tokens. */
+    signInWithMicrosoft: (identityToken: string) => Promise<LoginResult>;
     redeemAppleCode: (code: string, verifier: string) => Promise<LoginResult>;
     signInWithPasskey: () => Promise<LoginResult | null>;
     completeTwoFactor: (challengeToken: string, code: string, recoveryCode?: string) => Promise<void>;
@@ -203,13 +205,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         return result;
     }, [adopt]);
 
-    // One implementation for both providers, because what follows the exchange
+    // One implementation for every provider, because what follows the exchange
     // -- the two factor branch and adopting the session -- must not drift between
     // them. What differs is only which kind of token the platform handed over,
     // and the server knows that from the provider in the path.
     const signInWithSocial = useCallback(
         async (
-            provider: 'google' | 'apple',
+            provider: 'google' | 'apple' | 'microsoft',
             token: string,
             extra: Record<string, string> = {},
         ): Promise<LoginResult> => {
@@ -236,6 +238,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         // Sent only when Apple offered one, which is the first sign in alone.
         (identityToken: string, realUser?: string | null): Promise<LoginResult> =>
             signInWithSocial('apple', identityToken, realUser ? { real_user: realUser } : {}),
+        [signInWithSocial],
+    );
+
+    const signInWithMicrosoft = useCallback(
+        (identityToken: string): Promise<LoginResult> => signInWithSocial('microsoft', identityToken),
         [signInWithSocial],
     );
 
@@ -312,8 +319,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }, [authenticatedRequest, token]);
 
     const value = useMemo<SessionValue>(
-        () => ({ ...state, token, login, signInWithGoogle, signInWithApple, redeemAppleCode, signInWithPasskey, completeTwoFactor, register, logout, reload, authenticatedRequest }),
-        [authenticatedRequest, completeTwoFactor, login, logout, redeemAppleCode, register, reload, signInWithApple, signInWithGoogle, signInWithPasskey, state, token],
+        () => ({ ...state, token, login, signInWithGoogle, signInWithApple, signInWithMicrosoft, redeemAppleCode, signInWithPasskey, completeTwoFactor, register, logout, reload, authenticatedRequest }),
+        [authenticatedRequest, completeTwoFactor, login, logout, redeemAppleCode, register, reload, signInWithApple, signInWithGoogle, signInWithMicrosoft, signInWithPasskey, state, token],
     );
 
     return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

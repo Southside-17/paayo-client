@@ -61,6 +61,7 @@ against a local server with none of them filled. What you probably want:
 | --- | --- |
 | `EXPO_PUBLIC_API_URL` | only for a **physical device** — see [Reaching the server](#reaching-the-server) |
 | `EXPO_PUBLIC_GOOGLE_*_CLIENT_ID` | Google sign-in |
+| `EXPO_PUBLIC_MICROSOFT_CLIENT_ID` | Microsoft sign-in |
 | `GOOGLE_MAPS_API_KEY` | the map on Android (iOS uses Apple Maps, no key) |
 | `APPLE_TEAM_ID` | only to sign a release IPA |
 | `EXPO_PUBLIC_APPLE_DEVELOPER_PROGRAM` | leave empty — see below |

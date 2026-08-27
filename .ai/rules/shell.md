@@ -144,12 +144,29 @@ otherwise is a lie the reader can check. The tap routes to `/profile/edit` when
 there is no number at all and to `/profile/phone` when there is -- the branch
 lives here because this is where the number is known.
 
-## Adding Apple or Microsoft is one row in `src/lib/providers.ts`
-`SOCIAL_PROVIDERS` is the single list every screen reads: the key matches the
+## Adding a provider is one row in `src/lib/providers.ts`
+`SOCIAL_PROVIDERS` is the single list both screens read: the key matches the
 server's `SocialProvider` enum and the route segment, and `isConfigured()` keeps
-a provider off the screen in a build with no credentials for it. Home renders a
-`SocialCard` per enabled provider and stays read-only -- linking and unlinking
-carry the last-way-in rule, so they live only on `profile/socials.tsx`.
+a provider off the screen in a build with no credentials for it. `login.tsx`
+renders a button per provider whose hook reports ready; `profile/socials.tsx`
+renders a `SocialCard` per provider that is configured **or already linked** --
+otherwise the only way out of a provider whose credentials a build has lost
+would be a build that has them back. Linking and unlinking carry the
+last-way-in rule, so they live only on `profile/socials.tsx`.
+
+The hooks are still called one by one at the top of each screen, because a hook
+cannot be called from a `.map()`. Only the rendering is driven by the list: the
+row says a provider exists, its hook says this build and this device can run it,
+and the screens filter on the hook's `ready` because that is both halves of the
+answer where `isConfigured()` is only the first.
+
+The last-way-in count spans every provider, never one card. `UnlinkSocial`
+refuses to remove the last way in when there is no password, so a screen
+counting only the provider it is drawing offers a button that always fails.
+
+Apple's Link button is iOS-only. Android's Apple flow runs through the server's
+browser leg, and that leg's start route hardcodes the login intent -- there is
+no link path behind a button there. Unlinking works on both.
 
 ## An empty tab says so
 `(tabs)/requests.tsx` has no server behind it and shows a written explanation

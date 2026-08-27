@@ -100,6 +100,28 @@ The server refuses a token minted for a client it does not know, so these ids
 must appear in its `services.google.audiences`. A build without the id its
 platform needs hides the button rather than offering one that cannot work.
 
+## Microsoft posts an identity token, because nothing describes its access ones
+`src/lib/microsoft.ts` runs the ordinary code flow with PKCE and then keeps the
+`id_token` off the exchange and discards the access token beside it. Microsoft
+publishes no tokeninfo endpoint, so nothing will say which client an access
+token was minted for and the server cannot show one to be ours -- the signed
+identity token can be shown, against Microsoft's published keys, which is
+Apple's door rather than Google's. `signInWithMicrosoft()` posts it to
+`POST auth/socials/microsoft` and reads the same union back.
+
+One Entra app registration serves the app and the console alike -- a Mobile and
+desktop platform here, a Web platform there -- and it must stay one: `sub` is
+pairwise per client id, so a second registration would hand the same person a
+second identity and each surface would open its own account for them. Only the
+id lives in `.env`; PKCE is what the public client proves itself with.
+
+Personal Microsoft accounts only, which the app registration decides and the
+server's fixed issuer enforces. Work and school accounts are deliberately out:
+an Entra tenant administrator may set any address on a user and Entra never
+verifies it, so admitting them would feed unverified addresses into the server's
+email auto-link. Entra also emits no `email_verified` on any endpoint, so a
+Microsoft signup lands unverified and is asked to confirm its address.
+
 A native client is handed a one-use authorization code, never a token, so
 `exchangeCode()` is the leg that produces something the server can verify. It
 reads the client id and the redirect back off the request rather than rebuilding

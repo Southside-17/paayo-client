@@ -15,29 +15,40 @@ import { Label } from '@/components/ui/label';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Text } from '@/components/ui/text';
 import { requestAppleAuthorization, useAppleSignIn } from '@/lib/apple';
-import { APPLE, GOOGLE } from '@/lib/brands';
 import { useGoogleSignIn } from '@/lib/google';
+import { useMicrosoftSignIn } from '@/lib/microsoft';
 import { passkeysAreSupported } from '@/lib/passkey';
+import { SOCIAL_PROVIDERS } from '@/lib/providers';
 import { useSession } from '@/lib/session';
 import { isTwoFactorChallenge, type LoginResult } from '@/lib/types';
 import { useSubmit } from '@/lib/use-submit';
 import palette from '@/theme/palette';
 
+/** "Google", "Google or Apple", "Google, Apple or Microsoft". */
+function nameList(names: string[]): string {
+    if (names.length < 2) {
+        return names.join('');
+    }
+
+    return `${names.slice(0, -1).join(', ')} or ${names[names.length - 1]}`;
+}
+
 export default function Login() {
-    const { login, signInWithGoogle, signInWithApple, redeemAppleCode, signInWithPasskey } =
-        useSession();
+    const {
+        login,
+        signInWithGoogle,
+        signInWithApple,
+        signInWithMicrosoft,
+        redeemAppleCode,
+        signInWithPasskey,
+    } = useSession();
     const { busy, message, errorFor, submit } = useSubmit();
     const google = useGoogleSignIn();
     const apple = useAppleSignIn();
+    const microsoft = useMicrosoftSignIn();
     const { colorScheme } = useColorScheme();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-
-    // Only the providers with a button above, so the notice never promises
-    // agreement to something this build cannot offer.
-    const consentProviders = [google.ready ? 'Google' : null, apple.ready ? 'Apple' : null]
-        .filter((name): name is string => name !== null)
-        .join(' or ');
 
     const challenge = (result: LoginResult) => {
         if (isTwoFactorChallenge(result)) {
@@ -99,6 +110,34 @@ export default function Login() {
             challenge(await signInWithApple(credential.token, credential.realUser));
         });
 
+    const continueWithMicrosoft = () =>
+        submit(async () => {
+            const token = await microsoft.requestToken();
+
+            // Closing the browser is a decision, not a failure.
+            if (token === null) {
+                return;
+            }
+
+            challenge(await signInWithMicrosoft(token));
+        });
+
+    // SOCIAL_PROVIDERS says which ways in exist and in what order; the hooks say
+    // whether this build and this device can run each one. They are called
+    // unconditionally above because hooks must be, and only the rendering below
+    // is driven by the list.
+    const presses: Record<string, { ready: boolean; onPress: () => void }> = {
+        google: { ready: google.ready, onPress: continueWithGoogle },
+        apple: { ready: apple.ready, onPress: continueWithApple },
+        microsoft: { ready: microsoft.ready, onPress: continueWithMicrosoft },
+    };
+
+    const waysIn = SOCIAL_PROVIDERS.filter((provider) => presses[provider.key]?.ready);
+
+    // Only the providers with a button below, so the notice never promises
+    // agreement to something this build cannot offer.
+    const consentProviders = nameList(waysIn.map((provider) => provider.label));
+
     return (
         <AuthScreen title="Log in to your account" subtitle="Enter your email and password to log in">
             <View className="gap-4">
@@ -119,39 +158,24 @@ export default function Login() {
 
                 <FieldError message={errorFor('credential')} />
 
-                {google.ready || apple.ready ? (
+                {waysIn.length > 0 ? (
                     <>
-                        {google.ready ? (
+                        {waysIn.map((provider) => (
                             <Button
+                                key={provider.key}
                                 variant="outline"
-                                onPress={continueWithGoogle}
+                                onPress={presses[provider.key].onPress}
                                 busy={busy}
                                 icon={
                                     <BrandIcon
-                                        brand={GOOGLE}
+                                        brand={provider.brand}
                                         color={palette[colorScheme ?? 'light'].foreground}
                                     />
                                 }
                             >
-                                Sign in with Google
+                                {`Sign in with ${provider.label}`}
                             </Button>
-                        ) : null}
-
-                        {apple.ready ? (
-                            <Button
-                                variant="outline"
-                                onPress={continueWithApple}
-                                busy={busy}
-                                icon={
-                                    <BrandIcon
-                                        brand={APPLE}
-                                        color={palette[colorScheme ?? 'light'].foreground}
-                                    />
-                                }
-                            >
-                                Sign in with Apple
-                            </Button>
-                        ) : null}
+                        ))}
 
                         <View className="flex-row items-center gap-3">
                             <View className="bg-border h-px flex-1" />
@@ -209,7 +233,7 @@ export default function Login() {
                     said. The register form asks with a checkbox; this path has
                     no form to put one on. Named rather than generic, and only
                     shown when there is a button above to agree by pressing. */}
-                {google.ready || apple.ready ? (
+                {waysIn.length > 0 ? (
                 <Text className="text-muted-foreground text-center text-xs leading-5">
                     By continuing with {consentProviders} you accept the{' '}
                     <Text

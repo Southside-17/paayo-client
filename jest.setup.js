@@ -44,6 +44,9 @@ process.env.EXPO_PUBLIC_APPLE_DEVELOPER_PROGRAM = '1';
 process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID = 'web.apps.googleusercontent.test';
 process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID = 'android.apps.googleusercontent.test';
 process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID = 'ios.apps.googleusercontent.test';
+// One Entra app registration serves the app and the console alike, so the app
+// carries its client id and no secret.
+process.env.EXPO_PUBLIC_MICROSOFT_CLIENT_ID = 'paayo-entra-client-id.test';
 
 // expo-maps is a native view with no JS fallback, so requiring it under jest
 // throws before a screen that draws a map can render at all. The stand-in keeps

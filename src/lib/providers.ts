@@ -1,5 +1,7 @@
-import { GOOGLE, type Brand } from '@/lib/brands';
+import { appleIsConfigured } from '@/lib/apple';
+import { APPLE, GOOGLE, MICROSOFT, type Brand } from '@/lib/brands';
 import { googleIsConfigured } from '@/lib/google';
+import { microsoftIsConfigured } from '@/lib/microsoft';
 
 export type SocialProvider = {
     /** Matches App\Enums\SocialProvider on the server, and the route segment. */
@@ -15,6 +17,8 @@ export type SocialProvider = {
  */
 export const SOCIAL_PROVIDERS: SocialProvider[] = [
     { key: 'google', label: 'Google', brand: GOOGLE, isConfigured: googleIsConfigured },
+    { key: 'apple', label: 'Apple', brand: APPLE, isConfigured: appleIsConfigured },
+    { key: 'microsoft', label: 'Microsoft', brand: MICROSOFT, isConfigured: microsoftIsConfigured },
 ];
 
 /** The providers this build can actually reach. */

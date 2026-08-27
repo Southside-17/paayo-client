@@ -40,6 +40,11 @@ jest.mock('@/lib/apple', () => ({
     useAppleSignIn: jest.fn(() => ({ ready: false, requestToken: jest.fn() })),
     requestAppleAuthorization: jest.fn(),
 }));
+// Mocked for the same reason Apple is, and to keep expo-auth-session's own
+// state updates out of a test that only looks at where links point.
+jest.mock('@/lib/microsoft', () => ({
+    useMicrosoftSignIn: jest.fn(() => ({ ready: false, requestToken: jest.fn() })),
+}));
 jest.mock('@/lib/passkey', () => ({ passkeysAreSupported: jest.fn() }));
 
 beforeEach(() => {
@@ -49,6 +54,7 @@ beforeEach(() => {
         register: jest.fn(),
         signInWithGoogle: jest.fn(),
         signInWithApple: jest.fn(),
+        signInWithMicrosoft: jest.fn(),
         redeemAppleCode: jest.fn(),
         signInWithPasskey: jest.fn(),
     });
