@@ -37,8 +37,8 @@ export function appleIsConfigured(): boolean {
  */
 export type RealUser = 'likely' | 'unknown' | 'unsupported';
 
-/** What one Apple sign in yields: a signed token, and an unsigned opinion. */
-export type AppleCredential = { token: string; realUser: RealUser | null };
+/** What one Apple sign in yields: a signed token, and unsigned assertions. */
+export type AppleCredential = { token: string; realUser: RealUser | null; name: string | null };
 
 /**
  * Read the detection status, or null when Apple offered none.
@@ -59,6 +59,17 @@ function realUserFrom(status: AppleAuthentication.AppleAuthenticationUserDetecti
         default:
             return null;
     }
+}
+
+/**
+ * Join the name parts Apple offered, on the first authorisation only.
+ */
+function nameFrom(fullName: AppleAuthentication.AppleAuthenticationFullName | null): string | null {
+    const joined = [fullName?.givenName, fullName?.familyName]
+        .filter((part): part is string => typeof part === 'string' && part.trim() !== '')
+        .join(' ');
+
+    return joined === '' ? null : joined;
 }
 
 /**
@@ -178,10 +189,6 @@ export function useAppleSignIn(): {
 
             try {
                 credential = await AppleAuthentication.signInAsync({
-                    // The name is asked for and then ignored: Apple sends it on
-                    // the first authorisation only, never in the token, and an
-                    // account keyed off something that arrives once is an account
-                    // that breaks on reinstall. EnsureHasNickname asks instead.
                     requestedScopes: [
                         AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
                         AppleAuthentication.AppleAuthenticationScope.EMAIL,
@@ -204,6 +211,7 @@ export function useAppleSignIn(): {
             return {
                 token: credential.identityToken,
                 realUser: realUserFrom(credential.realUserStatus),
+                name: nameFrom(credential.fullName),
             };
         },
     };

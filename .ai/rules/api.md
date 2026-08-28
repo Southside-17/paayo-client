@@ -100,6 +100,19 @@ The server refuses a token minted for a client it does not know, so these ids
 must appear in its `services.google.audiences`. A build without the id its
 platform needs hides the button rather than offering one that cannot work.
 
+## Apple's name arrives once and is forwarded once
+`signInAsync` asks for FULL_NAME, and Apple answers it on the FIRST
+authorisation of a bundle id alone -- every sign in after that returns
+`fullName: null`, and no API will hand it back. `useAppleSignIn()` joins the
+parts into `AppleCredential.name` and both doors forward it as `name`, beside
+`real_user` and with the same standing: the app's word, stored and used for
+nothing.
+
+Because it arrives once, the stored name never updates and a reinstall does not
+bring it back. Nothing may key an account off it -- the server's
+`EnsureHasNickname` asks instead. Google and Microsoft report their names inside
+the credential itself, so neither needs this.
+
 ## Microsoft posts an identity token, because nothing describes its access ones
 `src/lib/microsoft.ts` runs the ordinary code flow with PKCE and then keeps the
 `id_token` off the exchange and discards the access token beside it. Microsoft

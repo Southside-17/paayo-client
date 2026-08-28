@@ -17,8 +17,8 @@ import { useSession } from '@/lib/session';
 import type { Social } from '@/lib/types';
 import { useSubmit } from '@/lib/use-submit';
 
-/** What a provider needs to offer linking here: a token, on demand. */
-type Linker = { ready: boolean; requestToken: () => Promise<string | null> };
+/** What a provider needs to offer linking here: a request body, on demand. */
+type Linker = { ready: boolean; requestBody: () => Promise<Record<string, string> | null> };
 
 /**
  * The providers that can open this account, and the last way in.
@@ -53,16 +53,16 @@ export default function LinkedAccounts() {
     const link = useCallback(
         (key: string, linker: Linker) =>
             submit(async () => {
-                const token = await linker.requestToken();
+                const body = await linker.requestBody();
 
                 // Backing out is a decision, not a failure.
-                if (token === null) {
+                if (body === null) {
                     return;
                 }
 
                 await session.authenticatedRequest<unknown>(`/auth/socials/${key}/link`, {
                     method: 'POST',
-                    body: { token },
+                    body,
                 });
 
                 await load();
@@ -88,7 +88,14 @@ export default function LinkedAccounts() {
     }
 
     const linkers: Record<string, Linker | null> = {
-        google,
+        google: {
+            ready: google.ready,
+            requestBody: async () => {
+                const token = await google.requestToken();
+
+                return token === null ? null : { token };
+            },
+        },
         // Apple links from the native sheet alone. Android's Apple flow runs
         // through the server's browser leg, which begins at a route that says
         // `login` and knows no other intent -- so there is nothing here to press.
@@ -96,10 +103,29 @@ export default function LinkedAccounts() {
             Platform.OS === 'ios'
                 ? {
                       ready: apple.ready,
-                      requestToken: async () => (await apple.requestToken())?.token ?? null,
+                      requestBody: async () => {
+                          const credential = await apple.requestToken();
+
+                          if (credential === null) {
+                              return null;
+                          }
+
+                          return {
+                              token: credential.token,
+                              ...(credential.realUser ? { real_user: credential.realUser } : {}),
+                              ...(credential.name ? { name: credential.name } : {}),
+                          };
+                      },
                   }
                 : null,
-        microsoft,
+        microsoft: {
+            ready: microsoft.ready,
+            requestBody: async () => {
+                const token = await microsoft.requestToken();
+
+                return token === null ? null : { token };
+            },
+        },
     };
 
     // A provider this build cannot reach still belongs on the screen once it is

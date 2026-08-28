@@ -123,6 +123,29 @@ it.each([
     await expect(result.current.requestToken()).resolves.toEqual({
         token: 'an-identity-token',
         realUser: expected,
+        name: null,
+    });
+});
+
+it('joins the name Apple offers on the first authorisation', async () => {
+    jest.mocked(AppleAuthentication.signInAsync).mockResolvedValue({
+        identityToken: 'an-identity-token',
+        authorizationCode: 'a-code',
+        user: 'apple-sub',
+        email: null,
+        fullName: { givenName: 'Juan', familyName: 'Santos' },
+        realUserStatus: 1,
+        state: null,
+    } as Awaited<ReturnType<typeof AppleAuthentication.signInAsync>>);
+
+    const { result } = renderHook(() => useAppleSignIn());
+
+    await waitFor(() => expect(result.current.ready).toBe(true));
+
+    await expect(result.current.requestToken()).resolves.toEqual({
+        token: 'an-identity-token',
+        realUser: 'unknown',
+        name: 'Juan Santos',
     });
 });
 
@@ -217,12 +240,13 @@ it('trades the identity token at the apple endpoint rather than at Google\'s', a
     await waitFor(() => expect(result.current.status).toBe('unauthenticated'));
 
     await act(async () => {
-        await result.current.signInWithApple('an-identity-token', 'likely');
+        await result.current.signInWithApple('an-identity-token', 'likely', 'Juan Santos');
     });
 
     expect(result.current.status).toBe('authenticated');
     expect(calls.some((url) => url.endsWith('/auth/socials/apple'))).toBe(true);
     expect(bodies.some((body) => JSON.parse(body).real_user === 'likely')).toBe(true);
+    expect(bodies.some((body) => JSON.parse(body).name === 'Juan Santos')).toBe(true);
 });
 
 it('redeems the browser flow at its own endpoint, sending the verifier once', async () => {

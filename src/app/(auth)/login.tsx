@@ -107,7 +107,7 @@ export default function Login() {
                 return;
             }
 
-            challenge(await signInWithApple(credential.token, credential.realUser));
+            challenge(await signInWithApple(credential.token, credential.realUser, credential.name));
         });
 
     const continueWithMicrosoft = () =>

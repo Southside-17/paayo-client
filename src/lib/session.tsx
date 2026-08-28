@@ -17,7 +17,11 @@ type SessionValue = SessionState & {
     login: (email: string, password: string) => Promise<LoginResult>;
     signInWithGoogle: (accessToken: string) => Promise<LoginResult>;
     /** Apple hands over a signed identity token, not an access token. */
-    signInWithApple: (identityToken: string, realUser?: string | null) => Promise<LoginResult>;
+    signInWithApple: (
+        identityToken: string,
+        realUser?: string | null,
+        name?: string | null,
+    ) => Promise<LoginResult>;
     /** Microsoft hands over one too; nothing will describe its access tokens. */
     signInWithMicrosoft: (identityToken: string) => Promise<LoginResult>;
     redeemAppleCode: (code: string, verifier: string) => Promise<LoginResult>;
@@ -235,9 +239,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     );
 
     const signInWithApple = useCallback(
-        // Sent only when Apple offered one, which is the first sign in alone.
-        (identityToken: string, realUser?: string | null): Promise<LoginResult> =>
-            signInWithSocial('apple', identityToken, realUser ? { real_user: realUser } : {}),
+        // Sent only when Apple offered them, which is the first sign in alone.
+        (identityToken: string, realUser?: string | null, name?: string | null): Promise<LoginResult> =>
+            signInWithSocial('apple', identityToken, {
+                ...(realUser ? { real_user: realUser } : {}),
+                ...(name ? { name } : {}),
+            }),
         [signInWithSocial],
     );
 
