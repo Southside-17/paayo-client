@@ -115,12 +115,16 @@ pairwise per client id, so a second registration would hand the same person a
 second identity and each surface would open its own account for them. Only the
 id lives in `.env`; PKCE is what the public client proves itself with.
 
-Personal Microsoft accounts only, which the app registration decides and the
-server's fixed issuer enforces. Work and school accounts are deliberately out:
-an Entra tenant administrator may set any address on a user and Entra never
-verifies it, so admitting them would feed unverified addresses into the server's
-email auto-link. Entra also emits no `email_verified` on any endpoint, so a
-Microsoft signup lands unverified and is asked to confirm its address.
+Every kind of Microsoft account, personal and work or school alike, through the
+`common` endpoints -- the same openness Google and Apple are offered with.
+
+The address is the part that differs. An Entra tenant administrator may type any
+address into their directory and Entra never checks it, so a work address is not
+proof of anything until `xms_edov` says the domain is verified and the mailbox is
+theirs. The server refuses to resolve an account by an unconfirmed address, so a
+work account whose registration lacks that optional claim is turned away on first
+sign in with a message naming the reason. A personal account needs no claim: its
+address is Microsoft's own, and the tenant id is the proof.
 
 A native client is handed a one-use authorization code, never a token, so
 `exchangeCode()` is the leg that produces something the server can verify. It

@@ -14,8 +14,8 @@ jest.mock('expo-auth-session', () => ({
 }));
 
 const DISCOVERY = {
-    authorizationEndpoint: 'https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize',
-    tokenEndpoint: 'https://login.microsoftonline.com/consumers/oauth2/v2.0/token',
+    authorizationEndpoint: 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
+    tokenEndpoint: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
 };
 
 beforeEach(() => {
@@ -32,9 +32,6 @@ it('trades the authorization code for an identity token', async () => {
 
     const { result } = renderHook(() => useMicrosoftSignIn());
 
-    // The identity token, not the access token beside it: Microsoft publishes
-    // nothing that says which client an access token was minted for, so the API
-    // cannot show one to be ours.
     await expect(result.current.requestToken()).resolves.toBe('a-microsoft-id-token');
 
     expect(mockExchangeCodeAsync).toHaveBeenCalledWith(
@@ -83,8 +80,6 @@ it('refuses an exchange that returned no identity token', async () => {
     mockPromptAsync.mockResolvedValue({ type: 'success', params: { code: 'a-code' } });
     mockExchangeCodeAsync.mockResolvedValue({ accessToken: 'a-graph-token' });
 
-    // A scope that was never granted. Posting the empty token instead would be
-    // refused by the API in words nobody here can act on.
     const { result } = renderHook(() => useMicrosoftSignIn());
 
     await expect(result.current.requestToken()).rejects.toThrow('identity token');

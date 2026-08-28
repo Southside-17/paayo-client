@@ -10,8 +10,6 @@ const user = {
     phone: null,
     avatar: false,
     email: 'mara@example.com',
-    // Entra emits no email_verified, on any endpoint, so a Microsoft signup
-    // arrives unverified where a Google one does not.
     email_verified: false,
     identification_verified: false,
     two_factor_enabled: false,

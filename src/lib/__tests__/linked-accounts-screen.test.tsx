@@ -74,8 +74,6 @@ it('offers every provider the build carries, not just google', async () => {
 
     await waitFor(() => expect(screen.getByText('Link Google')).toBeOnTheScreen());
 
-    // The drift this screen used to carry: it was Google down to its URLs, so
-    // Apple was absent from the one place an account is managed from.
     for (const label of ['Google', 'Apple', 'Microsoft']) {
         expect(screen.getByText(label)).toBeOnTheScreen();
     }
@@ -88,8 +86,6 @@ it('unlinks through the provider it is drawn for', async () => {
 
     await waitFor(() => expect(screen.getAllByText('Unlink')).toHaveLength(2));
 
-    // The second card is Microsoft's, because SOCIAL_PROVIDERS orders this
-    // screen and the server's list does not.
     fireEvent.press(screen.getAllByText('Unlink')[1]);
 
     await waitFor(() =>
@@ -126,9 +122,6 @@ it('counts the last way in across providers rather than within one', async () =>
 
     render(<LinkedAccounts />);
 
-    // UnlinkSocial refuses to remove the last way in when there is no password,
-    // so a screen counting only the card it is drawing would offer a button that
-    // always fails.
     await waitFor(() => expect(screen.getByText(/only way into your account/)).toBeOnTheScreen());
 
     expect(screen.queryByText('Unlink')).toBeNull();
@@ -153,8 +146,6 @@ it('does not offer apple linking on android', async () => {
 
     render(<LinkedAccounts />);
 
-    // Android's Apple flow runs through the server's browser leg, whose start
-    // route knows only the login intent -- so there is nothing here to press.
     await waitFor(() => expect(screen.getByText('Link Google')).toBeOnTheScreen());
 
     expect(screen.queryByText('Link Apple')).toBeNull();
@@ -174,8 +165,6 @@ it('keeps a linked provider this build cannot reach', async () => {
 
     render(<LinkedAccounts />);
 
-    // Otherwise the only way out of it would be a build that has its
-    // credentials back.
     await waitFor(() => expect(screen.getByText('Microsoft')).toBeOnTheScreen());
 
     expect(screen.getAllByText('Unlink')).toHaveLength(2);
