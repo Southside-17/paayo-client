@@ -63,6 +63,10 @@ export default function SetNickname() {
                 <Button onPress={save} busy={busy}>
                     Save and carry on
                 </Button>
+
+                <Button onPress={() => void session.logout()} variant="ghost">
+                    Log out
+                </Button>
             </View>
         </AuthScreen>
     );

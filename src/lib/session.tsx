@@ -92,6 +92,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         void syncPushRegistration(response.token);
     }, []);
 
+    /**
+     * Drop the session locally. Must not be able to fail: it is the last step of
+     * logout, and anything thrown here leaves somebody signed in with no way out.
+     */
     const forget = useCallback(async () => {
         await clearToken();
         setToken(null);
