@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 import * as SecureStore from 'expo-secure-store';
 import type { ReactNode } from 'react';
 
+import { dropPushRegistration } from '@/lib/push';
 import { SessionProvider, useSession } from '@/lib/session';
 
 jest.mock('expo-secure-store', () => ({
@@ -36,6 +37,7 @@ beforeEach(() => {
     jest.clearAllMocks();
     jest.mocked(SecureStore.getItemAsync).mockResolvedValue('a-stored-token');
     jest.mocked(SecureStore.deleteItemAsync).mockResolvedValue(undefined);
+    jest.mocked(dropPushRegistration).mockResolvedValue(undefined);
 
     // @ts-expect-error -- the test replaces the global fetch
     global.fetch = jest.fn(async (url: string) =>
@@ -72,6 +74,41 @@ it('signs out even when the keychain refuses to forget the token', async () => {
     jest.mocked(SecureStore.deleteItemAsync).mockRejectedValue(
         new Error('The user name or passphrase you entered is not correct.'),
     );
+
+    const { result } = session();
+
+    await waitFor(() => expect(result.current.status).toBe('authenticated'));
+
+    await act(async () => {
+        await result.current.logout();
+    });
+
+    expect(result.current.status).toBe('unauthenticated');
+});
+
+// The failure no catch can see: a request, or a native promise, that never
+// answers. Awaiting it kept somebody signed in with no error to show for it.
+it('signs out without waiting for a network call that never answers', async () => {
+    // @ts-expect-error -- the test replaces the global fetch
+    global.fetch = jest.fn(async (url: string) =>
+        url.endsWith('/auth/user')
+            ? { ok: true, status: 200, json: async () => ({ data: account }) }
+            : new Promise(() => undefined),
+    );
+
+    const { result } = session();
+
+    await waitFor(() => expect(result.current.status).toBe('authenticated'));
+
+    await act(async () => {
+        await result.current.logout();
+    });
+
+    expect(result.current.status).toBe('unauthenticated');
+});
+
+it('signs out without waiting for the push registration to be dropped', async () => {
+    jest.mocked(dropPushRegistration).mockReturnValue(new Promise(() => undefined));
 
     const { result } = session();
 

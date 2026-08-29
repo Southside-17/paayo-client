@@ -354,17 +354,27 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         [adopt],
     );
 
+    /**
+     * Sign out here and now, then tidy up without being held to it.
+     *
+     * Dropping the session came last and everything before it was awaited, so
+     * any one of those steps could keep somebody signed in: a request that never
+     * answers, or -- the one no catch can see -- a native promise iOS leaves
+     * pending, with no error and no timeout. Revoking the token server side and
+     * dropping the push registration both matter, but neither matters as much as
+     * being able to leave, and a token nobody holds expires on its own.
+     */
     const logout = useCallback(async () => {
-        try {
-            if (token) {
-                await dropPushRegistration(token);
-                await request<void>('/auth/logout', { method: 'POST', token });
-            }
-        } catch {
-            // The token may already be gone server-side; sign out regardless.
-        } finally {
-            await forget();
+        const spent = token;
+
+        await forget();
+
+        if (spent === null) {
+            return;
         }
+
+        void dropPushRegistration(spent).catch(() => undefined);
+        void request<void>('/auth/logout', { method: 'POST', token: spent }).catch(() => undefined);
     }, [forget, token]);
 
     const reload = useCallback(async (): Promise<User | null> => {

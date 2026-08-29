@@ -167,7 +167,11 @@ export default function Account() {
 
                 <SettingsList rows={ROWS} />
 
-                <Button variant="ghost" onPress={() => void session.logout()}>
+                <Button
+                    variant="ghost"
+                    busy={busy}
+                    onPress={() => void submit(() => session.logout())}
+                >
                     Log out
                 </Button>
 
