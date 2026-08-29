@@ -232,7 +232,26 @@ export type TwoFactorChallenge = {
     challenge_token: string;
 };
 
-export type LoginResult = TokenResponse | TwoFactorChallenge;
+/**
+ * Sign in stops here when nothing here belongs to the provider account.
+ *
+ * The server answers 404 and opens nothing; `signInWithSocial` turns that into
+ * this arm so a screen can offer to register rather than report a failure.
+ */
+export type SignupOffer = {
+    signup: {
+        provider: string;
+        label: string;
+        email: string;
+        /** Apple's browser flow only: the code that replaces the spent one. */
+        code?: string;
+    };
+};
+
+export type LoginResult = TokenResponse | TwoFactorChallenge | SignupOffer;
+
+/** Which door the person came through. Absent means login. */
+export type SocialIntent = 'register';
 
 export type MessageResponse = {
     message: string;
@@ -720,6 +739,10 @@ export type Booking = {
 
 export function isTwoFactorChallenge(result: LoginResult): result is TwoFactorChallenge {
     return 'two_factor' in result && result.two_factor;
+}
+
+export function isSignupOffer(result: LoginResult): result is SignupOffer {
+    return 'signup' in result;
 }
 
 /** A trade and the services under it a business could still offer. */

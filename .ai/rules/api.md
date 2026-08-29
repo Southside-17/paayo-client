@@ -100,6 +100,33 @@ The server refuses a token minted for a client it does not know, so these ids
 must appear in its `services.google.audiences`. A build without the id its
 platform needs hides the button rather than offering one that cannot work.
 
+## Signing in never opens an account; `intent=register` does
+The social doors take `intent`, and absent means `login`. A login that resolves
+nobody opens nothing: the server answers **404** carrying `{signup:{provider,
+label, email}}`, and `signInWithSocial` catches that one refusal and returns it
+as the `SignupOffer` arm of `LoginResult`. Accepting re-posts the SAME
+credential with `intent: 'register'` -- nobody is sent back to the provider for a
+second token.
+
+`request()` throws `ApiError` on every non-2xx, so the one answer on these doors
+that is not a failure arrives as one. `offerFrom()` turns it back; anything else
+rethrows, including a 404 without a `signup` body. `ApiError` carries the whole
+parsed `payload` for exactly this.
+
+**Apple's browser leg needs the fresh code.** `redeem()` spends the code reading
+it, so the offer for that door carries `signup.code` -- a re-park of the same
+token under the same PKCE challenge, so the verifier the app still holds answers
+for it. Accepting spends that one; the original stays spent. Sending the old code
+back is a 422.
+
+Every door settles through one `settle()` in `session.tsx`: adopt unless the
+answer is a two-factor challenge or a signup offer. Do not re-inline that check
+per door -- there are five of them now and they drifted apart once already.
+
+Only the login screen has social buttons; `register.tsx` is the email form and
+its consent checkbox. So `intent=register` is only ever sent by the prompt being
+accepted, never by a second surface.
+
 ## Apple's name arrives once and is forwarded once
 `signInAsync` asks for FULL_NAME, and Apple answers it on the FIRST
 authorisation of a bundle id alone -- every sign in after that returns

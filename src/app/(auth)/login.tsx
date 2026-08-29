@@ -9,6 +9,7 @@ import { BrandIcon } from '@/components/brand-icon';
 import { FormMessage } from '@/components/form-message';
 import { openDocument } from '@/components/legal-consent';
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { FieldError } from '@/components/ui/field-error';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,9 +21,12 @@ import { useMicrosoftSignIn } from '@/lib/microsoft';
 import { passkeysAreSupported } from '@/lib/passkey';
 import { SOCIAL_PROVIDERS } from '@/lib/providers';
 import { useSession } from '@/lib/session';
-import { isTwoFactorChallenge, type LoginResult } from '@/lib/types';
+import { isSignupOffer, isTwoFactorChallenge, type LoginResult, type SignupOffer } from '@/lib/types';
 import { useSubmit } from '@/lib/use-submit';
 import palette from '@/theme/palette';
+
+/** A held signup offer, and the way to accept it with the same credential. */
+type Offer = SignupOffer['signup'] & { accept: () => Promise<LoginResult> };
 
 /** "Google", "Google or Apple", "Google, Apple or Microsoft". */
 function nameList(names: string[]): string {
@@ -49,6 +53,7 @@ export default function Login() {
     const { colorScheme } = useColorScheme();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [offer, setOffer] = useState<Offer | null>(null);
 
     const challenge = (result: LoginResult) => {
         if (isTwoFactorChallenge(result)) {
@@ -58,6 +63,35 @@ export default function Login() {
             });
         }
     };
+
+    /**
+     * Take the answer, or hold the offer until the person says to accept it.
+     *
+     * `accept` closes over the credential this attempt already holds, so saying
+     * yes re-posts the very same one rather than sending anybody back to the
+     * provider for a second.
+     */
+    const settle = (result: LoginResult, accept: () => Promise<LoginResult>) => {
+        if (isSignupOffer(result)) {
+            setOffer({ ...result.signup, accept });
+
+            return;
+        }
+
+        challenge(result);
+    };
+
+    const acceptOffer = () =>
+        submit(async () => {
+            if (offer === null) {
+                return;
+            }
+
+            const accepted = await offer.accept();
+
+            setOffer(null);
+            challenge(accepted);
+        });
 
     const signIn = () => submit(async () => challenge(await login(email.trim(), password)));
 
@@ -80,7 +114,7 @@ export default function Login() {
                 return;
             }
 
-            challenge(await signInWithGoogle(token));
+            settle(await signInWithGoogle(token), () => signInWithGoogle(token, 'register'));
         });
 
     const continueWithApple = () =>
@@ -95,7 +129,17 @@ export default function Login() {
                     return;
                 }
 
-                challenge(await redeemAppleCode(granted.code, granted.verifier));
+                const redeemed = await redeemAppleCode(granted.code, granted.verifier);
+
+                settle(redeemed, () =>
+                    // Reading the first code spent it; the offer carries the one
+                    // that replaced it, under the same challenge.
+                    redeemAppleCode(
+                        isSignupOffer(redeemed) ? (redeemed.signup.code ?? granted.code) : granted.code,
+                        granted.verifier,
+                        'register',
+                    ),
+                );
 
                 return;
             }
@@ -107,7 +151,16 @@ export default function Login() {
                 return;
             }
 
-            challenge(await signInWithApple(credential.token, credential.realUser, credential.name));
+            settle(
+                await signInWithApple(credential.token, credential.realUser, credential.name),
+                () =>
+                    signInWithApple(
+                        credential.token,
+                        credential.realUser,
+                        credential.name,
+                        'register',
+                    ),
+            );
         });
 
     const continueWithMicrosoft = () =>
@@ -119,7 +172,7 @@ export default function Login() {
                 return;
             }
 
-            challenge(await signInWithMicrosoft(token));
+            settle(await signInWithMicrosoft(token), () => signInWithMicrosoft(token, 'register'));
         });
 
     // SOCIAL_PROVIDERS says which ways in exist and in what order; the hooks say
@@ -253,6 +306,21 @@ export default function Login() {
                 </Text>
                 ) : null}
             </View>
+
+            <ConfirmDialog
+                open={offer !== null}
+                title="Create an account?"
+                body={
+                    offer === null
+                        ? ''
+                        : `No account here uses the ${offer.label} account ${offer.email}. If you have signed up before, it may have been with a different one.`
+                }
+                confirm="Create account"
+                dismiss="Sign in another way"
+                busy={busy}
+                onConfirm={acceptOffer}
+                onDismiss={() => setOffer(null)}
+            />
         </AuthScreen>
     );
 }

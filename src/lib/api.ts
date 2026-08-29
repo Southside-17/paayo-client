@@ -36,6 +36,8 @@ export class ApiError extends Error {
         readonly status: number,
         message: string,
         readonly errors: ValidationErrors = {},
+        /** The whole body, for refusals that carry more than field errors. */
+        readonly payload: Payload = null,
     ) {
         super(message);
         this.name = 'ApiError';
@@ -63,7 +65,7 @@ type RequestOptions = {
     token?: string | null;
 };
 
-type Payload = { message?: string; errors?: ValidationErrors } | null;
+type Payload = ({ message?: string; errors?: ValidationErrors } & Record<string, unknown>) | null;
 
 type Answer = { status: number; payload: Payload };
 
@@ -148,6 +150,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
             status,
             payload?.message ?? `Request failed (${status}).`,
             payload?.errors ?? {},
+            payload,
         );
     }
 
