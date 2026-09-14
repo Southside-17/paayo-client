@@ -95,7 +95,20 @@ const config: ExpoConfig = {
         },
     },
     web: {
-        output: 'static',
+        // 'single' rather than 'static'. Static rendering prerenders every route
+        // in a Node bundle, and Expo runs that bundle with React's `react-server`
+        // export condition on. `expo-router/vendor/react-helmet-async`, which
+        // expo-router's own <Head> pulls in, is built on class components --
+        // `class HelmetProvider extends React.Component`. The react-server build
+        // of React exports no `Component`, so evaluating that module throws
+        // "Class extends value undefined is not a constructor or null" and takes
+        // down `expo start` the moment anything asks for the web bundle.
+        //
+        // Upstream bug in SDK 57, not ours, and nothing here needs prerendering:
+        // Paayo ships to iOS and Android, and web only exists to be opened
+        // occasionally in a browser. 'single' emits a plain SPA shell and skips
+        // the Node render pass entirely.
+        output: 'single',
         favicon: './assets/images/favicon.png',
     },
     plugins: [
