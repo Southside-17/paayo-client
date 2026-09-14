@@ -1,4 +1,4 @@
-import { Redirect, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { Redirect, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import ArrowDown from 'lucide-react-native/icons/arrow-down';
 import ArrowUp from 'lucide-react-native/icons/arrow-up';
 import Plus from 'lucide-react-native/icons/plus';
@@ -19,6 +19,7 @@ import { KeyboardAvoiding } from '@/components/ui/keyboard-avoiding';
 import { Label } from '@/components/ui/label';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { Skeleton } from '@/components/ui/skeleton';
+import { StatusPill } from '@/components/ui/status-pill';
 import { Switch } from '@/components/ui/switch';
 import { Text } from '@/components/ui/text';
 import { useSession } from '@/lib/session';
@@ -58,6 +59,28 @@ const ROUNDINGS: { value: 'minute' | 'half_hour' | 'hour'; label: string; hint: 
  * something, so this is the floor rather than a default worth curating.
  */
 const FALLBACK = ['unit'];
+
+const UNPUBLISHED = ['draft', 'in review', 'turned down'];
+
+/**
+ * A live card with a pending revision still reads as live, so the waiting
+ * sentence has to come from the review block rather than standing.reason.
+ */
+function reviewNote(listing: ProviderListing): string | null {
+    if (listing.review?.status !== 'pending') {
+        return null;
+    }
+
+    if (listing.review.kind === 'withdrawal') {
+        return 'Paayo is looking at your request to take this down. Take the request back if you want to keep offering it.';
+    }
+
+    if (!UNPUBLISHED.includes(listing.standing.wording)) {
+        return 'A change is waiting for Paayo to review. Clients still see the current card. Saving again replaces what they have.';
+    }
+
+    return null;
+}
 
 type Row = RateLine & { key: string };
 
@@ -104,9 +127,19 @@ export default function ProviderListingEdit() {
     const [rows, setRows] = useState<Row[]>([]);
     const [questions, setQuestions] = useState<{ key: string; text: string }[]>([]);
     const [pausing, setPausing] = useState(false);
+    const [withdrawing, setWithdrawing] = useState(false);
+    const [notice, setNotice] = useState<string | null>(null);
     const [loaded, setLoaded] = useState(false);
 
     const mayEdit = staff?.permissions.includes('listing:edit') ?? false;
+    const waiting = listing?.review?.status === 'pending';
+    const locked = waiting === true && listing?.review?.kind !== 'revision';
+    const canWrite = mayEdit && !locked;
+    const frozen = !canWrite || busy;
+    const draftLike =
+        listing !== null &&
+        (listing.standing.wording === 'draft' || listing.standing.wording === 'turned down');
+    const onCatalog = listing !== null && !UNPUBLISHED.includes(listing.standing.wording);
     const provider = staff?.provider.id;
 
     const authenticatedRequest =
@@ -169,31 +202,77 @@ export default function ProviderListingEdit() {
             return next;
         });
 
+    const saveBody = () => ({
+        pricing_method: method,
+        allows_many_lines: onRequest ? false : many,
+        hour_rounding: rounding,
+        description: listing?.description ?? null,
+        rates: onRequest ? [] : rows.map(({ key, ...line }) => line),
+        intake: questions.map((one) => one.text),
+    });
+
     const save = () =>
         submit(async () => {
             if (session.status !== 'authenticated' || !provider) {
                 return;
             }
 
+            setNotice(null);
+
             const { data } = await session.authenticatedRequest<{ data: ProviderListing }>(
                 `/providers/${provider}/listings/${id}`,
                 {
                     method: 'PATCH',
-                    body: {
-                        pricing_method: method,
-                        allows_many_lines: onRequest ? false : many,
-                        hour_rounding: rounding,
-                        description: listing?.description ?? null,
-                        rates: onRequest
-                            ? []
-                            : rows.map(({ key, ...line }) => line),
-                        intake: questions.map((one) => one.text),
-                    },
+                    body: saveBody(),
                 },
             );
 
             setListing(data);
-            router.back();
+            setNotice(
+                onCatalog
+                    ? 'Paayo has the new prices. Clients still see the current card until this is approved.'
+                    : 'Saved. Send it for review when you are ready.',
+            );
+        });
+
+    const send = () =>
+        submit(async () => {
+            if (session.status !== 'authenticated' || !provider) {
+                return;
+            }
+
+            setNotice(null);
+
+            await session.authenticatedRequest<{ data: ProviderListing }>(
+                `/providers/${provider}/listings/${id}`,
+                {
+                    method: 'PATCH',
+                    body: saveBody(),
+                },
+            );
+
+            const { data } = await session.authenticatedRequest<{ data: ProviderListing }>(
+                `/providers/${provider}/listings/${id}/submission`,
+                { method: 'POST' },
+            );
+
+            setListing(data);
+        });
+
+    const retract = () =>
+        submit(async () => {
+            if (session.status !== 'authenticated' || !provider) {
+                return;
+            }
+
+            setNotice(null);
+
+            const { data } = await session.authenticatedRequest<{ data: ProviderListing }>(
+                `/providers/${provider}/listings/${id}/submission`,
+                { method: 'DELETE' },
+            );
+
+            setListing(data);
         });
 
     const hold = (resume: boolean) =>
@@ -202,6 +281,8 @@ export default function ProviderListingEdit() {
                 return;
             }
 
+            setNotice(null);
+
             const { data } = await session.authenticatedRequest<{ data: ProviderListing }>(
                 `/providers/${provider}/listings/${id}/pause`,
                 { method: resume ? 'DELETE' : 'POST' },
@@ -209,6 +290,23 @@ export default function ProviderListingEdit() {
 
             setListing(data);
             setPausing(false);
+        });
+
+    const withdraw = () =>
+        submit(async () => {
+            if (session.status !== 'authenticated' || !provider) {
+                return;
+            }
+
+            setNotice(null);
+
+            const { data } = await session.authenticatedRequest<{ data: ProviderListing }>(
+                `/providers/${provider}/listings/${id}/withdrawal`,
+                { method: 'POST' },
+            );
+
+            setListing(data);
+            setWithdrawing(false);
         });
 
     // This screen sits on the app stack rather than in the business tab group,
@@ -231,6 +329,7 @@ export default function ProviderListingEdit() {
                     />
 
                     <FormMessage message={message ?? failure} />
+                    <FormMessage message={notice} tone="success" />
 
                     {listing === null && failure === null ? (
                         <>
@@ -256,6 +355,17 @@ export default function ProviderListingEdit() {
 
                     {listing ? (
                         <>
+                            <Card className="gap-2">
+                                <View className="flex-row items-center justify-between gap-3">
+                                    <Text className="font-medium">This offer</Text>
+                                    <StatusPill tone={listing.standing.tone}>
+                                        {listing.standing.wording}
+                                    </StatusPill>
+                                </View>
+                                <Text className="text-muted-foreground text-sm">
+                                    {reviewNote(listing) ?? listing.standing.reason}
+                                </Text>
+                            </Card>
                             <Card className="gap-3">
                                 <Label>How do you charge for this?</Label>
                                 <View className="flex-row flex-wrap gap-2">
@@ -264,7 +374,7 @@ export default function ProviderListingEdit() {
                                             key={option.value}
                                             accessibilityRole="button"
                                             accessibilityState={{ selected: method === option.value }}
-                                            disabled={!mayEdit || busy}
+                                            disabled={frozen}
                                             onPress={() => {
                                                 setMethod(option.value);
                                                 setRows((held) =>
@@ -315,7 +425,7 @@ export default function ProviderListingEdit() {
                                         <Switch
                                             value={many}
                                             onValueChange={setMany}
-                                            disabled={!mayEdit || busy}
+                                            disabled={frozen}
                                             accessibilityLabel="Can a client pick more than one?"
                                         />
                                     </View>
@@ -339,7 +449,7 @@ export default function ProviderListingEdit() {
                                                 accessibilityState={{
                                                     checked: rounding === option.value,
                                                 }}
-                                                disabled={!mayEdit || busy}
+                                                disabled={frozen}
                                                 onPress={() => setRounding(option.value)}
                                                 className={cn(
                                                     'rounded-lg border p-3',
@@ -384,7 +494,7 @@ export default function ProviderListingEdit() {
                                             <Input
                                                 value={row.label}
                                                 onChangeText={(label) => setRow(row.key, { label })}
-                                                editable={mayEdit && !busy}
+                                                editable={canWrite && !busy}
                                                 placeholder="Split type, up to 2.5HP"
                                                 accessibilityLabel={`What line ${index + 1} covers`}
                                             />
@@ -395,7 +505,7 @@ export default function ProviderListingEdit() {
                                                 onChange={(amount) =>
                                                     setRow(row.key, { amount: amount ?? 0 })
                                                 }
-                                                disabled={!mayEdit || busy}
+                                                disabled={frozen}
                                                 invalid={Boolean(errorFor(`rates.${index}.amount`))}
                                                 accessibilityLabel={`Price of line ${index + 1}`}
                                             />
@@ -408,7 +518,7 @@ export default function ProviderListingEdit() {
                                                         onChangeText={(unit) =>
                                                             setRow(row.key, { unit: unit || null })
                                                         }
-                                                        editable={mayEdit && !busy}
+                                                        editable={canWrite && !busy}
                                                         placeholder="unit"
                                                         accessibilityLabel={`What line ${index + 1} is charged per`}
                                                     />
@@ -417,7 +527,7 @@ export default function ProviderListingEdit() {
                                                             <Pressable
                                                                 key={noun}
                                                                 accessibilityRole="button"
-                                                                disabled={!mayEdit || busy}
+                                                                disabled={frozen}
                                                                 onPress={() =>
                                                                     setRow(row.key, { unit: noun })
                                                                 }
@@ -458,7 +568,7 @@ export default function ProviderListingEdit() {
                                                                 })
                                                             }
                                                             inputMode="numeric"
-                                                            editable={mayEdit && !busy}
+                                                            editable={canWrite && !busy}
                                                             accessibilityLabel={`Usual minutes for line ${index + 1}`}
                                                         />
                                                     </View>
@@ -483,7 +593,7 @@ export default function ProviderListingEdit() {
                                                                 })
                                                             }
                                                             inputMode="numeric"
-                                                            editable={mayEdit && !busy}
+                                                            editable={canWrite && !busy}
                                                             accessibilityLabel={`Longest minutes for line ${index + 1}`}
                                                         />
                                                     </View>
@@ -512,7 +622,7 @@ export default function ProviderListingEdit() {
                                                         onValueChange={(is_active) =>
                                                             setRow(row.key, { is_active })
                                                         }
-                                                        disabled={!mayEdit || busy}
+                                                        disabled={frozen}
                                                         accessibilityLabel={`Offer line ${index + 1}`}
                                                     />
                                                     <Text className="text-muted-foreground text-sm">
@@ -523,7 +633,7 @@ export default function ProviderListingEdit() {
                                                     <Pressable
                                                         accessibilityRole="button"
                                                         accessibilityLabel={`Move line ${index + 1} up`}
-                                                        disabled={!mayEdit || busy || index === 0}
+                                                        disabled={frozen || index === 0}
                                                         onPress={() => moveRow(row.key, -1)}
                                                         className="p-2"
                                                     >
@@ -533,7 +643,7 @@ export default function ProviderListingEdit() {
                                                         accessibilityRole="button"
                                                         accessibilityLabel={`Move line ${index + 1} down`}
                                                         disabled={
-                                                            !mayEdit || busy || index === rows.length - 1
+                                                            frozen || index === rows.length - 1
                                                         }
                                                         onPress={() => moveRow(row.key, 1)}
                                                         className="p-2"
@@ -543,7 +653,7 @@ export default function ProviderListingEdit() {
                                                     <Pressable
                                                         accessibilityRole="button"
                                                         accessibilityLabel={`Remove line ${index + 1}`}
-                                                        disabled={!mayEdit || busy}
+                                                        disabled={frozen}
                                                         onPress={() =>
                                                             setRows((held) =>
                                                                 held.filter(
@@ -562,7 +672,7 @@ export default function ProviderListingEdit() {
 
                                     <FieldError message={errorFor('rates')} />
 
-                                    {mayEdit ? (
+                                    {canWrite ? (
                                         <Button
                                             variant="outline"
                                             disabled={busy || rows.length >= 25}
@@ -599,7 +709,7 @@ export default function ProviderListingEdit() {
                                                         ),
                                                     )
                                                 }
-                                                editable={mayEdit && !busy}
+                                                editable={canWrite && !busy}
                                                 placeholder="Which floor is the unit on?"
                                                 accessibilityLabel={`Question ${index + 1}`}
                                             />
@@ -607,7 +717,7 @@ export default function ProviderListingEdit() {
                                         <Pressable
                                             accessibilityRole="button"
                                             accessibilityLabel={`Remove question ${index + 1}`}
-                                            disabled={!mayEdit || busy}
+                                            disabled={frozen}
                                             onPress={() =>
                                                 setQuestions((held) =>
                                                     held.filter((q) => q.key !== one.key),
@@ -622,7 +732,7 @@ export default function ProviderListingEdit() {
 
                                 <FieldError message={errorFor('intake')} />
 
-                                {mayEdit ? (
+                                {canWrite ? (
                                     <Button
                                         variant="outline"
                                         disabled={busy || questions.length >= 10}
@@ -641,16 +751,53 @@ export default function ProviderListingEdit() {
 
                             {mayEdit ? (
                                 <View className="gap-2">
-                                    <Button onPress={save} busy={busy}>
-                                        Save
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        disabled={busy}
-                                        onPress={() => (paused ? void hold(true) : setPausing(true))}
-                                    >
-                                        {paused ? 'Start taking work again' : 'Stop taking work'}
-                                    </Button>
+                                    {draftLike ? (
+                                        <>
+                                            <Button onPress={send} busy={busy}>
+                                                Send for review
+                                            </Button>
+                                            <Button variant="outline" onPress={save} disabled={busy}>
+                                                Save
+                                            </Button>
+                                        </>
+                                    ) : canWrite ? (
+                                        <>
+                                            <Button onPress={save} busy={busy}>
+                                                Save
+                                            </Button>
+                                            <Text className="text-muted-foreground text-sm">
+                                                Clients keep seeing the current prices until Paayo
+                                                approves a change.
+                                            </Text>
+                                        </>
+                                    ) : null}
+                                    {waiting ? (
+                                        <Button variant="outline" disabled={busy} onPress={retract}>
+                                            Take back your submission
+                                        </Button>
+                                    ) : null}
+                                    {onCatalog ? (
+                                        <Button
+                                            variant="outline"
+                                            disabled={busy}
+                                            onPress={() =>
+                                                paused ? void hold(true) : setPausing(true)
+                                            }
+                                        >
+                                            {paused
+                                                ? 'Start taking work again'
+                                                : 'Stop taking work'}
+                                        </Button>
+                                    ) : null}
+                                    {onCatalog && !waiting ? (
+                                        <Button
+                                            variant="outline"
+                                            disabled={busy}
+                                            onPress={() => setWithdrawing(true)}
+                                        >
+                                            Ask to take this down
+                                        </Button>
+                                    ) : null}
                                 </View>
                             ) : null}
                         </>
@@ -667,6 +814,18 @@ export default function ProviderListingEdit() {
                 busy={busy}
                 onConfirm={() => void hold(false)}
                 onDismiss={() => setPausing(false)}
+            />
+
+            <ConfirmDialog
+                open={withdrawing}
+                title="Ask Paayo to take this down?"
+                body="Clients will keep seeing it until Paayo agrees. The areas this offer holds are released only then."
+                confirm="Ask to take this down"
+                dismiss="Keep offering it"
+                destructive
+                busy={busy}
+                onConfirm={() => void withdraw()}
+                onDismiss={() => setWithdrawing(false)}
             />
         </SafeAreaView>
     );

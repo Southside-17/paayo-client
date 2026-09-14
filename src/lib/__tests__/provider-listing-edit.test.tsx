@@ -62,6 +62,35 @@ function offer(over: Partial<ProviderListing> = {}): ProviderListing {
     } as ProviderListing;
 }
 
+function draft(over: Partial<ProviderListing> = {}): ProviderListing {
+    return offer({
+        standing: {
+            wording: 'draft',
+            tone: 'neutral',
+            reason: 'Clients cannot see it until Paayo approves it.',
+        },
+        ...over,
+    });
+}
+
+function inReview(over: Partial<ProviderListing> = {}): ProviderListing {
+    return offer({
+        standing: {
+            wording: 'in review',
+            tone: 'warning',
+            reason: 'Paayo is looking at this offer.',
+        },
+        review: {
+            status: 'pending',
+            kind: 'creation',
+            rejection_reason: null,
+            reviewed_at: null,
+            submitted_at: '2026-09-14T00:00:00.000000Z',
+        },
+        ...over,
+    });
+}
+
 function acting(permissions: string[], request: jest.Mock) {
     (useWorkspace as jest.Mock).mockReturnValue({
         staff: {
@@ -148,6 +177,13 @@ it('saves a repriced line back to the business', async () => {
             }),
         ),
     );
+
+    expect(
+        screen.getByText(
+            'Paayo has the new prices. Clients still see the current card until this is approved.',
+        ),
+    ).toBeOnTheScreen();
+    expect(screen.getByText('How do you charge for this?')).toBeOnTheScreen();
 });
 
 // Pricing is the most commercially sensitive thing a business has, so a manager
@@ -161,6 +197,8 @@ it('gives a manager nothing to change', async () => {
     expect(await screen.findByText('Only an owner can change prices')).toBeOnTheScreen();
     expect(screen.queryByText('Save')).not.toBeOnTheScreen();
     expect(screen.queryByText('Add a price')).not.toBeOnTheScreen();
+    expect(screen.queryByText('Send for review')).not.toBeOnTheScreen();
+    expect(screen.queryByText('Ask to take this down')).not.toBeOnTheScreen();
 });
 
 it('drops the card when the work becomes quoted on request', async () => {
@@ -243,6 +281,91 @@ it('starts taking work again without confirming', async () => {
         expect(request).toHaveBeenCalledWith(
             '/providers/p1/listings/l1/pause',
             expect.objectContaining({ method: 'DELETE' }),
+        ),
+    );
+});
+
+it('sends a draft after writing the card', async () => {
+    const request = owner(draft());
+
+    render(<ProviderListingEdit />);
+
+    fireEvent.press(await screen.findByText('Send for review'));
+
+    await waitFor(() =>
+        expect(request).toHaveBeenCalledWith(
+            '/providers/p1/listings/l1/submission',
+            expect.objectContaining({ method: 'POST' }),
+        ),
+    );
+
+    expect(request).toHaveBeenCalledWith(
+        '/providers/p1/listings/l1',
+        expect.objectContaining({ method: 'PATCH' }),
+    );
+    expect(screen.queryByText('Ask to take this down')).not.toBeOnTheScreen();
+    expect(screen.queryByText('Stop taking work')).not.toBeOnTheScreen();
+});
+
+it('lets a draft be saved without sending it', async () => {
+    const request = owner(draft());
+
+    render(<ProviderListingEdit />);
+
+    fireEvent.press(await screen.findByText('Save'));
+
+    await waitFor(() =>
+        expect(request).toHaveBeenCalledWith(
+            '/providers/p1/listings/l1',
+            expect.objectContaining({ method: 'PATCH' }),
+        ),
+    );
+
+    expect(request).not.toHaveBeenCalledWith(
+        '/providers/p1/listings/l1/submission',
+        expect.anything(),
+    );
+    expect(
+        screen.getByText('Saved. Send it for review when you are ready.'),
+    ).toBeOnTheScreen();
+});
+
+it('locks a submission that is waiting and lets it be taken back', async () => {
+    const request = owner(inReview());
+
+    render(<ProviderListingEdit />);
+
+    expect(await screen.findByText('Take back your submission')).toBeOnTheScreen();
+    expect(screen.queryByText('Save')).not.toBeOnTheScreen();
+    expect(screen.queryByText('Send for review')).not.toBeOnTheScreen();
+    expect(screen.queryByText('Add a price')).not.toBeOnTheScreen();
+
+    fireEvent.press(screen.getByText('Take back your submission'));
+
+    await waitFor(() =>
+        expect(request).toHaveBeenCalledWith(
+            '/providers/p1/listings/l1/submission',
+            expect.objectContaining({ method: 'DELETE' }),
+        ),
+    );
+});
+
+it('asks Paayo before taking a live offer down', async () => {
+    const request = owner();
+
+    render(<ProviderListingEdit />);
+
+    fireEvent.press(await screen.findByText('Ask to take this down'));
+
+    expect(screen.getByText('Ask Paayo to take this down?')).toBeOnTheScreen();
+    expect(request).toHaveBeenCalledTimes(1);
+
+    fireEvent.press(screen.getAllByText('Ask to take this down')[1]);
+
+    await waitFor(() =>
+        expect(request).toHaveBeenCalledWith(
+            '/providers/p1/listings/l1/withdrawal',
+            expect.objectContaining({ method: 'POST' }),
         ),
     );
 });

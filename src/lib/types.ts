@@ -385,6 +385,18 @@ export type ListingStanding = {
 };
 
 /**
+ * The open or most recent proposal against an offer. Absent on a draft that
+ * has never been sent, because a draft has no revision.
+ */
+export type ListingReview = {
+    status: ReviewStatus;
+    kind: 'creation' | 'revision' | 'withdrawal';
+    rejection_reason: string | null;
+    reviewed_at: string | null;
+    submitted_at: string | null;
+};
+
+/**
  * One of a business's own offers, as the people on its staff see it. Not
  * `Listing`, which is what a client is shown of somebody else's offer.
  */
@@ -403,6 +415,8 @@ export type ProviderListing = {
     paused_at: string | null;
     service: Service;
     standing: ListingStanding;
+    /** Present once a revision exists, including a rejected one. */
+    review?: ListingReview;
 };
 
 /** One photo or video, uploaded before the booking it belongs to exists. */

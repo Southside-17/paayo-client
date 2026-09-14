@@ -137,6 +137,28 @@ describe('what a business sells', () => {
         ).toBeOnTheScreen();
     });
 
+    it('names a waiting change on a live card', async () => {
+        acting();
+        signedIn(
+            answering([
+                offering('l1', service('sv1', 'Cleaning'), aircon, {
+                    review: {
+                        status: 'pending',
+                        kind: 'revision',
+                        rejection_reason: null,
+                        reviewed_at: null,
+                        submitted_at: '2026-09-14T00:00:00.000000Z',
+                    },
+                }),
+            ]),
+        );
+
+        render(<Services />);
+
+        expect(await screen.findByText('live')).toBeOnTheScreen();
+        expect(screen.getByText('A change is waiting for Paayo to review.')).toBeOnTheScreen();
+    });
+
     it('heads each trade once, in the order the server sent them', async () => {
         acting();
         const plumbing = trade('t2', 'Plumbing', []);

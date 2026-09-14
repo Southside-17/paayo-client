@@ -27,6 +27,25 @@ type Showing = 'offers' | 'catalog';
 type Group = { trade: Trade | null; offers: ProviderListing[] };
 
 /**
+ * A live card with a pending revision still reads as live, so the list has
+ * to name the wait from the review block.
+ */
+function offerNote(offer: ProviderListing): string {
+    if (offer.review?.status === 'pending' && offer.review.kind === 'withdrawal') {
+        return 'Paayo is looking at your request to take this down.';
+    }
+
+    if (
+        offer.review?.status === 'pending' &&
+        (offer.standing.wording === 'live' || offer.standing.wording === 'paused')
+    ) {
+        return 'A change is waiting for Paayo to review.';
+    }
+
+    return offer.standing.reason;
+}
+
+/**
  * The offers, in the trade order the server sent them in.
  *
  * The rows already arrive sorted by trade and then by service, so a group ends
@@ -330,9 +349,10 @@ function Offers({ groups, colours }: { groups: Group[]; colours: Record<string, 
                                 </Text>
                             ) : null}
 
-                            {offer.standing.wording === 'live' ? null : (
+                            {offer.standing.wording === 'live' &&
+                            offer.review?.status !== 'pending' ? null : (
                                 <Text className="text-muted-foreground text-xs">
-                                    {offer.standing.reason}
+                                    {offerNote(offer)}
                                 </Text>
                             )}
                         </Card>
