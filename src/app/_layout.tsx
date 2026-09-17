@@ -5,7 +5,10 @@ import { useColorScheme } from 'nativewind';
 import { useEffect } from 'react';
 import { ActivityIndicator, LogBox, View } from 'react-native';
 
+import { Button } from '@/components/ui/button';
+import { Text } from '@/components/ui/text';
 import { request } from '@/lib/api';
+import { dropStaleWatch } from '@/lib/geofence';
 import { JOB_ACTIONS, registerJobActions } from '@/lib/push';
 import { SessionProvider, useSession } from '@/lib/session';
 import { WorkspaceProvider } from '@/lib/workspace';
@@ -108,12 +111,35 @@ function navigationTheme(scheme: 'light' | 'dark') {
 function RootNavigator() {
     const session = useSession();
 
-    useNotificationTaps(session.status === 'authenticated' ? (session.token ?? null) : null);
+    const token = session.status === 'authenticated' ? (session.token ?? null) : null;
+
+    useNotificationTaps(token);
+
+    // A fence left armed by a launch that ended -- a job finished from another
+    // phone, say -- is dropped once there is a token to ask the server with.
+    useEffect(() => {
+        if (token !== null) {
+            void dropStaleWatch(token);
+        }
+    }, [token]);
 
     if (session.status === 'loading') {
         return (
             <View className="bg-background flex-1 items-center justify-center">
                 <ActivityIndicator />
+            </View>
+        );
+    }
+
+    if (session.status === 'offline') {
+        return (
+            <View className="bg-background flex-1 items-center justify-center gap-4 px-8">
+                <Text className="text-foreground text-center text-base">
+                    Paayo could not be reached. Check your connection and try again.
+                </Text>
+                <Button variant="outline" onPress={() => void session.retry()}>
+                    Try again
+                </Button>
             </View>
         );
     }

@@ -1,6 +1,7 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 import { ApiError, DEVICE_NAME, request, type RequestMethod } from './api';
+import { stopWatching } from './geofence';
 import { passkeyAssertion } from './passkey';
 import { dropPushRegistration, syncPushRegistration } from './push';
 import { clearToken, readToken, writeToken } from './tokens';
@@ -17,6 +18,8 @@ import {
 type SessionState =
     | { status: 'loading' }
     | { status: 'unauthenticated' }
+    /** A token is stored but the server could not be reached to vouch for it. */
+    | { status: 'offline' }
     | { status: 'authenticated'; user: User };
 
 type SessionValue = SessionState & {
@@ -39,6 +42,8 @@ type SessionValue = SessionState & {
     register: (fields: RegisterFields) => Promise<void>;
     logout: () => Promise<void>;
     reload: () => Promise<User | null>;
+    /** Try the stored token again after an offline start. */
+    retry: () => Promise<void>;
     authenticatedRequest: <T>(path: string, options?: AuthenticatedOptions) => Promise<T>;
 };
 
@@ -98,30 +103,67 @@ export function SessionProvider({ children }: { children: ReactNode }) {
      */
     const forget = useCallback(async () => {
         await clearToken();
+        await stopWatching();
         setToken(null);
         setState({ status: 'unauthenticated' });
     }, []);
 
     /**
-     * Trade the stored token for a fresh one. The server deletes the old one,
-     * so a failure here means the device is signed out for good.
+     * The refresh in flight, if any, and the last trade that went through.
+     *
+     * The server deletes the presented token on the first refresh, so of two
+     * callers that met a 401 at once only the first could ever succeed. Every
+     * caller shares one promise instead, and one that arrives after it has
+     * settled is handed the replacement rather than sent to refresh a token
+     * that no longer exists.
+     */
+    const inflight = useRef<Promise<string | null> | null>(null);
+    const rotated = useRef<{ from: string; to: string } | null>(null);
+
+    /**
+     * Trade the stored token for a fresh one.
+     *
+     * Resolves null and drops the session only when the server refused the
+     * token. A network failure is rethrown with the token kept: nothing has been
+     * decided about it, and signing somebody out for being offline is wrong.
      */
     const refresh = useCallback(
-        async (stored: string): Promise<string | null> => {
-            try {
-                const response = await request<TokenResponse>('/auth/tokens/refresh', {
-                    method: 'POST',
-                    token: stored,
-                });
-
-                await adopt(response);
-
-                return response.token;
-            } catch {
-                await forget();
-
-                return null;
+        (stored: string): Promise<string | null> => {
+            if (rotated.current?.from === stored) {
+                return Promise.resolve(rotated.current.to);
             }
+
+            if (inflight.current) {
+                return inflight.current;
+            }
+
+            const attempt = (async () => {
+                try {
+                    const response = await request<TokenResponse>('/auth/tokens/refresh', {
+                        method: 'POST',
+                        token: stored,
+                    });
+
+                    rotated.current = { from: stored, to: response.token };
+                    await adopt(response);
+
+                    return response.token;
+                } catch (error) {
+                    if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+                        await forget();
+
+                        return null;
+                    }
+
+                    throw error;
+                } finally {
+                    inflight.current = null;
+                }
+            })();
+
+            inflight.current = attempt;
+
+            return attempt;
         },
         [adopt, forget],
     );
@@ -147,37 +189,67 @@ export function SessionProvider({ children }: { children: ReactNode }) {
                 return 'refresh';
             }
 
-            return { status: 'unauthenticated' };
+            // Anything else -- no network, a 5xx -- says nothing about the
+            // token, and the sign-in screen would say it was gone.
+            return { status: 'offline' };
         }
     }, []);
+
+    /** Settle the session from the stored token, unless unmounted meanwhile. */
+    const boot = useCallback(
+        async (live: () => boolean) => {
+            const outcome = await resolve();
+
+            if (!live()) {
+                return;
+            }
+
+            if (outcome !== 'refresh') {
+                setState(outcome);
+
+                return;
+            }
+
+            const stored = await readToken();
+
+            if (!live()) {
+                return;
+            }
+
+            if (!stored) {
+                setState({ status: 'unauthenticated' });
+
+                return;
+            }
+
+            try {
+                await refresh(stored);
+            } catch {
+                if (live()) {
+                    setState({ status: 'offline' });
+                }
+            }
+        },
+        [refresh, resolve],
+    );
 
     useEffect(() => {
         let cancelled = false;
 
         void (async () => {
-            const outcome = await resolve();
-
-            if (cancelled) {
-                return;
-            }
-
-            if (outcome === 'refresh') {
-                const stored = await readToken();
-
-                if (stored && !cancelled) {
-                    await refresh(stored);
-                }
-
-                return;
-            }
-
-            setState(outcome);
+            await boot(() => !cancelled);
         })();
 
         return () => {
             cancelled = true;
         };
-    }, [refresh, resolve]);
+    }, [boot]);
+
+    const retry = useCallback(async () => {
+        setState({ status: 'loading' });
+
+        await boot(() => true);
+    }, [boot]);
 
     /** Call the API as the signed-in user, refreshing once if the token expired. */
     const authenticatedRequest = useCallback(
@@ -390,8 +462,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }, [authenticatedRequest, token]);
 
     const value = useMemo<SessionValue>(
-        () => ({ ...state, token, login, signInWithGoogle, signInWithApple, signInWithMicrosoft, redeemAppleCode, signInWithPasskey, completeTwoFactor, register, logout, reload, authenticatedRequest }),
-        [authenticatedRequest, completeTwoFactor, login, logout, redeemAppleCode, register, reload, signInWithApple, signInWithGoogle, signInWithMicrosoft, signInWithPasskey, state, token],
+        () => ({ ...state, token, login, signInWithGoogle, signInWithApple, signInWithMicrosoft, redeemAppleCode, signInWithPasskey, completeTwoFactor, register, logout, reload, retry, authenticatedRequest }),
+        [authenticatedRequest, completeTwoFactor, login, logout, redeemAppleCode, register, reload, retry, signInWithApple, signInWithGoogle, signInWithMicrosoft, signInWithPasskey, state, token],
     );
 
     return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
