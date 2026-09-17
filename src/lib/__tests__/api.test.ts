@@ -24,14 +24,14 @@ describe('request', () => {
     it('turns a 422 into field errors', async () => {
         respondWith(422, {
             message: 'The given data was invalid.',
-            errors: { email: ['These credentials do not match our records.'] },
+            errors: { email: ['Wrong email or password'] },
         });
 
         const error = (await request('/auth/login', { method: 'POST' }).catch((caught) => caught)) as ApiError;
 
         expect(error).toBeInstanceOf(ApiError);
         expect(error.status).toBe(422);
-        expect(error.errorFor('email')).toBe('These credentials do not match our records.');
+        expect(error.errorFor('email')).toBe('Wrong email or password');
     });
 
     it('flags a throttled response', async () => {
