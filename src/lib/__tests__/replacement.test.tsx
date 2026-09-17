@@ -72,6 +72,7 @@ const declined: Booking = {
     cancelled_at: null,
     refused_at: '2026-08-23T00:00:00.000000Z',
     agreed_total: null,
+    settled_total: null,
     price_min: 150_000,
     price_max: null,
     address: { label: 'Home', line: '12 Mabini Street' },

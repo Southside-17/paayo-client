@@ -80,6 +80,7 @@ function bookingWith(over: Partial<Booking> = {}, destinations: Destination[] = 
         cancelled_at: null,
         refused_at: null,
         agreed_total: 200_000,
+        settled_total: 200_000,
         price_min: null,
         price_max: null,
         address: {},

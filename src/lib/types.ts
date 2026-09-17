@@ -699,8 +699,10 @@ export type Booking = {
     accepted_at: string | null;
     cancelled_at: string | null;
     refused_at: string | null;
-    /** The figure both sides are held to, once there is an agreement. */
+    /** What the client said yes to, which completion may not rewrite. Null on an hourly card, which agrees a rate and not a figure. */
     agreed_total: number | null;
+    /** What the work came to, settled at completion. This is the figure the invoice bills. */
+    settled_total: number | null;
     quotation?: Quotation | null;
     price_min: number | null;
     price_max: number | null;

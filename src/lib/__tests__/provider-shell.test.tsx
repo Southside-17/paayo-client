@@ -132,6 +132,7 @@ const job: Booking = {
     cancelled_at: null,
     refused_at: null,
     agreed_total: null,
+    settled_total: null,
     price_min: 150_000,
     price_max: null,
     address: { line: 'Barangay 5, Davao City, Davao del Sur, 8000' },

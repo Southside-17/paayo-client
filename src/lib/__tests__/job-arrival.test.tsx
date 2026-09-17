@@ -49,6 +49,7 @@ function underway(progress: 'enroute' | 'arrived' | 'completed'): Booking {
         cancelled_at: null,
         refused_at: null,
         agreed_total: 150_000,
+        settled_total: 150_000,
         price_min: 150_000,
         price_max: null,
         address: { label: 'Home', line: '12 Mabini Street, Barangay 5, Davao City' },
