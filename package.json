@@ -10,7 +10,7 @@
     "android": "node scripts/with-android-env.mjs npx expo run:android",
     "android:device": "node scripts/with-android-env.mjs npx expo run:android --device",
     "android:release": "node scripts/with-android-env.mjs npx expo run:android --variant release",
-    "android:reverse": "node scripts/with-android-env.mjs adb reverse tcp:8000 tcp:8000",
+    "android:reverse": "node scripts/with-android-env.mjs adb reverse tcp:44080 tcp:44080",
     "ios": "expo run:ios",
     "ios:device": "expo run:ios --device",
     "ios:release": "expo run:ios --configuration Release",

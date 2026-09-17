@@ -142,13 +142,13 @@ Start the server with `composer dev`; it binds `0.0.0.0` already.
 
 | Running on | What to do |
 | --- | --- |
-| Android emulator | nothing. Resolves the host as `10.0.2.2:8000` on its own. |
-| iOS simulator | nothing. `localhost:8000` is the host. |
-| **Android over USB** | `npm run android:reverse`, then set `EXPO_PUBLIC_API_URL=http://localhost:8000` |
-| **Any device over Wi-Fi** | set `EXPO_PUBLIC_API_URL=http://<your-lan-ip>:8000` |
+| Android emulator | nothing. Resolves the host as `10.0.2.2:44080` on its own. |
+| iOS simulator | nothing. `localhost:44080` is the host. |
+| **Android over USB** | `npm run android:reverse`, then set `EXPO_PUBLIC_API_URL=http://localhost:44080` |
+| **Any device over Wi-Fi** | set `EXPO_PUBLIC_API_URL=http://<your-lan-ip>:44080` |
 
-`android:reverse` runs `adb reverse tcp:8000 tcp:8000`, which tunnels the
-phone's `localhost:8000` back to yours over the cable. It is the easiest of the
+`android:reverse` runs `adb reverse tcp:44080 tcp:44080`, which tunnels the
+phone's `localhost:44080` back to yours over the cable. It is the easiest of the
 four — no IP to look up, and nothing for a firewall to block.
 
 The first two rows say "nothing" only while `EXPO_PUBLIC_API_URL` is **empty**.
@@ -181,7 +181,7 @@ to a correct one until it is installed:
 | `--local` | `EXPO_PUBLIC_API_URL` from `.env`, or this machine's LAN address |
 | `--api-url <url>` | exactly that |
 
-So `npm run build:android -- --api-url http://10.0.0.5:8000` builds an APK
+So `npm run build:android -- --api-url http://10.0.0.5:44080` builds an APK
 against one particular server, and `npm run build:ios -- --local` builds an IPA
 against your laptop. `--no-prebuild` keeps `android/` and `ios/` as they are;
 otherwise they are regenerated when missing.
