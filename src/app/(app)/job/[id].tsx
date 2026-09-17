@@ -95,18 +95,26 @@ export default function Job() {
         }, [authenticatedRequest, id, provider, work]),
     );
 
-    // Auto-arrival, armed while the crew are on the road and dropped the moment
-    // they are not. Region monitoring rather than tracking: the phone's own
-    // hardware watches the boundary and wakes the app once, and no coordinate
-    // ever reaches the server. A refused permission does nothing at all -- the
-    // button on screen is still the way through, which is why it stays.
-    const enroute = job?.job?.status.value === 'enroute';
+    // Auto-arrival, armed when the job is on the road and dropped when it is
+    // not -- by the job's state, never by this screen's. The crew leave for the
+    // Jobs tab and close the app before they leave the depot, and the fence has
+    // to outlive both; only arriving, the job ending or signing out drop it.
+    // Region monitoring rather than tracking: the phone's own hardware watches
+    // the boundary and wakes the app once, and no coordinate ever reaches the
+    // server. A refused permission does nothing at all -- the button on screen
+    // is still the way through, which is why it stays.
+    const progress = job?.job?.status.value ?? null;
     const latitude = job?.latitude ?? null;
     const longitude = job?.longitude ?? null;
-    const token = session.status === 'authenticated' ? (session.token ?? null) : null;
 
     useEffect(() => {
-        if (!enroute || work === null || !provider || token === null) {
+        if (progress === null || work === null || !provider) {
+            return;
+        }
+
+        if (progress !== 'enroute') {
+            void stopWatching(work);
+
             return;
         }
 
@@ -114,12 +122,8 @@ export default function Job() {
             return;
         }
 
-        void watchForArrival({ provider, job: work, token }, { latitude, longitude });
-
-        return () => {
-            void stopWatching();
-        };
-    }, [enroute, work, provider, token, latitude, longitude]);
+        void watchForArrival({ provider, job: work }, { latitude, longitude });
+    }, [progress, work, provider, latitude, longitude]);
 
     if (!staff) {
         return <Redirect href="/" />;

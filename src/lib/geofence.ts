@@ -1,7 +1,9 @@
 import * as Location from 'expo-location';
+import * as SecureStore from 'expo-secure-store';
 import * as TaskManager from 'expo-task-manager';
 
-import { request } from './api';
+import { ApiError, request } from './api';
+import { readToken } from './tokens';
 
 /**
  * Auto-arrival: the phone tells the server when the crew reach the address.
@@ -21,6 +23,14 @@ import { request } from './api';
 const TASK = 'paayo.job.arrival';
 
 /**
+ * Where the watch is kept between launches.
+ *
+ * The OS relaunches a killed app to run the task, and a module variable does
+ * not survive that. SecureStore does, and it is already here for the token.
+ */
+const KEY = 'paayo.job.watch';
+
+/**
  * Metres from the pin that count as arrived.
  *
  * 150 rather than something tighter: iOS region monitoring is unreliable below
@@ -29,11 +39,58 @@ const TASK = 'paayo.job.arrival';
  */
 const RADIUS = 150;
 
-/** What the task needs to know to report, held on the region it watches. */
-type Watched = { provider: string; job: string; token: string };
+/** Which job's arrival the task reports. The token is read from its own store. */
+export type Watched = { provider: string; job: string };
+
+/** A pin on the map. */
+export type Pin = { latitude: number; longitude: number };
+
+type Stored = Watched & Pin;
 
 /** The one job being watched, if any. Regions carry no payload of their own. */
-let watching: Watched | null = null;
+let watching: Stored | null = null;
+
+async function remember(held: Stored): Promise<void> {
+    watching = held;
+
+    await SecureStore.setItemAsync(KEY, JSON.stringify(held));
+}
+
+/** The watch in hand, or the one a previous launch left behind. */
+async function recall(): Promise<Stored | null> {
+    if (watching !== null) {
+        return watching;
+    }
+
+    try {
+        const raw = await SecureStore.getItemAsync(KEY);
+        const parsed = raw === null ? null : (JSON.parse(raw) as Partial<Stored>);
+
+        if (
+            parsed &&
+            typeof parsed.provider === 'string' &&
+            typeof parsed.job === 'string' &&
+            typeof parsed.latitude === 'number' &&
+            typeof parsed.longitude === 'number'
+        ) {
+            watching = parsed as Stored;
+        }
+    } catch {
+        // An unreadable watch is no watch.
+    }
+
+    return watching;
+}
+
+async function forget(): Promise<void> {
+    watching = null;
+
+    try {
+        await SecureStore.deleteItemAsync(KEY);
+    } catch {
+        // Nothing to do about it, and nothing a caller could do either.
+    }
+}
 
 /**
  * Tell the server the crew arrived, and say it was the fence that noticed.
@@ -42,15 +99,21 @@ let watching: Watched | null = null;
  * stay tellable apart forever.
  */
 async function report(held: Watched): Promise<void> {
+    const token = await readToken();
+
+    if (token === null) {
+        return;
+    }
+
     await request<void>(`/providers/${held.provider}/jobs/${held.job}/arrival`, {
         method: 'POST',
         body: { automatic: true },
-        token: held.token,
+        token,
     });
 }
 
 TaskManager.defineTask(TASK, async ({ data, error }) => {
-    if (error || watching === null) {
+    if (error) {
         return;
     }
 
@@ -60,13 +123,15 @@ TaskManager.defineTask(TASK, async ({ data, error }) => {
         return;
     }
 
-    const held = watching;
+    const held = await recall();
 
-    // Unregistered first, so a fence that fires twice at the boundary does not
-    // post twice. The server refuses the second arrival anyway, but a refusal
-    // the crew never asked for is not something to rely on.
-    watching = null;
+    if (held === null) {
+        return;
+    }
 
+    // Dropped first, so a fence that fires twice at the boundary does not post
+    // twice, and a second post the server refuses anyway has no watch left to
+    // retry from.
     try {
         await stopWatching();
         await report(held);
@@ -97,20 +162,26 @@ export async function mayWatch(): Promise<boolean> {
 /**
  * Start watching a job's address, reporting the arrival when the crew reach it.
  *
+ * Idempotent for the job already watched: the screen asks every time it opens,
+ * and re-registering would reset the fence under a crew halfway there.
+ *
  * Nothing happens gracefully when permission is refused: no error, no nag. Auto
  * arrival removes a tap; it is never the only way to make one.
  */
-export async function watchForArrival(
-    held: Watched,
-    pin: { latitude: number; longitude: number },
-): Promise<boolean> {
+export async function watchForArrival(held: Watched, pin: Pin): Promise<boolean> {
+    const current = await recall();
+
+    if (current?.job === held.job && (await hasFence())) {
+        return true;
+    }
+
     if (!(await mayWatch())) {
         return false;
     }
 
-    watching = held;
-
     try {
+        await remember({ ...held, ...pin });
+
         // Already inside: ENTER never fires for a boundary nobody crossed, so a
         // crew setting out from next door would otherwise never arrive at all.
         // One fix at registration is what covers that.
@@ -119,8 +190,7 @@ export async function watchForArrival(
         });
 
         if (metresBetween(here.coords, pin) <= RADIUS) {
-            watching = null;
-
+            await forget();
             await report(held);
 
             return true;
@@ -132,7 +202,7 @@ export async function watchForArrival(
 
         return true;
     } catch {
-        watching = null;
+        await forget();
 
         return false;
     }
@@ -140,16 +210,66 @@ export async function watchForArrival(
 
 /**
  * Stop watching, whether the job ended or somebody arrived by hand.
+ *
+ * Given a job, only a watch on that job is dropped; a screen for a finished job
+ * must not tear down the fence another job is on the road under.
  */
-export async function stopWatching(): Promise<void> {
-    watching = null;
+export async function stopWatching(job?: string): Promise<void> {
+    if (job !== undefined) {
+        const current = await recall();
+
+        if (current !== null && current.job !== job) {
+            return;
+        }
+    }
+
+    await forget();
 
     try {
-        if (await Location.hasStartedGeofencingAsync(TASK)) {
+        if (await hasFence()) {
             await Location.stopGeofencingAsync(TASK);
         }
     } catch {
         // Nothing was registered, which is the state this was asking for.
+    }
+}
+
+/**
+ * On launch: drop a watch left behind for a job that is no longer on the road.
+ *
+ * The job is read from the server rather than trusted from the store, because
+ * the store only knows what the phone last saw. A job the server no longer
+ * shows this account is finished as far as the fence is concerned; a request
+ * that never reached the server proves nothing and leaves the watch alone.
+ */
+export async function dropStaleWatch(token: string): Promise<void> {
+    const held = await recall();
+
+    if (held === null) {
+        return;
+    }
+
+    try {
+        const { data } = await request<{ data: { job?: { status: { value: string } } | null } }>(
+            `/providers/${held.provider}/jobs/${held.job}`,
+            { token },
+        );
+
+        if (data.job?.status.value !== 'enroute') {
+            await stopWatching(held.job);
+        }
+    } catch (error) {
+        if (error instanceof ApiError && !error.isUnauthenticated) {
+            await stopWatching(held.job);
+        }
+    }
+}
+
+async function hasFence(): Promise<boolean> {
+    try {
+        return await Location.hasStartedGeofencingAsync(TASK);
+    } catch {
+        return false;
     }
 }
 
