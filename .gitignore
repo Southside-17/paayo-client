@@ -31,3 +31,7 @@ expo-env.d.ts
 
 # Firebase client config: environment specific, and regenerated per project.
 google-services.json
+
+# Code signing: the certificate is committed, the private key never is.
+certs/private-key.pem
+certs/public-key.pem

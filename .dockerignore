@@ -1,0 +1,38 @@
+# Native projects are CNG-generated and never needed for a JS export.
+/android
+/ios
+
+# Build outputs, including the Xcode archive that lives here untracked.
+/build
+/dist
+/web-build
+*.apk
+*.aab
+*.ipa
+
+# Dependencies and caches
+/node_modules
+/.expo
+/.metro-health-check*
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.keystore
+*.jks
+certs/private-key.pem
+certs/public-key.pem
+
+# Non-runtime
+/.git
+/.github
+/.ai
+/.claude
+/.cursor
+/.vscode
+/server/bundles/.gitkeep
+AGENTS.md
+CLAUDE.md
+README.md
+.DS_Store

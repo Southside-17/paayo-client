@@ -1,0 +1,10 @@
+{
+    "ios": {
+        "version": "0.1.0",
+        "url": "https://apps.apple.com/ph/app/paayo/id0000000000"
+    },
+    "android": {
+        "version": "0.1.0",
+        "url": "https://play.google.com/store/apps/details?id=com.paayo.ph"
+    }
+}

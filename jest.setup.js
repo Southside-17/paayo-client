@@ -13,6 +13,11 @@ jest.mock('expo-secure-store', () => {
 
 jest.mock('expo-constants', () => ({ deviceName: 'Test Device' }));
 
+// The native version is read from the app bundle, which jest has none of. A
+// build well above any floor is the default, so the update gate stays out of
+// every test that is not about it.
+jest.mock('expo-application', () => ({ nativeApplicationVersion: '9.9.9' }));
+
 // Passkeys are a platform capability and jest has no authenticator. Off by
 // default so a screen renders the way it does on a device without one; a test
 // that wants the button turns isSupported on for itself.

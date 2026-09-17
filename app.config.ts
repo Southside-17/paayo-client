@@ -27,6 +27,21 @@ const config: ExpoConfig = {
     scheme: ['paayo', 'com.paayo.ph'],
     userInterfaceStyle: 'automatic',
     icon: './assets/images/icon.png',
+    // `fingerprint` rather than a hand-kept string: android/ and ios/ are
+    // CNG-generated and never committed, so the only honest answer to "does this
+    // JS bundle match this native build" is a hash of the native inputs. It moves
+    // exactly when a rebuild is genuinely required, and an install only ever
+    // accepts a manifest whose runtimeVersion equals its own.
+    runtimeVersion: { policy: 'fingerprint' },
+    updates: {
+        url: 'https://updates.paayo.ph/manifest',
+        // The certificate is committed and compiled into the binary; the matching
+        // private key lives only on the update host. A manifest not signed by it
+        // is refused by the client before a single asset is fetched.
+        codeSigningCertificate: './certs/certificate.pem',
+        codeSigningMetadata: { keyid: 'main', alg: 'rsa-v1_5-sha256' },
+        fallbackToCacheTimeout: 0,
+    },
     android: {
         package: 'com.paayo.ph',
         // Firebase Cloud Messaging reads the sender id out of this file. Without

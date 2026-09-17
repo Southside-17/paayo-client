@@ -1,3 +1,4 @@
+import { nativeApplicationVersion } from 'expo-application';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
@@ -133,6 +134,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
         Accept: 'application/json',
         ...(body && !file ? { 'Content-Type': 'application/json' } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        'X-App-Version': nativeApplicationVersion ?? '',
     };
 
     const url = `${API_URL}${PREFIX}${path}`;

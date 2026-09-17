@@ -5,6 +5,7 @@ import { useColorScheme } from 'nativewind';
 import { useEffect } from 'react';
 import { ActivityIndicator, LogBox, View } from 'react-native';
 
+import { UpdateGate } from '@/components/update-gate';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { request } from '@/lib/api';
@@ -168,6 +169,8 @@ export default function RootLayout() {
                     <RootNavigator />
                 </WorkspaceProvider>
             </SessionProvider>
+
+            <UpdateGate />
 
             <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
         </ThemeProvider>
