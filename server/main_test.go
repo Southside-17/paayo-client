@@ -91,7 +91,7 @@ func fixture(t *testing.T) (*server, *rsa.PrivateKey) {
 		t.Fatalf("new signer: %v", err)
 	}
 
-	return &server{catalog: catalog, signer: signer, base: "https://updates.paayo.ph"}, key
+	return &server{catalog: catalog, signer: signer, base: "https://ota.paayo.ph"}, key
 }
 
 func ask(t *testing.T, app *server, headers map[string]string) *http.Response {
@@ -186,7 +186,7 @@ func TestManifestIsServedForAKnownRuntimeVersion(t *testing.T) {
 		t.Errorf("id was %q", manifest.ID)
 	}
 
-	want := "https://updates.paayo.ph/assets/e1/_expo/static/js/android/entry-abc.hbc"
+	want := "https://ota.paayo.ph/assets/e1/_expo/static/js/android/entry-abc.hbc"
 	if manifest.LaunchAsset.URL != want {
 		t.Errorf("launchAsset url was %q", manifest.LaunchAsset.URL)
 	}

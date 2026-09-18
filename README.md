@@ -33,7 +33,7 @@ flowchart LR
     app["Paayo<br/>React Native + Expo"]
 
     app -->|"bearer token"| api["www.paayo.ph<br/>/api/v1"]
-    app -->|"manifest, version floor"| updates["updates.paayo.ph"]
+    app -->|"manifest, version floor"| updates["ota.paayo.ph"]
     push["APNs / FCM"] -->|"device token"| app
     app -->|"POST /devices"| api
 ```
@@ -53,7 +53,7 @@ server at `POST /devices`, which is also what gets deleted on sign-out.
 
 The app ships its own updates. There is **no EAS** here: no `eas.json`, no
 project id, no channels. `app.config.ts` points `expo-updates` at
-`https://updates.paayo.ph`, which is the small Go server in
+`https://ota.paayo.ph`, which is the small Go server in
 [`server/`](server/README.md) — bundles baked into an image, deployed by pushing
 a tag.
 

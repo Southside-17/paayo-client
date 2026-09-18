@@ -7,7 +7,7 @@ import { AppState, Platform } from "react-native";
  * the lowest native version the app may still run at.
  */
 export const UPDATES_URL =
-  process.env.EXPO_PUBLIC_UPDATES_URL ?? "https://updates.paayo.ph";
+  process.env.EXPO_PUBLIC_UPDATES_URL ?? "https://ota.paayo.ph";
 
 /** The floor for one platform, as `GET /minimum` answers it. */
 export type Floor = { version: string; url: string };

@@ -34,7 +34,7 @@ const config: ExpoConfig = {
     // accepts a manifest whose runtimeVersion equals its own.
     runtimeVersion: { policy: 'fingerprint' },
     updates: {
-        url: 'https://updates.paayo.ph/manifest',
+        url: 'https://ota.paayo.ph/manifest',
         // The certificate is committed and compiled into the binary; the matching
         // private key lives only on the update host. A manifest not signed by it
         // is refused by the client before a single asset is fetched.
