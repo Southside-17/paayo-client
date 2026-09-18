@@ -24,7 +24,89 @@ never have reached iOS.
 
 ---
 
-## 1. Prerequisites
+## Architecture
+
+### What it talks to
+
+```mermaid
+flowchart LR
+    app["Paayo<br/>React Native + Expo"]
+
+    app -->|"bearer token"| api["www.paayo.ph<br/>/api/v1"]
+    app -->|"manifest, version floor"| updates["updates.paayo.ph"]
+    push["APNs / FCM"] -->|"device token"| app
+    app -->|"POST /devices"| api
+```
+
+One `request()` in `src/lib/api.ts` over `fetch` — an `XMLHttpRequest` path
+exists only because uploads need progress. The token lives in
+`expo-secure-store` under `paayo.token` (`src/lib/tokens.ts`) and everything
+above it is React context: `src/lib/session.tsx` holds the signed-in user,
+`workspace.tsx` the provider being acted for. There is no Redux, no Zustand and
+no React Query; the server is the state, and a screen asks for what it needs.
+
+The push token comes from APNs or FCM **directly** —
+`getDevicePushTokenAsync()`, not Expo's push service — and is handed to the
+server at `POST /devices`, which is also what gets deleted on sign-out.
+
+### Over-the-air updates
+
+The app ships its own updates. There is **no EAS** here: no `eas.json`, no
+project id, no channels. `app.config.ts` points `expo-updates` at
+`https://updates.paayo.ph`, which is the small Go server in
+[`server/`](server/README.md) — bundles baked into an image, deployed by pushing
+a tag.
+
+```mermaid
+flowchart LR
+    change["A change"]
+    change -->|"src/** only"| ota["expo export<br/>-> stage.mjs<br/>-> update image"]
+    change -->|"app.config.ts, a plugin,<br/>a native dependency"| native["scripts/build.mjs<br/>-> APK / IPA"]
+
+    ota -->|"next launch"| phone["Installed app"]
+    native -->|"installed by hand"| phone
+```
+
+Which branch a change takes is not a judgement call, because
+`runtimeVersion: { policy: 'fingerprint' }` decides it. The fingerprint hashes
+the native inputs, and an install accepts **only** a manifest whose
+`runtimeVersion` equals its own. So:
+
+| Changed | Fingerprint | Reaches a phone by |
+| --- | --- | --- |
+| anything under `src/`, `assets/` | unchanged | OTA, on next launch |
+| `app.config.ts`, a config plugin, a native dependency | moves | a new build — [§5](#5-building) |
+
+Two consequences fall straight out of that rule, and both are the update
+server's problem rather than the app's:
+
+- **Old fingerprints have to be kept.** An image holding only the newest one
+  leaves every phone on an older native build with `noUpdateAvailable` forever,
+  which is indistinguishable from being up to date. `server/bundles/` carries
+  earlier exports forward.
+- **So there is a floor.** `server/minimum.json` answers
+  `GET /minimum?platform=…` with the lowest version still allowed;
+  `useVersionFloor()` in `src/lib/updates.ts` checks it on resume and
+  `UpdateGate` blocks the app below it. A phone that cannot reach the host is
+  deliberately left alone — an unanswered request is a network problem, and
+  locking someone out over one is worse than serving a version we would rather
+  retire.
+
+Manifests are RSA-SHA256 code-signed. The certificate in `certs/` is compiled
+into the binary and the private key lives only on the update host, so an
+unsigned manifest is refused before a single asset is fetched.
+
+### One coupling worth naming
+
+The palette, the service icons and the wordmark are **generated from the
+server**, not written here, so the two clients cannot drift apart. That is an
+architectural dependency on `../server` at build time, and it is why several
+files under `src/` must never be hand-edited — see
+[Generated files](#generated-files).
+
+---
+
+## 2. Prerequisites
 
 ```sh
 brew install node cocoapods
@@ -47,7 +129,7 @@ Two things about the JDK, both of which will cost you an afternoon otherwise:
 No Apple Developer account is needed for simulator builds, and none is needed
 for Android at all.
 
-## 2. Setup
+## 3. Setup
 
 ```sh
 npm install
@@ -116,7 +198,7 @@ Cloud console. They must be the same three the server lists in
 and the signing SHA-1, with nothing enabled on it but **Maps SDK for Android**.
 Cost is nothing — the native map draws an unmetered SKU.
 
-## 3. Running
+## 4. Running
 
 ```sh
 npm run android            # emulator, or the attached device if there is one
@@ -160,7 +242,7 @@ connections** on: it overrides per-app allowances, so permitting `node` does
 nothing while it is set. And the server's `AWS_ENDPOINT` must carry the same LAN
 address, or the app will authenticate fine and then show no images.
 
-## 4. Building
+## 5. Building
 
 ```sh
 npm run build              # both platforms, pointed at production
@@ -230,7 +312,7 @@ hand. That IPA will not install directly; it is the input a sideloader
 A free Personal Team signs for **7 days**. When a build that worked yesterday
 refuses to launch, re-run `npm run ios:device`; nothing is wrong.
 
-## 5. Maintenance
+## 6. Maintenance
 
 ```sh
 npm run ci              # lint, types, tests — what to run before pushing
