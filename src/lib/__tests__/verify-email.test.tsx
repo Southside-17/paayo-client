@@ -61,6 +61,11 @@ it('clears the warning when another email is sent', async () => {
     fireEvent.press(screen.getByText('I have confirmed it'));
     expect(await screen.findByText(stillWaiting)).toBeOnTheScreen();
 
+    // The warning arrives while the check is still in flight, and both buttons
+    // are disabled for as long as it is. Pressing on that render is swallowed
+    // by the Pressable and nothing resends -- so wait for the button to come
+    // back rather than for the machine to be quick.
+    await waitFor(() => expect(screen.getByText('Send another email')).toBeEnabled());
     fireEvent.press(screen.getByText('Send another email'));
 
     await waitFor(() => expect(screen.queryByText(stillWaiting)).toBeNull());

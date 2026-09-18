@@ -1,3 +1,10 @@
+// A two-core CI runner renders these screens several times slower than a
+// laptop does, and a wait that is generous here costs nothing when the machine
+// is quick: waitFor only sleeps until the assertion passes. The defaults -- 5s
+// a test, 1s an async utility -- are what a loaded runner overruns first.
+const { configure } = require('@testing-library/react-native');
+
+configure({ asyncUtilTimeout: 5000 });
 
 // The token store is Keychain/Keystore backed; tests use an in-memory stand-in.
 jest.mock('expo-secure-store', () => {
