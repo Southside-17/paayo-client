@@ -36,3 +36,14 @@ adoption, then drop the directory.
 `UPDATES_ROOT` (default `/srv/updates`), `PORT` (8000), `PUBLIC_URL` and
 `CODE_SIGNING_KEY_ID` (`main`) are the other knobs. Without a key it refuses to
 start.
+
+`compose.yaml` in the repo root builds and runs the same thing as `paayo-client`,
+on port 44800 and its own `paayo-client-network`:
+
+    CODE_SIGNING_KEY="$(cat certs/private-key.pem)" docker compose up -d --build
+
+The key comes from the shell rather than `.env` -- a PEM is multi-line and dotenv
+parsing of one is a trap. Without it the container exits immediately with
+`updates: CODE_SIGNING_KEY is not set`. `EXPO_PUBLIC_API_URL` and
+`EXPO_PUBLIC_PASSKEY_DOMAIN` are build args, not runtime environment: Babel
+inlines them at export time, so changing one means `--build`.

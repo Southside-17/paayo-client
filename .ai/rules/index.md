@@ -12,3 +12,4 @@ Before planning or editing, find the row whose globs match the file's path and r
 | src/lib/icons.ts, scripts/sync-icons.mjs, src/components/trade-icon.tsx, types/tabler-icons.d.ts | .ai/rules/general.md |
 | src/lib/logo.ts, src/components/app-logo.tsx, scripts/sync-logo.mjs, scripts/render-icons.mjs, scripts/lib/**, assets/images/** | .ai/rules/logo.md |
 | package.json, app.config.ts, scripts/with-android-env.mjs, android/**, ios/** | .ai/rules/toolchain.md |
+| Dockerfile, .dockerignore, compose.yaml, server/** | .ai/rules/deployment.md |

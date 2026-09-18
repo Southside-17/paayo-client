@@ -1,0 +1,47 @@
+# The OTA update server, built from this repo's Dockerfile.
+#
+# One service, its own network. It is deliberately NOT joined to
+# paayo-server-network: the update server knows nothing about paayo-server and
+# paayo-server knows nothing about it, and a shared bridge would be the first
+# thing to suggest otherwise.
+services:
+    paayo-client:
+        build:
+            context: .
+            # EXPO_PUBLIC_* is inlined into the bundle by Babel at export time,
+            # so these are build inputs, not runtime environment. Changing one
+            # means a rebuild, not a restart.
+            args:
+                EXPO_PUBLIC_API_URL: '${EXPO_PUBLIC_API_URL:-https://www.paayo.ph}'
+                EXPO_PUBLIC_PASSKEY_DOMAIN: '${EXPO_PUBLIC_PASSKEY_DOMAIN:-www.paayo.ph}'
+        image: 'paayo-client:${IMAGE_TAG:-latest}'
+        container_name: paayo-client
+        restart: unless-stopped
+        environment:
+            PORT: 8000
+            UPDATES_ROOT: /srv/updates
+            # Prefixed onto every asset URL in a manifest. Empty serves relative
+            # ones, which is right behind a proxy that keeps the path.
+            PUBLIC_URL: '${CLIENT_PUBLIC_URL:-}'
+            CODE_SIGNING_KEY_ID: '${CODE_SIGNING_KEY_ID:-main}'
+            # From the shell, never from .env -- a PEM is multi-line and dotenv
+            # parsing of one is a trap:
+            #
+            #   CODE_SIGNING_KEY="$(cat certs/private-key.pem)" docker compose up -d
+            #
+            # Not `${CODE_SIGNING_KEY:?...}`. Compose interpolates the whole file
+            # for every subcommand, so a required-variable marker here makes
+            # `down`, `logs` and `ps` fail too -- including the `down` you need to
+            # clean up. Missing is not silent regardless: the binary exits with
+            # `updates: CODE_SIGNING_KEY is not set`.
+            CODE_SIGNING_KEY: '${CODE_SIGNING_KEY:-}'
+        ports:
+            - '${CLIENT_PORT:-44800}:8000'
+        networks:
+            - paayo-client-network
+        # No healthcheck: distroless/static has no shell to run one in. Probe
+        # GET /up from outside.
+networks:
+    paayo-client-network:
+        name: paayo-client-network
+        driver: bridge

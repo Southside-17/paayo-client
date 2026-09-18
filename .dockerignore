@@ -32,6 +32,7 @@ certs/public-key.pem
 /.cursor
 /.vscode
 /server/bundles/.gitkeep
+compose.yaml
 AGENTS.md
 CLAUDE.md
 README.md
