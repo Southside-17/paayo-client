@@ -156,6 +156,10 @@ describe('changing somebody', () => {
                 body: { role: 'technician' },
             }),
         );
+
+        // Sending it is half of it: the sheet closes and the roster is read
+        // again once the change goes through, and both land after the call.
+        await waitFor(() => expect(screen.queryByLabelText('This person')).toBeNull());
     });
 
     // The rule is visible before the tap, not a 422 after it.
@@ -216,6 +220,8 @@ describe('changing somebody', () => {
                 { method: 'POST', body: undefined },
             ),
         );
+
+        await waitFor(() => expect(screen.queryByLabelText('This person')).toBeNull());
     });
 });
 
@@ -240,6 +246,8 @@ describe('inviting somebody', () => {
                 body: { email: 'bea@example.com', role: 'technician' },
             }),
         );
+
+        await waitFor(() => expect(screen.queryByLabelText('Invite somebody')).toBeNull());
     });
 
     // Clearing on dismiss is watched happening: the error blinks out under the
@@ -318,6 +326,8 @@ describe('the technician', () => {
         await waitFor(() =>
             expect(request).toHaveBeenCalledWith('/providers/p1/resignation', { method: 'POST' }),
         );
+
+        await waitFor(() => expect(screen.queryByLabelText('Ask to leave')).toBeNull());
     });
 
     it('can take the request back, and is told when it goes through on its own', () => {

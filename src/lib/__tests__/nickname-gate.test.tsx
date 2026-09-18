@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react-native';
+import { act, render, screen } from '@testing-library/react-native';
 
 import AppLayout from '@/app/(app)/_layout';
 import { useSession } from '@/lib/session';
@@ -51,12 +51,17 @@ it('holds an empty nickname once the address is confirmed', () => {
     expect(screen.getByText('redirect:/set-nickname')).toBeOnTheScreen();
 });
 
-it('lets a complete account through', () => {
+it('lets a complete account through', async () => {
     signedInAs({});
 
     render(<AppLayout />);
 
     expect(screen.getByText('app')).toBeOnTheScreen();
+
+    // Nothing else here mounts the app itself, and with it the addresses
+    // provider, whose first read answers after the assertion. Letting it settle
+    // keeps that update inside the test.
+    await act(async () => {});
 });
 
 it('lets go of the address gate once the address is confirmed', () => {

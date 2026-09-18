@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { create, isSupported } from 'react-native-passkeys';
 
 import { PasskeyCard } from '@/components/passkey-card';
@@ -30,13 +30,18 @@ beforeEach(() => {
     jest.mocked(create).mockReset();
 });
 
-it('says nothing on a device that cannot hold a passkey', () => {
+it('says nothing on a device that cannot hold a passkey', async () => {
     jest.mocked(isSupported).mockReturnValue(false);
     signedIn(jest.fn().mockResolvedValue({ data: [] }));
 
     render(<PasskeyCard />);
 
     expect(screen.queryByText('Passkeys')).toBeNull();
+
+    // The card draws nothing here but still asks what the account holds, and
+    // that answer lands after the assertion. Letting it settle keeps the state
+    // it sets inside the test rather than after it has finished.
+    await act(async () => {});
 });
 
 it('lists what the account holds', async () => {
