@@ -28,6 +28,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # expo-env.d.ts is generated, and gitignored on Expo's own advice, so a
+      # fresh checkout has no declaration for the `global.css` side-effect
+      # import and tsc alone fails on it. `customize` writes the file back;
+      # tsconfig.json is committed and it leaves that one as it found it.
+      - name: Generate Expo types
+        run: npx expo customize tsconfig.json
+
       # The suite never reaches a device or the network: no simulator, no
       # Metro, no .env. jest-expo runs the components under react-test-renderer
       # and the native modules are mocked, so a plain runner is the whole
